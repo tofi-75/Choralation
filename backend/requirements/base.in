@@ -1,0 +1,7 @@
+# Exact direct dependencies from M0; resolved transitive pins live in base.txt.
+Django==5.2.17
+djangorestframework==3.18.1
+django-filter==26.2
+drf-spectacular==0.30.0
+psycopg[binary]==3.3.6
+dj-database-url==3.1.2

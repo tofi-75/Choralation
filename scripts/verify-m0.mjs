@@ -16,7 +16,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const ignoredDirectories = new Set(['.git', '.venv', 'node_modules', '.cache']);
+const ignoredDirectories = new Set([
+  '.git', '.venv', 'node_modules', '.cache', '.local', 'dist', 'build',
+  'coverage', 'test-results', 'playwright-report', '__pycache__', '.pytest_cache',
+]);
 const failures = [];
 const results = [];
 
@@ -171,7 +174,7 @@ await check('Dependency baseline', async () => {
   assert.equal(baseline.node.react, baseline.node['react-dom']);
   assert.equal(baseline.node.tailwindcss, baseline.node['@tailwindcss/vite']);
   assert.match(baseline.node.typescript, /^6\.0\./, 'Selected TypeScript must respect inspected lint peer range');
-  return `${Object.keys(baseline.python).length} Python and ${Object.keys(baseline.node).length} npm selections; installation unverified`;
+  return `${Object.keys(baseline.python).length} Python and ${Object.keys(baseline.node).length} npm selections; historical M0 baseline, not an installation check`;
 });
 
 await check('Fixture relationships and ordering', async () => {
@@ -259,5 +262,5 @@ console.log(`Source SHA-256: ${sourceHash}`);
 if (failures.length > 0) {
   process.exitCode = 1;
 } else {
-  console.log('M0 static verification passed. Application implementation and human usability acceptance remain unverified.');
+  console.log('M0 static verification passed. This verifier does not assess application execution or human usability; see milestone reports for implementation evidence.');
 }

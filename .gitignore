@@ -28,6 +28,7 @@ dist/
 build/
 coverage/
 .vite/
+*.tsbuildinfo
 playwright-report/
 test-results/
 .playwright/

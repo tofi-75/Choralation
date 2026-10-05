@@ -1,6 +1,6 @@
 # Delivery backlog and accountability
 
-**Baseline:** October 6, 2026. M0 engineering work is complete; M1–M7 have not started.  
+**Baseline:** October 6, 2026. M0 and M1 engineering work is complete; M2–M7 have not started. Container execution and coordinator review remain pending.  
 **Accountable implementation owner for every milestone:** Codex, working in this project/chat. Backend, frontend, and quality roles below are responsibility areas for that owner, not invented staffing assignments. No subagents have been delegated.  
 **Product reviewer:** Church music coordinator, not yet assigned; human acceptance remains pending.
 
@@ -17,6 +17,8 @@ Follow the [development plan](../DEVELOPMENT_PLAN.md) for complete milestone gat
 | M0.5 Acceptance fixtures | Quality | [Symbolic fixture](fixtures/m0-scenarios.json), expected results, read-only verifier |
 
 ## M1 — Authentication preview
+
+**Status:** Implemented. [Completion report](m1-report.md) records the 27 backend, 8 frontend, and 6 real-browser checks and operational limits. The tickets below describe the delivered scope; M2 is next.
 
 **Depends on:** M0. **Acceptance scenario:** A01. **Pilot evidence:** Verified clean database setup, login/logout, CSRF failures, role resolution, protected shell, real-browser smoke. No feature placeholders.
 
@@ -113,7 +115,7 @@ Finalization appears only with history in M4; recommendations only in M5.
 - [x] Compatibility mismatch resolved without ignoring peer requirements.
 - [x] Deterministic fixtures and next-milestone acceptance script supplied.
 - [x] Documentation standards and project-only write boundary recorded.
-- [ ] Establish working Python/npm/PostgreSQL tooling within the permitted boundary during M1.
+- [x] Establish working Python/npm/PostgreSQL tooling within the permitted boundary during M1.
 - [ ] Assign a coordinator and gather product walkthrough feedback; this remains external review, not a claimed completed acceptance test.
 
 No approved deployment target, timeline commitment, or human staffing assignment is implied by this backlog.

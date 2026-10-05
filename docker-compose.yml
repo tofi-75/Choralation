@@ -1,0 +1,35 @@
+# Development convenience. Portable Windows PostgreSQL is the tested alternative.
+services:
+  db:
+    image: postgres:18.6@sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722
+    environment:
+      POSTGRES_DB: choralation
+      POSTGRES_USER: choralation
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      # Project bind mount honors the project-only storage boundary.
+      - ./.local/docker-postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U choralation -d choralation"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Set DJANGO_SECRET_KEY in .env}
+      DJANGO_DEBUG: "true"
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+      DATABASE_URL: postgresql://choralation:${POSTGRES_PASSWORD}@db:5432/choralation
+      APP_TIME_ZONE: Asia/Beirut
+      CSRF_TRUSTED_ORIGINS: http://127.0.0.1:5173,http://localhost:5173
+    ports:
+      - "127.0.0.1:8000:8000"
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000", "--noreload"]
+    depends_on:
+      db:
+        condition: service_healthy

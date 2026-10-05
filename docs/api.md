@@ -1,6 +1,6 @@
 # API contract — implementation baseline
 
-**Date:** October 6, 2026. **Status:** M0 contract; endpoints are not implemented.  
+**Date:** October 6, 2026. **Status:** M1 session endpoints and protected JSON OpenAPI schema are implemented. Domain endpoints in sections 4 onward remain planned for their stated milestones.  
 **Owner:** Implementation owner. **Base:** `/api/v1/`.  
 Changes to this contract must update [architecture decisions](architecture.md), frontend types, OpenAPI schemas, and relevant tests together.
 
@@ -12,7 +12,7 @@ Optional metadata reads as null when empty; lists read as `[]`, never null. Unkn
 
 Paginated collections return `{count, next, previous, results}`. `next`/`previous` are URLs or null. `page` starts at 1, `page_size` defaults to 25 and accepts only 25/50/100. Invalid sizes return 400; nonexistent pages return 404. Query parameters with invalid format/value return 400, not silently ignored.
 
-App reads require authentication, except CSRF bootstrap, login, and infrastructure liveness. Authenticated Viewer reads all team data. Permissions in [ADR-002](architecture.md) apply to each write action. Protected API schema/docs require authenticated access in production.
+App reads require authentication, except CSRF bootstrap, login, and infrastructure health checks. Authenticated Viewer reads all team data. Permissions in [ADR-002](architecture.md) apply to each write action. The implemented `GET /api/v1/schema/` requires authentication in development and production and returns JSON OpenAPI. No interactive docs route is exposed yet.
 
 ## 2. Sessions and CSRF — M1
 
@@ -22,6 +22,10 @@ App reads require authentication, except CSRF bootstrap, login, and infrastructu
 | `POST auth/login/` | JSON `{username, password}` with CSRF header/cookie; 200 current-user object and session cookie |
 | `GET auth/me/` | 200 `{id, username, role}`; anonymous request fails |
 | `POST auth/logout/` | Requires CSRF, clears current session; 204; repeating safely remains 204 |
+
+Only `{}` or an empty body is accepted by logout; unknown login/logout fields return 400. Identity reads return `Cache-Control: no-store`. Passwords use Django validation and hashing during provisioning. Superusers resolve to Admin; otherwise group precedence is Admin, Planner, Viewer, then ungrouped Viewer. Django staff status alone never grants application Admin privileges.
+
+Infrastructure endpoints are `GET /health/live/` (process liveness) and `GET /health/ready/` (database connectivity). Readiness returns generic 503 when unavailable; neither exposes credentials or database details. Readiness does not check migration drift; run the separate migration/check commands before starting the app. Django does not serve the frontend.
 
 Client sends same-origin credentials and `X-CSRFToken` on unsafe requests. Fetch a fresh CSRF bootstrap after login because Django rotates the token. Use Django's explicit CSRF protection on the anonymous login route, not only DRF SessionAuthentication. Never send passwords in URLs or logs. Invalid credentials return a generic 400 code `invalid_credentials`; missing/invalid CSRF returns 403 code `csrf_failed`.
 

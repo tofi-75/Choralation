@@ -1,6 +1,6 @@
-# Dependency selection — M0
+# Dependency decisions — M0 and M1
 
-**Verified:** October 6, 2026. **State:** Exact direct-version selections, not an installed or fully resolved environment. No package manager, browser, container, or global tool was installed during M0.
+**Verified:** October 6, 2026. **State:** M0 direct selections are now installed and resolved in M1 on Windows. Python version locks and npm's generated lock are committed; container execution remains unverified. No global tool/configuration was changed.
 
 ## Runtime decisions
 
@@ -9,14 +9,14 @@
 | Python | 3.14.8, regular CPython build | Current bugfix-series release at verification; [Python releases](https://www.python.org/downloads/) |
 | Django | 5.2.17 LTS | Supported LTS with extended support through April 2028; [supported releases](https://www.djangoproject.com/download/) |
 | PostgreSQL | 18.6 | Supported stable series; [version policy](https://www.postgresql.org/support/versioning/) and [release notes](https://www.postgresql.org/docs/release/18.6/) |
-| Node | 24.21.0 LTS | Supported LTS baseline; [Node downloads](https://nodejs.org/en/download) |
-| Frontend package manager | npm bundled with the selected Node distribution | Capture its exact version in M1's `packageManager` field after verification; no global install |
+| Node | 24.19.0, supported 24.x | M1 uses the available executable copied into `.local/node`; corrects M0's proposed 24.21.0; [Node downloads](https://nodejs.org/en/download) |
+| Frontend package manager | npm 11.21.0 | Project-local archive verified against registry SHA512; `packageManager` captures this version |
 
-Django 5.2 explicitly supports Python 3.14 starting with 5.2.8; see its [release notes](https://docs.djangoproject.com/en/5.2/releases/5.2/). Python 3.15 was still presented as prerelease by the checked page, so it is not selected. PostgreSQL exact image tag/digest must be verified against the container registry in M1; do not fabricate a digest or use a floating `latest` tag.
+Django 5.2 explicitly supports Python 3.14 starting with 5.2.8; see its [release notes](https://docs.djangoproject.com/en/5.2/releases/5.2/). Python 3.15 was still presented as prerelease by the checked page, so it is not selected. Container digests were verified through the official Docker Hub registry in M1 and are recorded below.
 
 ## Direct dependency pins
 
-Machine-readable version selections are in [dependency-baseline.json](dependency-baseline.json). Registry metadata was retrieved read-only from each package's official PyPI/npm JSON endpoint. Links below are the corresponding primary package records. These pins are selection evidence; only M1 installation can establish the fully resolved dependency set and build compatibility.
+Machine-readable M0 selections are preserved in [dependency-baseline.json](dependency-baseline.json). Registry metadata was retrieved from official PyPI/npm records linked below. M1 retains all direct package selections, records actual npm/Node in `frontend/package.json`, and verifies installation/build compatibility. Resolved files are linked below.
 
 | Backend package | Version | Purpose |
 | --- | --- | --- |
@@ -31,7 +31,7 @@ Machine-readable version selections are in [dependency-baseline.json](dependency
 | [pytest-django](https://pypi.org/project/pytest-django/4.14.0/) | 4.14.0 | Django test integration |
 | [ruff](https://pypi.org/project/ruff/0.16.10/) | 0.16.10 | Lint and formatting; no separate Black |
 
-DRF 3.18.1 and django-filter 26.2 declare Django >=5.2. The chosen Django/DRF/filter/psycopg/pytest-django records declare Python 3.14 support. Transitive wheel availability remains an installation check. Do not add django-cors-headers for the selected same-origin topology.
+DRF 3.18.1 and django-filter 26.2 declare Django >=5.2. The chosen Django/DRF/filter/psycopg/pytest-django records declare Python 3.14 support. Windows wheel installation and checks passed. Do not add django-cors-headers for the selected same-origin topology.
 
 | Frontend/runtime package | Version |
 | --- | --- |
@@ -62,17 +62,31 @@ Choose a small Radix-based accessible custom component layer. Add further primit
 | [typescript-eslint](https://registry.npmjs.org/typescript-eslint/8.71.1) | 8.71.1 |
 | [prettier](https://registry.npmjs.org/prettier/3.9.9) | 3.9.9 |
 
-**Compatibility decision:** Registry `latest` for TypeScript was 7.0.2, but typescript-eslint 8.71.1 declares `>=4.8.4 <6.1.0`. Select TypeScript 6.0.3 instead. Vite's React plugin requires Vite 8; Vitest 5 accepts Vite 8. Node 24.21.0 satisfies the inspected Node requirements, including jsdom's >=24.15.0 branch. Do not use `--force` or ignore peer errors to claim a valid install.
+**Compatibility decision:** Registry `latest` for TypeScript was 7.0.2, but typescript-eslint 8.71.1 declares `>=4.8.4 <6.1.0`. TypeScript 6.0.3 is installed. Vite's React plugin requires Vite 8; Vitest 5 accepts Vite 8. Actual Node 24.19.0 satisfies the inspected requirements, including jsdom's >=24.15.0 branch. npm installation, type checks, tests, and build passed without force or ignored peer errors.
 
-## M1 reproducibility work
+## Original M1 reproducibility checklist
 
-1. Establish usable Python/npm and PostgreSQL tooling without violating the project-only write constraint. Containers may supply Python/PostgreSQL if a Docker host is already available. If installing a host runtime is necessary, that is separate work requiring a change to the current boundary.
+1. Establish usable Python/npm and PostgreSQL tooling without violating the project-only write constraint. M1 uses portable archives and an existing copied Node executable; no host installer or service is needed.
 2. Create project-local `.venv`, package caches, generated schema/test directories, and browser storage. Set each tool's relevant cache variables before installation (not user/system environment configuration).
 3. Create exact direct Python inputs and resolve a fully pinned requirements set, including transitive dependencies, with hashes where supported. Install and test it under Python 3.14; keep Gunicorn production-specific.
 4. Create frontend `package.json` with exact versions and a real `package-lock.json` using npm. Capture the exact npm version. Use `npm ci` for subsequent reproducible installs.
 5. Verify engine/peer compatibility, installed versions, Python imports, frontend build, TypeScript checking, and the M1 checks. Lock files are generated by real tools, never handwritten claims of resolution.
 6. Pin container versions/digests after checking registry availability. Record any required version correction with its source and rerun compatibility checks.
 
-## Observed local environment
+## M0 observed environment
 
 Read-only PATH inspection found Git and Node 24.19.0. Python/`py`, npm, and Docker were absent from PATH. This does not establish that they are absent everywhere on disk or that Docker's daemon is unavailable; M1 can inspect a known existing installation. No global/profile files were inspected or changed to configure the environment.
+
+## M1 resolved environment and provenance
+
+The [bootstrap script](../scripts/bootstrap.ps1) installs exact portable tools into ignored `.local`, installs [backend development requirements](../backend/requirements/dev.txt), and runs npm ci against [the generated npm lock](../frontend/package-lock.json). [Base](../backend/requirements/base.txt) and [Linux production](../backend/requirements/production.txt) requirements share exact pins. [The lock generator](../scripts/lock-backend.py) follows successfully installed metadata and validates dependency specifiers/extras. Python locks contain version pins without artifact hashes and were verified on Windows; Linux production installation remains unverified.
+
+| Artifact | Primary source and verification |
+| --- | --- |
+| Python 3.14.8 Windows x64 full portable ZIP | [Official archive](https://www.python.org/ftp/python/3.14.8/python-3.14.8-amd64.zip); SHA256 `4873947a8afc037846b180312b83c744a4146a851cfd316a75c3125a4d8299da` from official install-manager release metadata |
+| npm 11.21.0 | [Registry record](https://registry.npmjs.org/npm/11.21.0); archive integrity checked against its published SHA512, captured in bootstrap |
+| PostgreSQL 18.6 Windows x64 binaries | [EDB archive](https://get.enterprisedb.com/postgresql/postgresql-18.6-1-windows-x64-binaries.zip) linked by PostgreSQL's Windows download flow; observed/tested SHA256 `fbe23da234ee31547bf8a36d29dfd81e82b849df2d2b78d2eecb43d360252f8c` (a measured archive hash, not an independently published checksum) |
+| Python container | [Official tag metadata](https://hub.docker.com/v2/repositories/library/python/tags/3.14.8-slim); digest `sha256:c3e521df8b2b498a7a682e7e18676771cb80c6b75b8699af886b2d554ce40151` |
+| PostgreSQL container | [Official tag metadata](https://hub.docker.com/v2/repositories/library/postgres/tags/18.6); digest `sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722` |
+
+Docker configuration is supplied and pinned but not executed; Docker is unavailable on this machine. Installed Windows runtimes, PostgreSQL tests, frontend build, and browser smoke are verified in [the M1 report](m1-report.md). Update actual runtime/pin decisions here when intentionally upgrading; do not regenerate locks opportunistically to latest.

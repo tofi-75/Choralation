@@ -1,14 +1,14 @@
-# Architecture decisions — M0
+# Architecture decisions — M0 and M1
 
 **Decision date:** October 6, 2026. **Owner:** Implementation owner (Codex, this project).  
 **Authority:** [Source specification](../mass_hymn_picker_codex_spec.md) and [development plan](../DEVELOPMENT_PLAN.md).  
-**State:** Decisions accepted for implementation within the user's instruction to proceed with M0. No running application is claimed.
+**State:** Authentication/runtime foundations implemented in M1; domain decisions remain the baseline for M2–M7. See [M1 evidence](m1-report.md) for current behavior and limits.
 
 ## ADR-001 — Runtime and repository boundaries
 
 Use Django 5.2 LTS, DRF, PostgreSQL, and React/TypeScript/Vite. Exact initial selections are in [dependencies.md](dependencies.md) and [dependency-baseline.json](dependency-baseline.json). Django LTS is chosen for a small internal tool's maintenance horizon; unsupported or prerelease releases are excluded.
 
-Create the following structure in M1 and extend it as features arrive:
+Use the following boundaries, extending the M1 structure as features arrive:
 
 ```text
 backend/
@@ -29,7 +29,7 @@ docs/
 scripts/        # Documented project verification/setup helpers.
 ```
 
-These are intended boundaries, not existing scaffolding. Do not create a Django app per category. Models enforce storage invariants; serializers validate request shapes; services perform transactional changes; selectors implement shared read/usage queries; views handle HTTP and permissions. React never independently calculates authoritative usage or ranking.
+M1 implements config/accounts/common, authentication frontend/API, and tests/tooling. Hymns/masses and other feature folders arrive with their milestones. Do not create a Django app per category. Models enforce storage invariants; serializers validate request shapes; services perform transactional changes; selectors implement shared read/usage queries; views handle HTTP and permissions. React never independently calculates authoritative usage or ranking.
 
 Use PostgreSQL in development and integration tests. SQLite cannot establish PostgreSQL locking, constraint, or aggregate correctness. Start with synchronous request handling, one database, no Redis/job queue, no Redux, and no external search service.
 

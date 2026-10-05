@@ -2,8 +2,8 @@
 
 **Prepared:** October 5, 2026  
 **Source:** [mass_hymn_picker_codex_spec.md](mass_hymn_picker_codex_spec.md)  
-**Status:** M0 engineering preparation completed October 6, 2026; M1–M7 not started. No application code has been implemented. See [M0 report](docs/m0-report.md).  
-**Current repository:** Specification, delivery plan, M0 design documents/fixtures, and a read-only verification helper; no application scaffold.
+**Status:** M0 and M1 engineering work completed October 6, 2026. M2–M7 have not started. See [M0 report](docs/m0-report.md) and [M1 report](docs/m1-report.md). Coordinator acceptance remains pending.  
+**Current repository:** Documented Django/PostgreSQL and React application with session authentication, role policy, responsive shell, resolved dependencies, project-local setup, and automated checks. Container configuration is supplied but has not been executed on this machine.
 
 ## 1. Delivery objective
 
@@ -157,6 +157,8 @@ Allow an additional 20% contingency for discoveries and pilot feedback: roughly 
 **Gate:** Every planning default has an explicit recorded implementation decision. Each next milestone has an owner and a runnable acceptance scenario. A product walkthrough confirms that classification and recommendation filtering have intentionally different behavior.
 
 ### M1 — Running authenticated application
+
+**Engineering status:** Implemented and verified against real PostgreSQL and desktop/mobile browsers. See [M1 evidence and limits](docs/m1-report.md); [README](README.md) supplies the setup and demo commands. Docker execution and coordinator review remain unverified.
 
 **Usable increment:** An Admin, Planner, or Viewer can log in, navigate the shell, and log out.
 
@@ -467,4 +469,4 @@ The original phases are preserved in substance: foundation, hymn domain, plannin
 - [ ] README, environment examples, architecture/API docs, release notes, and known limitations are current.
 - [ ] Coordinator acceptance is recorded; no unresolved required-feature or data-integrity blocker remains.
 
-**Next implementation action:** Deliver M1 as the first running checkpoint using the completed M0 decisions/contracts. Establish usable project-local tooling first. Do not start the recommendation engine or optional imports before the underlying library, saved programs, and historical usage are verified.
+**Next implementation action:** Deliver M2's useful hymn library on the verified M1 authentication foundation. Start with classification/Hymn models, migrations, secured admin and idempotent category seeds, then deliver the API and usable library together. Do not start recommendations or optional imports before the library, saved programs, and historical usage are verified.
