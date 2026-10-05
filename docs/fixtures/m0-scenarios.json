@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "purpose": "Fictional, symbolic acceptance data. Not a production seed or directly loadable Django fixture.",
+  "reference_date": "2026-04-19",
+  "timezone": "Asia/Beirut",
+  "categories": {
+    "genres": [
+      {"key": "traditional", "name": "Traditional", "is_active": true},
+      {"key": "contemporary", "name": "Contemporary", "is_active": true},
+      {"key": "chant", "name": "Chant", "is_active": true},
+      {"key": "marian", "name": "Marian", "is_active": true},
+      {"key": "archived", "name": "Archived style", "is_active": false}
+    ],
+    "seasons": [
+      {"key": "easter", "name": "Easter", "is_active": true},
+      {"key": "lent", "name": "Lent", "is_active": true},
+      {"key": "ordinary", "name": "Ordinary Time", "is_active": true}
+    ],
+    "placements": [
+      {"key": "entrance", "name": "Entrance / Processional", "is_active": true, "display_order": 0},
+      {"key": "communion", "name": "Communion", "is_active": true, "display_order": 1},
+      {"key": "thanksgiving", "name": "Thanksgiving", "is_active": true, "display_order": 2},
+      {"key": "closing", "name": "Closing / Recessional", "is_active": true, "display_order": 3},
+      {"key": "meditation", "name": "Meditation", "is_active": false, "display_order": 4}
+    ],
+    "languages": [
+      {"key": "arabic", "name": "Arabic", "is_active": true},
+      {"key": "english", "name": "English", "is_active": true},
+      {"key": "french", "name": "French", "is_active": true},
+      {"key": "syriac", "name": "Syriac", "is_active": true}
+    ],
+    "tags": [
+      {"key": "mary", "name": "Mary", "is_active": true},
+      {"key": "prayer", "name": "Prayer", "is_active": true},
+      {"key": "peace", "name": "Peace", "is_active": true},
+      {"key": "resurrection", "name": "Resurrection", "is_active": true}
+    ]
+  },
+  "hymns": [
+    {"key": "H_RECENT", "title": "Example Hymn", "alternate_title": "Mary's Easter Song", "first_line": "A prayer of peace", "composer": "Fictional Composer", "source_or_hymnal": "Demo Hymnal", "language": "arabic", "genres": ["traditional"], "seasons": ["easter"], "placements": ["communion", "thanksgiving"], "tags": ["prayer", "resurrection"], "is_season_neutral": false, "is_active": true},
+    {"key": "H_OLD", "title": "Old Communion Hymn", "language": "english", "genres": ["traditional", "contemporary"], "seasons": ["easter", "ordinary"], "placements": ["communion", "thanksgiving"], "tags": ["prayer", "peace"], "is_season_neutral": false, "is_active": true},
+    {"key": "H_NEUTRAL", "title": "Neutral Table Hymn", "language": "french", "genres": ["contemporary"], "seasons": [], "placements": ["communion"], "tags": [], "is_season_neutral": true, "is_active": true},
+    {"key": "H_LENT", "title": "Lenten Communion Hymn", "language": "arabic", "genres": ["chant"], "seasons": ["lent"], "placements": ["communion"], "tags": ["prayer"], "is_season_neutral": false, "is_active": true},
+    {"key": "H_INACTIVE", "title": "Archived Reflection Hymn", "language": "arabic", "genres": ["traditional", "archived"], "seasons": ["easter"], "placements": ["communion", "meditation"], "tags": [], "is_season_neutral": false, "is_active": false},
+    {"key": "H_DOUBLE", "title": "Example Hymn", "language": "arabic", "genres": ["traditional", "marian"], "seasons": ["easter"], "placements": ["communion", "closing"], "tags": ["mary"], "is_season_neutral": false, "is_active": true},
+    {"key": "H_SYRIAC", "title": "ܬܫܒܘܚܬܐ ܕܫܠܡܐ", "language": "syriac", "genres": ["chant"], "seasons": ["lent"], "placements": ["closing"], "tags": ["peace"], "is_season_neutral": false, "is_active": true},
+    {"key": "H_ARABIC", "title": "ترنيمة السلام", "language": "arabic", "genres": ["contemporary"], "seasons": ["easter"], "placements": ["entrance", "communion"], "tags": ["peace"], "is_season_neutral": false, "is_active": true}
+  ],
+  "masses": [
+    {"key": "M_OLD", "date": "2026-01-04", "season": "easter", "status": "finalized", "selections": [
+      {"key": "S_OLD_0", "hymn": "H_OLD", "placement": "communion", "position": 0, "notes": "First occurrence"},
+      {"key": "S_OLD_1", "hymn": "H_OLD", "placement": "communion", "position": 1, "notes": "Intentional repeated occurrence"}
+    ]},
+    {"key": "M_INACTIVE_HISTORY", "date": "2026-03-01", "season": "easter", "status": "finalized", "selections": [
+      {"key": "S_INACTIVE", "hymn": "H_INACTIVE", "placement": "meditation", "position": 0, "notes": "Both references were later deactivated"}
+    ]},
+    {"key": "M_REOPENED", "date": "2026-04-05", "season": "easter", "status": "draft", "selections": [
+      {"key": "S_REOPENED", "hymn": "H_OLD", "placement": "communion", "position": 0, "notes": "Previously finalized, now reopened; contributes no usage"}
+    ]},
+    {"key": "M_RECENT", "date": "2026-04-12", "season": "easter", "status": "finalized", "selections": [
+      {"key": "S_RECENT", "hymn": "H_RECENT", "placement": "communion", "position": 0, "notes": "Seven days before target"}
+    ]},
+    {"key": "M_TARGET", "date": "2026-04-19", "season": "easter", "status": "draft", "selections": [
+      {"key": "S_TARGET", "hymn": "H_NEUTRAL", "placement": "communion", "position": 0, "notes": "Already selected in current Mass"}
+    ]},
+    {"key": "M_SAME_DAY", "date": "2026-04-19", "season": "easter", "status": "finalized", "selections": [
+      {"key": "S_SAME_DAY", "hymn": "H_RECENT", "placement": "thanksgiving", "position": 0, "notes": "Global usage only; date not before target"}
+    ]},
+    {"key": "M_FUTURE", "date": "2026-05-03", "season": "easter", "status": "finalized", "selections": [
+      {"key": "S_FUTURE", "hymn": "H_RECENT", "placement": "communion", "position": 0, "notes": "Scheduled, not yet performed"}
+    ]}
+  ],
+  "expected": {
+    "global_usage": {
+      "H_RECENT": {"usage_count": 3, "last_used_date": "2026-05-03"},
+      "H_OLD": {"usage_count": 2, "last_used_date": "2026-01-04"},
+      "H_NEUTRAL": {"usage_count": 0, "last_used_date": null},
+      "H_INACTIVE": {"usage_count": 1, "last_used_date": "2026-03-01"}
+    },
+    "target_communion_scores": {"H_RECENT": 20, "H_OLD": 95, "H_NEUTRAL": -15, "H_DOUBLE": 100, "H_ARABIC": 100},
+    "ineligible_target_communion": ["H_LENT", "H_INACTIVE", "H_SYRIAC"],
+    "literal_easter_communion_traditional_arabic": ["H_RECENT", "H_DOUBLE"],
+    "literal_communion_arabic_or_french": ["H_RECENT", "H_NEUTRAL", "H_LENT", "H_DOUBLE", "H_ARABIC"],
+    "search_mary_and_closing": ["H_DOUBLE"],
+    "not_used_since_april_1": ["H_OLD", "H_NEUTRAL", "H_LENT", "H_DOUBLE", "H_SYRIAC", "H_ARABIC"],
+    "recency_weights": [
+      {"days": 1, "weight": -60}, {"days": 7, "weight": -60},
+      {"days": 8, "weight": -30}, {"days": 14, "weight": -30},
+      {"days": 15, "weight": -10}, {"days": 30, "weight": -10},
+      {"days": 31, "weight": 5}, {"days": 60, "weight": 5},
+      {"days": 61, "weight": 10}, {"days": 90, "weight": 10},
+      {"days": 91, "weight": 15}
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+# Normalize text in Git while permitting platform-native working-tree endings.
+* text=auto
+
+# Keep the original specification's bytes and recorded M0 checksum intact.
+mass_hymn_picker_codex_spec.md -text
+
+# Scripts intended for Linux must retain LF when checked out on Windows.
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Preserve media as binary if such assets are introduced later.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.woff2 binary

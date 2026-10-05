@@ -1,0 +1,50 @@
+# Local secrets; sanitized environment examples belong in source control.
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+
+# Project-local runtimes, package caches, and generated Python files.
+.venv/
+venv/
+.cache/
+.npm/
+.pip-cache/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Frontend dependencies, generated builds, and test/browser artifacts.
+node_modules/
+dist/
+build/
+coverage/
+.vite/
+playwright-report/
+test-results/
+.playwright/
+ms-playwright/
+
+# Local application data and operational output.
+*.log
+*.sqlite3
+*.sqlite3-journal
+backend/staticfiles/
+backend/media/
+backups/
+.local/
+
+# Machine-specific editor and OS files.
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini

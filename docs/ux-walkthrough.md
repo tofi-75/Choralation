@@ -1,0 +1,166 @@
+# UX walkthrough and coordinator demo
+
+**Status:** M0 annotated sketches, reviewed against the written requirements. No interactive prototype or human usability validation has been performed.  
+**Purpose:** Establish what the first implementation should do before investing in components.  
+**Review owner:** Implementation owner; eventual coordinator reviewer is not assigned.
+
+## Shared interaction language
+
+Use warm cream (`#FAF7F2`), burgundy (`#6B2334`), neutral dark text (`#262626`), and restrained gold detail (`#9B742F`). These are proposed tokens; measure actual foreground/background contrast before shipping. Status always has text/icon, not only color. Use readable system fonts, generous spacing, compact chips, and limited iconography.
+
+Navigation: Dashboard, Hymn Library, Mass Planner, Mass History, Settings. Expose a destination only after its milestone works. Settings is Admin-only. Viewer sees reading actions but no edit/add controls. On desktop use a sidebar; at 390px use an accessible navigation drawer. No core action depends on hover or drag-and-drop.
+
+Keep category labels supplied by the API. Long Arabic/Syriac/French titles wrap; title/first-line/note content uses sensible auto direction without reversing surrounding controls. Forms and interface labels remain in English for version 1.
+
+## 1. Library — M2, usage additions M4
+
+```text
+┌ Navigation ──────┬ Hymn Library                         [Add hymn] ┐
+│ Hymn Library    │ [Search titles, first lines, composers...     ] │
+│ Mass Planner    │ Genre ▾  Season ▾  Placement ▾  Language ▾      │
+│ Mass History    │ Tags ▾   Active ▾   Usage ▾                     │
+│ Settings        │ [Easter ×] [Communion ×]       [Clear filters]  │
+│                 │ 18 results       Sort: Title ▾    Page size:25 │
+│                 │ Title / Language / Classification / Usage     │
+│                 │ Example Hymn / Arabic / Traditional / Apr 12   │
+│                 │ Neutral Table Hymn / French / Neutral / Never  │
+│                 │                         [Previous] [Next]      │
+└─────────────────┴────────────────────────────────────────────────┘
+```
+
+At M2 the usage control/column is absent; it arrives with real history in M4. Active filter defaults to Active; viewing Inactive/All is explicit. Filters use URL state. Easter excludes a neutral-only hymn unless the user switches to the recommendation context. Selected language Arabic/French means either language, while placement remains an AND condition.
+
+**Mobile:** Search and `[Filters (2)]` above a card list. Drawer contains labeled multi-selects and clear-all. Each card shows title, language, relevant category chips, and (from M4) usage. Avoid a horizontally scrolling desktop table. Pagination remains explicit and reachable.
+
+**States:** Initial empty library offers Add hymn when permitted. Zero results offers Clear filters. Loading shows skeletons and result count status. Failure shows Retry and retains query/filter state. Clicking a title opens detail; browser Back returns to the same filters/page.
+
+## 2. Hymn form/detail — M2
+
+```text
+Add hymn                                              [Cancel]
+Basic information
+  Title*                 [                                  ]
+  Alternate title        [                                  ]
+  First line             [                                  ]
+  Language*              [Choose active language           ▾ ]
+  Composer / Arranger    [                ] [                ]
+  Source / Number        [                ] [                ]
+Classification
+  Genres                 [Traditional ×] [Choose            ▾]
+  Suitable placements*   [Communion ×] [Thanksgiving ×] [+    ]
+  Season-neutral         [ ] Suitable regardless of season
+  Suitable seasons       [Easter ×] [Choose                 ▾]
+  Tags                   [Choose                           ▾]
+Musical/reference information
+  Key / Duration         [            ] [                   ]
+  Audio / Sheet music    [URL                                ]
+  Notes                  [                                  ]
+                         [                                  ]
+                         [Save hymn]
+```
+
+Require season when not neutral. Allow neutral plus explicit seasons; explain this as a hymn usable generally but also classified for particular seasons. Genres/tags remain optional. Each searchable select supports keyboard input, navigation, removal, and a clearly labeled close button. Show retained inactive values with `Inactive` text while excluding them from new choices.
+
+**Mobile:** One column, real labels above each input, no tabs hiding errors. Sticky save area must not obscure the last field or focused control.
+
+**Save failure:** Inline message `Unable to save. Your entries are still here.` with Retry; field-specific errors linked to inputs and focus moved to the first error/summary. Do not close the form. Warn on navigation if dirty. Detail shows all stored metadata and historical usages from M4; Admin alone sees active-state/delete actions.
+
+## 3. Mass planner — M3, finalize/read-only M4
+
+```text
+Sunday Mass — April 19, 2026                  Draft • Saved
+Date [2026-04-19]  Season [Easter ▾]  Title [optional title]
+Notes [                                                      ]
+3 placements filled • 8 empty (optional)      [Review / Finalize]
+
+Entrance
+  Arabic Peace Hymn                           [Notes] [Remove]
+  [+ Add hymn]
+Communion
+  1. Example Hymn    Recently selected Apr 12  [↑] [↓] [Remove]
+     Notes [First Communion hymn                            ]
+  2. Old Communion Hymn                       [↑] [↓] [Remove]
+  [+ Add hymn]
+Thanksgiving
+  Example Hymn       Also selected at Communion      [Remove]
+  [+ Add hymn]
+Other active sections ...
+```
+
+The illustrative section count is based on the eleven seeded placements; compute it from current configuration instead of hard-coding eleven. An inactive section with existing selections stays visible with `Inactive placement` text and no new-add action. Empty sections are optional, never portrayed as mandatory completion failures.
+
+**Mobile:** Metadata stacks. Sections become full-width cards. Up/down controls replace drag dependence; buttons are usable by touch. Notes expand inline. Footer exposes save state and review without covering content. Dialogs return focus to their trigger.
+
+**Saving:** Each change starts Unsaved → Saving → Saved after server acknowledgement. Coalesce rapid changes. On failure retain the working copy, show `Unable to save` and Retry, and disable finalization. Browser navigation warns while unsaved work remains.
+
+**Conflict:** Show `This Mass changed in another session. Your edits have not been saved.` Provide View saved version and Review my changes; preserve the working copy. Reload is an explicit choice after review, never an automatic destructive refresh. No force-overwrite button bypasses revisions.
+
+**Finalization:** M4 adds a compact saved-program review. Warn about repeats/recent use/inactive retained selections/entirely empty program, but allow a deliberate valid choice. Finalized view removes editing controls and shows finalized state/timestamp. Admin sees Reopen with an explanation that history totals will change; Planner/Viewer cannot reopen.
+
+## 4. Hymn picker — All Hymns M3, Recommended M5
+
+```text
+Choose a hymn for Communion — Easter                  [Close]
+[Recommended] [All Hymns]
+Language [Any ▾] Genre [Any ▾]
+
+Old Communion Hymn
+English • Traditional
+Suitable for Communion • Suitable for Easter
+Last selected 105 days before this Mass                [Add]
+
+Example Hymn
+Arabic • Traditional
+Suitable for Communion • Suitable for Easter
+Selected 7 days before this Mass                       [Add]
+```
+
+Recommended opens by default only from M5. Scores are not the card headline. No season selected produces a visible `Season filtering unavailable` notice. Each row is selectable with an explicit Add button; adding does not remove the user's ability to continue browsing.
+
+All Hymns exposes search/filter/sort over the active library without secretly enforcing the target season/placement. On mismatch, ask `This hymn is not marked for this placement/season. Add anyway?` and accept an explicit override. Recent use and duplication are contextual warnings, not blockers. Inactive hymns are not new choices.
+
+**Mobile:** Full-height dialog with context/search above scrollable cards. Focus is trapped, Escape/Close work, and background scroll is contained. Returning closes or retains the picker according to a consistent interaction decision in M3; focus returns to the relevant Add hymn action.
+
+**Failure/empty:** Retry failed suggestions while All Hymns remains usable. No eligible recommendations offers All Hymns; do not silently expand eligibility. An empty library routes to Add hymn when permitted.
+
+## 5. Category settings — M6
+
+```text
+Settings / Mass placements                            [Add]
+Name                      Status      Order    Actions
+Entrance / Processional   Active      [↑][↓]    [Edit]
+Communion                 Active      [↑][↓]    [Edit]
+Closing / Recessional     Inactive    [↑][↓]    [Edit]
+
+Edit placement
+Name [Communion              ]  Description [               ]
+Active [✓]    Used by 6 hymns and 18 program selections
+[Save]  [Deactivate]  [Delete if unreferenced]
+```
+
+The shared manager works for all five types. Reordering includes inactive rows to preserve full-list consistency. Usage counts in the example are placeholders in the sketch, not fixture statistics. API reference counts establish actual impact at runtime.
+
+**Mobile:** Category cards with name/status, up/down, Edit. Accessible order change announces the new position. Confirm deactivation when in use; reject referenced deletion with a deactivation alternative. Renaming updates labels without rebuilding historical selections or altering category identity.
+
+## 6. Coordinator walkthrough script
+
+Use [the fixture guide](acceptance.md). The static M0 walkthrough can be evaluated now; the interactive steps become acceptance tests only when their milestone is implemented.
+
+1. **Library pilot (A02–A04):** Add the required metadata example, search by alternate title/first line, select Easter + Communion + Traditional + Arabic, copy its URL, and reopen it. Explain why neutral-only is excluded from this literal library query.
+2. **Planning pilot (A05–A07):** Create April 19, 2026 Easter Mass, choose two Communion hymns, reorder/add notes, refresh, then force a save failure. Confirm whether save feedback is clear and retry keeps work. Open two sessions to review a conflict.
+3. **Manual weekly MVP (A08–A10):** Finalize April 12's program, inspect history/counts, reopen as Admin, and re-finalize. Read inactive historical rows and future scheduled entries.
+4. **Assisted beta (A11–A13):** Open April 19 Communion recommendations. Compare old-use versus recent-use hymns; inspect reasons, then choose the recent one deliberately. Explain that recency is relative to the target Mass and excludes future/same-day programs.
+5. **Settings (A14–A15):** Rename/reorder/deactivate a referenced placement, then inspect the old program. Attempt deletion and follow the safe alternative.
+6. **Complete release (A16–A18):** Use dashboard, print the saved program, repeat core actions on mobile/keyboard, and time a typical five-placement planning session.
+
+### Feedback to record
+
+- Can the coordinator find a specific hymn without remembering an exact title?
+- Are neutral-season versus explicit-season choices understandable?
+- Are multiple Communion hymns and notes easy to manage?
+- Is it evident whether the last edit is actually saved?
+- Do warnings help without obstructing deliberate music choices?
+- Are future finalized plans clearly labeled as scheduled?
+- Does printed order match the saved program?
+
+Record observed problems and requested changes with the affected milestone/ticket. There are no coordinator answers yet; do not record agreement or a measured planning time until someone actually performs the walkthrough.
