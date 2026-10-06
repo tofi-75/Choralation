@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "accounts",
     "common",
+    "hymns",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -74,6 +75,9 @@ TEMPLATES = [
 ]
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+# Uploads are private: access goes through the authenticated hymn API, never /media/.
+MEDIA_ROOT = Path(os.environ.get("DJANGO_MEDIA_ROOT", PROJECT_ROOT / ".local" / "media"))
+FILE_UPLOAD_MAX_MEMORY_SIZE = 1024 * 1024
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -106,7 +110,7 @@ REST_FRAMEWORK = {
 }
 SPECTACULAR_SETTINGS = {
     "TITLE": "Mass Hymn Picker API",
-    "DESCRIPTION": "M1 session authentication. Domain endpoints arrive in later milestones.",
+    "DESCRIPTION": "Session authentication, hymn library, classifications, and private PDF sheet music.",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAuthenticated"],

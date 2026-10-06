@@ -1,7 +1,7 @@
 /** Responsive protected shell exposes only implemented routes; mobile menu traps focus. */
 import * as Dialog from '@radix-ui/react-dialog';
 import { useState } from 'react';
-import { Link, Outlet } from 'react-router';
+import { Link, NavLink, Outlet } from 'react-router';
 
 import { signOut } from '../api/auth';
 import { useSession } from '../features/auth/SessionProvider';
@@ -37,9 +37,18 @@ export function AppShell() {
           Mass Hymn Picker
         </Link>
         <nav aria-label="Main">
-          <Link className="nav-item current" to="/dashboard" aria-current="page">
+          <NavLink
+            className={({ isActive }) => `nav-item ${isActive ? 'current' : ''}`}
+            to="/dashboard"
+          >
             Your workspace
-          </Link>
+          </NavLink>
+          <NavLink
+            className={({ isActive }) => `nav-item ${isActive ? 'current' : ''}`}
+            to="/hymns"
+          >
+            Hymn library
+          </NavLink>
         </nav>
         <div className="sidebar-footer">
           <p>Music for every gathering.</p>
@@ -57,6 +66,11 @@ export function AppShell() {
                   <Dialog.Title>Your workspace</Dialog.Title>
                   <Dialog.Description>Navigate your team's shared workspace.</Dialog.Description>
                   <nav aria-label="Mobile">
+                    <Dialog.Close asChild>
+                      <Link className="nav-item" to="/hymns">
+                        Hymn library
+                      </Link>
+                    </Dialog.Close>
                     <Dialog.Close asChild>
                       <Link className="nav-item" to="/dashboard">
                         Your workspace

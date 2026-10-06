@@ -14,7 +14,8 @@ if (!root) throw new Error('Missing application root');
 createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={client}>
-      <BrowserRouter>
+      {/* URL-controlled inputs need immediate navigation state; queries show their own loading UI. */}
+      <BrowserRouter useTransitions={false}>
         <SessionProvider>
           <App />
         </SessionProvider>

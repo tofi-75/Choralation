@@ -10,6 +10,24 @@ const identity = { id: 1, username: 'planner', role: 'Planner' };
 beforeEach(() => clearCsrfToken());
 
 describe('API transport', () => {
+  it('leaves multipart boundaries to the browser and still sends CSRF', async () => {
+    const calls: RequestInit[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, options?: RequestInit) => {
+        if (url.endsWith('/csrf/')) return Response.json({ csrf_token: 'masked' });
+        calls.push(options!);
+        return new Response(null, { status: 204 });
+      }),
+    );
+    const body = new FormData();
+    body.append('data', JSON.stringify({ title: 'Example' }));
+    body.append('sheet_music_pdf', new File(['%PDF-1.4\n%%EOF'], 'score.pdf'));
+    await request('/hymns/', z.undefined(), { method: 'POST', body });
+    expect(new Headers(calls[0].headers).has('Content-Type')).toBe(false);
+    expect(new Headers(calls[0].headers).get('X-CSRFToken')).toBe('masked');
+    expect(calls[0].body).toBe(body);
+  });
   it('rebootstraps after login rotation before logout and sends same-origin credentials', async () => {
     const calls: { url: string; options?: RequestInit }[] = [];
     vi.stubGlobal(

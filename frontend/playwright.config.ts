@@ -9,7 +9,7 @@ export default defineConfig({
   reporter: 'list',
   outputDir: './test-results',
   use: {
-    baseURL: 'http://127.0.0.1:5173',
+    baseURL: 'http://127.0.0.1:5174',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     launchOptions: {
@@ -28,19 +28,30 @@ export default defineConfig({
         hasTouch: true,
       },
     },
+    ...[360, 430].map((width) => ({
+      name: `mobile-${width}`,
+      use: {
+        browserName: 'chromium' as const,
+        viewport: { width, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+      },
+    })),
   ],
   webServer: [
     {
       command:
-        '"..\\.venv\\Scripts\\python.exe" -B ..\\backend\\manage.py runserver 127.0.0.1:8000 --noreload',
-      url: 'http://127.0.0.1:8000/health/ready/',
+        '"..\\.venv\\Scripts\\python.exe" -B ..\\backend\\manage.py runserver 127.0.0.1:8001 --noreload',
+      url: 'http://127.0.0.1:8001/health/ready/',
+      env: { CSRF_TRUSTED_ORIGINS: 'http://127.0.0.1:5174' },
       reuseExistingServer: false,
       timeout: 30_000,
     },
     {
       command:
-        '"..\\.local\\node\\node.exe" node_modules\\vite\\bin\\vite.js --host 127.0.0.1 --port 5173',
-      url: 'http://127.0.0.1:5173',
+        '"..\\.local\\node\\node.exe" node_modules\\vite\\bin\\vite.js --host 127.0.0.1 --port 5174',
+      url: 'http://127.0.0.1:5174',
+      env: { BACKEND_ORIGIN: 'http://127.0.0.1:8001' },
       reuseExistingServer: false,
       timeout: 30_000,
     },

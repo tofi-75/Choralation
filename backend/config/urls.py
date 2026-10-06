@@ -10,6 +10,7 @@ from common.views import health_live, health_ready
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/auth/", include("accounts.urls")),
+    path("api/v1/", include("hymns.urls")),
     path(
         "api/v1/schema/", SpectacularAPIView.as_view(renderer_classes=[JSONRenderer]), name="schema"
     ),

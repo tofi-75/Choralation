@@ -1,6 +1,6 @@
 # Delivery backlog and accountability
 
-**Baseline:** October 6, 2026. M0 and M1 engineering work is complete; M2–M7 have not started. Container execution and coordinator review remain pending.  
+**Baseline:** October 6, 2026. M0–M2 engineering work is complete; M3–M7 have not started. Container execution and coordinator review remain pending.  
 **Accountable implementation owner for every milestone:** Codex, working in this project/chat. Backend, frontend, and quality roles below are responsibility areas for that owner, not invented staffing assignments. No subagents have been delegated.  
 **Product reviewer:** Church music coordinator, not yet assigned; human acceptance remains pending.
 
@@ -18,7 +18,9 @@ Follow the [development plan](../DEVELOPMENT_PLAN.md) for complete milestone gat
 
 ## M1 — Authentication preview
 
-**Status:** Implemented. [Completion report](m1-report.md) records the 27 backend, 8 frontend, and 6 real-browser checks and operational limits. The tickets below describe the delivered scope; M2 is next.
+**Review fixes:** [M1 review](m1-review.md) records five completed engineering tickets: M1.R1 PDF sheet music, M1.R2 polyphony and multiple voices, M1.R3 numeric duration, M1.R4 compact search/tags, and M1.R5 phone-first usability, with acceptance criteria and verification evidence. Coordinator review remains pending. Phone use is the primary design and review priority for subsequent milestones too.
+
+**Status:** Implemented. [Completion report](m1-report.md) records the original 27 backend, 8 frontend, and 6 real-browser checks and operational limits. The tickets below describe the delivered scope.
 
 **Depends on:** M0. **Acceptance scenario:** A01. **Pilot evidence:** Verified clean database setup, login/logout, CSRF failures, role resolution, protected shell, real-browser smoke. No feature placeholders.
 
@@ -31,6 +33,8 @@ Follow the [development plan](../DEVELOPMENT_PLAN.md) for complete milestone gat
 | M1.5 Browser smoke | Quality | M1.2–M1.4 | Real-backend login, refresh, logout, Viewer shell |
 
 ## M2 — Library pilot
+
+**Status:** Implemented. [Completion report](m2-report.md) records library delivery and acceptance evidence. Models, seeds, API, interface, and safety tickets below are complete. The coordinator can begin entering real hymns; M3 draft planning is next.
 
 **Depends on:** M1. **Acceptance scenarios:** A02–A04. **Pilot evidence:** Enter/edit/classify real records; URL search/filter persistence; inactive/permission and seed behavior.
 
@@ -106,6 +110,16 @@ Finalization appears only with history in M4; recommendations only in M5.
 | M7.5 Operations | Tooling/backend | M6 | Production package/configuration, health, secure cookies, no debug leaks |
 | M7.6 Recovery/docs | Tooling/quality | M7.5 | Clean setup, backup restore, rollout/rollback instructions |
 | M7.7 Pilot/release | Delivery/product | M7.1–M7.6 | Coordinator acceptance, no required blockers, release notes |
+
+## Deferred until all other planned work is complete
+
+**F1 — Parish/choir account membership and collaborative Mass lists**  
+**Requested:** October 6, 2026. **Status:** Recorded for much later; implementation has not started.  
+**Scheduling gate:** All other planned work complete, including M0–M7 and the version 1 release gate.
+
+- Accounts belong to a parish and a choir.
+- The people responsible for a choir can collaboratively edit that choir's Mass list.
+- Before implementation, define membership rules, how choir responsibles are assigned, access boundaries between parishes/choirs, and handling of concurrent edits. These details remain open; do not expand current milestones to implement them.
 
 ## Ready-to-start M1 checklist
 

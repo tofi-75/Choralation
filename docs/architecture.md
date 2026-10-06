@@ -1,8 +1,8 @@
-# Architecture decisions — M0 and M1
+# Architecture decisions — M0 through M2
 
 **Decision date:** October 6, 2026. **Owner:** Implementation owner (Codex, this project).  
 **Authority:** [Source specification](../mass_hymn_picker_codex_spec.md) and [development plan](../DEVELOPMENT_PLAN.md).  
-**State:** Authentication/runtime foundations implemented in M1; domain decisions remain the baseline for M2–M7. See [M1 evidence](m1-report.md) for current behavior and limits.
+**State:** Authentication/runtime foundations and hymn/category library are implemented through M2. Mass lifecycle, usage, recommendations, and release decisions remain the baseline for M3–M7. See [M1 evidence](m1-report.md) and [M2 evidence](m2-report.md) for current behavior and limits.
 
 ## ADR-001 — Runtime and repository boundaries
 
@@ -29,7 +29,9 @@ docs/
 scripts/        # Documented project verification/setup helpers.
 ```
 
-M1 implements config/accounts/common, authentication frontend/API, and tests/tooling. Hymns/masses and other feature folders arrive with their milestones. Do not create a Django app per category. Models enforce storage invariants; serializers validate request shapes; services perform transactional changes; selectors implement shared read/usage queries; views handle HTTP and permissions. React never independently calculates authoritative usage or ranking.
+M1 implements config/accounts/common, authentication frontend/API, and tests/tooling. M2 adds the hymns app, library/form/detail routes, seeds, and library checks. Masses and other feature folders arrive with their milestones. Do not create a Django app per category. Models enforce storage invariants; serializers validate request shapes; services perform transactional changes; selectors implement shared read/usage queries; views handle HTTP and permissions. React never independently calculates authoritative usage or ranking.
+
+M2 HTTP and Django admin mutations share documented services; admin forms validate the same write contract before calling them. Bulk deletion actions are disabled so category through-table cascades cannot bypass reference protection. Application roles and Django model/staff permissions both apply in Django admin. All five independent category types live in one app, with a fixed registry defining lock order. See `backend/hymns/services.py`, `selectors.py`, and the PostgreSQL concurrency test for the implemented contracts.
 
 Use PostgreSQL in development and integration tests. SQLite cannot establish PostgreSQL locking, constraint, or aggregate correctness. Start with synchronous request handling, one database, no Redis/job queue, no Redux, and no external search service.
 
@@ -138,3 +140,15 @@ Test/demo datasets are explicitly fictional and isolated. They are not Django fi
 Read [code-documentation.md](code-documentation.md) before implementation. Every service/query contract, concurrency rule, and unusual integrity choice needs accurate nearby documentation and meaningful tests. Do not comment trivial syntax or leave current-milestone TODOs.
 
 Production uses Linux Gunicorn behind a same-origin TLS/static-serving proxy, environment secrets, secure cookies, `DEBUG=False`, and PostgreSQL backups. Windows development instructions use PowerShell-friendly commands. Host/provider, domain, credentials, and production rollout remain M7 decisions; this architecture does not authorize deployment. No infrastructure was created during M0.
+
+## ADR-009 — M1 review: private sheet music, voices, and phone use
+
+The project owner requested these additions after M2 under [M1 review](m1-review.md). Preserve the original specification and implement the approved extensions with additive migrations: existing hymns start with polyphony disabled, an empty voice list, and no PDF attachment.
+
+Store a single optional PDF per hymn under project-local `.local/media` by default, using an opaque UUID key and a separately stored original display filename. `DJANGO_MEDIA_ROOT` allows runtime-specific private storage. The optional Docker image uses `/app/media`, provisioned for UID 10001, and Compose mounts a persistent `backend-media` named volume there. Docker execution remains an external prerequisite and was not performed under the project-only write constraint. Preserve the existing sheet-music URL. Do not expose a public media route; serve downloads through the authenticated hymn endpoint with attachment disposition and `nosniff`. Validate extension, nonempty size up to 10 MB, and header/EOF framing before writing. This framing validation is not a full PDF parser or malware scanner.
+
+Metadata, classifications, and the PDF reference save through the same locked aggregate. Validation runs before file writes. Remove a newly stored file if the service transaction fails; delete replaced/removed files only after database commit. Filesystem writes are not database transactions: abrupt termination or rollback of a surrounding caller transaction may leave an unreferenced file. Preserve referenced files and include upload storage in the M7 backup/cleanup design; database-only backups do not contain PDFs. Django admin uses the same validators/services; browser fixture cleanup uses the delete service too.
+
+Voices are ordered, unique, trimmed names owned entirely by a hymn, stored as a JSON list. They currently have no independent identity, classification, or per-voice audio/PDF attachment. The API validates names and the database prevents a nonpolyphonic hymn retaining voices. Turning polyphony off in the UI asks before clearing them; the API requires explicit clearing when names exist.
+
+Phones are the primary usage surface. Keep search visible, category/tag pickers collapsed until needed, and selected tags summarized. Render at most three saved category chips initially with access to the rest. Collapse optional form metadata, show only provided metadata in detail, and keep touch targets large while reducing padding and whitespace. Numeric duration remains a positive decimal value in minutes. Test phone widths 360/390/430 px, reduced viewport height for keyboard access, and desktop together; physical-device keyboard behavior still needs coordinator review.

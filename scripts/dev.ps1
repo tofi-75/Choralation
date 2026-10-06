@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-Project-local M1 tasks. Run from any directory; servers run in the foreground.
+Project-local development tasks. Run from any directory; servers run in the foreground.
 .EXAMPLE
 .\scripts\dev.ps1 db-start
 .EXAMPLE
@@ -8,7 +8,7 @@ Project-local M1 tasks. Run from any directory; servers run in the foreground.
 #>
 param(
     [Parameter(Mandatory=$true)]
-    [ValidateSet('setup', 'db-start', 'db-stop', 'migrate', 'admin', 'roles', 'backend', 'frontend', 'check', 'e2e')]
+    [ValidateSet('setup', 'db-start', 'db-stop', 'migrate', 'seed', 'admin', 'roles', 'backend', 'frontend', 'check', 'e2e')]
     [string] $Task
 )
 . (Join-Path $PSScriptRoot 'project.ps1')
@@ -29,6 +29,7 @@ try {
         }
         'db-stop' { Invoke-Checked (Join-Path $ProjectPostgres 'pg_ctl.exe') @('stop', '-D', (Join-Path $ProjectRoot '.local\pgdata'), '-m', 'fast', '-w') }
         'migrate' { Invoke-Manage @('migrate', '--noinput') }
+        'seed' { Invoke-Manage @('seed_initial_data') }
         'admin' { Invoke-Manage @('createsuperuser') }
         'roles' { Invoke-Manage @('provision_roles') }
         'backend' { Invoke-Manage @('runserver', '127.0.0.1:8000', '--noreload') }

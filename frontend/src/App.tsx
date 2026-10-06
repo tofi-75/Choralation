@@ -6,6 +6,9 @@ import { useSession } from './features/auth/SessionProvider';
 import { AppShell } from './layouts/AppShell';
 import { LoginPage } from './pages/LoginPage';
 import { WorkspacePage } from './pages/WorkspacePage';
+import { LibraryPage } from './pages/LibraryPage';
+import { HymnDetailPage } from './pages/HymnDetailPage';
+import { HymnFormPage } from './pages/HymnFormPage';
 
 function ProtectedRoute() {
   const session = useSession();
@@ -26,6 +29,10 @@ export function App() {
         <Route element={<AppShell />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<WorkspacePage />} />
+          <Route path="/hymns" element={<LibraryPage />} />
+          <Route path="/hymns/new" element={<HymnFormPage />} />
+          <Route path="/hymns/:id" element={<HymnDetailPage />} />
+          <Route path="/hymns/:id/edit" element={<HymnFormPage />} />
           <Route
             path="*"
             element={

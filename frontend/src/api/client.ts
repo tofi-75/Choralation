@@ -50,7 +50,9 @@ export async function request<T>(
   if (unsafe && !csrfToken) await bootstrapCsrf();
   const headers = new Headers(options.headers);
   headers.set('Accept', 'application/json');
-  if (options.body) headers.set('Content-Type', 'application/json');
+  // Browser supplies the multipart boundary for private PDF uploads.
+  if (options.body && !(options.body instanceof FormData))
+    headers.set('Content-Type', 'application/json');
   if (unsafe && csrfToken) headers.set('X-CSRFToken', csrfToken);
   let response: Response;
   try {

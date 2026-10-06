@@ -1,6 +1,6 @@
 # API contract — implementation baseline
 
-**Date:** October 6, 2026. **Status:** M1 session endpoints and protected JSON OpenAPI schema are implemented. Domain endpoints in sections 4 onward remain planned for their stated milestones.  
+**Date:** October 6, 2026. **Status:** M1 sessions, protected JSON OpenAPI schema, and M2 hymn/category endpoints are implemented. Masses, usage, recommendations, and dashboard remain planned for their stated milestones.  
 **Owner:** Implementation owner. **Base:** `/api/v1/`.  
 Changes to this contract must update [architecture decisions](architecture.md), frontend types, OpenAPI schemas, and relevant tests together.
 
@@ -10,7 +10,7 @@ Use JSON, trailing-slash routes, positive integer relational IDs, ISO `YYYY-MM-D
 
 Optional metadata reads as null when empty; lists read as `[]`, never null. Unknown write fields are rejected with 400 to catch misspellings. PATCH changes supplied fields only. Server-owned fields (`id`, audit fields, usage, status, revision, finalization timestamp) cannot be written directly. Null cannot remove required title/language/date fields.
 
-Paginated collections return `{count, next, previous, results}`. `next`/`previous` are URLs or null. `page` starts at 1, `page_size` defaults to 25 and accepts only 25/50/100. Invalid sizes return 400; nonexistent pages return 404. Query parameters with invalid format/value return 400, not silently ignored.
+Paginated hymn collections return `{count, next, previous, results}`. `next`/`previous` are URLs or null. `page` starts at 1, `page_size` defaults to 25 and accepts only 25/50/100. Invalid sizes return 400; nonexistent pages return 404. Small category collections return unpaginated arrays. Unknown, repeated, or invalid query parameters return 400, not silently ignored.
 
 App reads require authentication, except CSRF bootstrap, login, and infrastructure health checks. Authenticated Viewer reads all team data. Permissions in [ADR-002](architecture.md) apply to each write action. The implemented `GET /api/v1/schema/` requires authentication in development and production and returns JSON OpenAPI. No interactive docs route is exposed yet.
 
@@ -58,7 +58,13 @@ Unrecognized/malformed revision headers return 400 `validation_error`. Don't exp
 
 ## 4. Hymns — M2 with usage in M4
 
-`GET/POST hymns/`, `GET/PATCH/DELETE hymns/{id}/`, `GET hymns/{id}/usage/`.
+Implemented: `GET/POST hymns/`, `GET/PATCH/DELETE hymns/{id}/`. PUT is unsupported. `GET hymns/{id}/usage/` arrives in M4; it is not exposed in M2.
+
+The implemented M1 review adds `is_polyphonic` (default false), ordered `voices` (default `[]`), and an optional private `sheet_music_pdf` attachment. Voice names are trimmed, nonblank, at most 80 characters, and unique ignoring case; at most 32 names are accepted. Enabling polyphony permits adding names without requiring a particular voice arrangement. PATCH replaces the voice list only when supplied. Disabling polyphony with saved voices requires explicitly supplying `voices: []`; omission never silently discards them.
+
+PDF uploads use `multipart/form-data` on the same POST/PATCH routes: `data` is the JSON metadata object serialized as text, and `sheet_music_pdf` is one file. The browser must set the multipart boundary; JSON writes remain supported when no file is uploaded. Unknown or repeated envelope parts fail with 400. Accept a nonempty `.pdf` file up to 10 MB, with PDF header/EOF framing. File errors appear under `errors.sheet_music_pdf`, and a failed save leaves prior metadata/attachment intact. PATCH `remove_sheet_music_pdf: true` removes an existing attachment; removal and replacement cannot be requested together. Existing sheet-music URL metadata remains independent.
+
+Reads return `sheet_music_pdf: null` or `{name, url}`. The URL is the same-origin authenticated `GET hymns/{id}/sheet-music/` endpoint, available to every logged-in role, returning an `application/pdf` attachment with `nosniff`. Missing attachment/file returns 404; anonymous reads fail. Admins/Planners can upload, replace, or remove a PDF; Viewers cannot. Internal storage keys and paths are never returned by this API.
 
 POST/PATCH require Planner/Admin; active-state changes and DELETE require Admin. DELETE succeeds with 204 only if no selections reference the hymn, including drafts; otherwise 409 `referenced_record`. PATCH `is_active=false` is the explicit deactivation route, with UI confirmation. POST defaults `is_active=true`; a Planner cannot set it false.
 
@@ -77,7 +83,11 @@ Write example (illustrative IDs):
 }
 ```
 
-Accept every optional Hymn field listed in source section 8. Duration reads/writes as a decimal string to avoid float ambiguity. Read responses include nested categories, optional metadata, active/neutral state, and audit timestamps; M4 adds `usage_count` and nullable `last_used_date`. Do not advertise usage fields as available before M4. Usage endpoint returns paginated `{mass: {id, date, title, status}, placement, selection_id, position, notes}` occurrences from finalized Masses only, ordered descending date/Mass ID then placement display order/position/selection ID.
+Accept every optional Hymn field listed in source section 8. Required fields are `title`, `language_id`, and nonempty `placement_ids`; nonneutral hymns additionally require `season_ids`. Genres/tags are optional. New links require active categories; unchanged inactive links are retainable. Changing a placement set requires at least one active placement. PATCH omissions preserve stored metadata and relationships; duplicate relationship IDs normalize to a set.
+
+Text limits: title/alternate title/composer/arranger/source 255 characters; first line 500; hymnal number 100; default key 50; each URL 1000. Notes have no application length limit. Blank optional text normalizes to null; internal notes line breaks are retained. Audio and sheet-music URLs accept HTTP/HTTPS only. Duration is nullable, positive, at most `9999.99`, with up to two decimal places; reads return a decimal string.
+
+Read responses include nested categories, all optional metadata, active/neutral state, audit timestamps, and nullable numeric `created_by`/`updated_by` IDs. Title is deliberately not unique. M4 adds `usage_count` and nullable `last_used_date`. Its planned usage endpoint returns paginated `{mass: {id, date, title, status}, placement, selection_id, position, notes}` finalized occurrences, ordered descending date/Mass ID then placement display order/position/selection ID.
 
 ### Library query contract
 
@@ -94,7 +104,7 @@ Accept every optional Hymn field listed in source section 8. Duration reads/writ
 
 Unknown IDs within a supplied category filter return 400. Inactive existing IDs can be used to inspect old records. Empty list parameters are errors; omit them instead. Impossible date ranges return 400. Contradictory valid predicates yield zero results, not a silent change to user intent. Usage query parameters are introduced in M4; before then return 400 explaining unavailability.
 
-Ordering values: `title` (default), `recently_used`, `least_recently_used`, `most_used`, `least_used`, `newest_added`. Recent sorts place never-used last/first respectively; count sorts use zero for never-used. For most/least-used sort by count descending/ascending, then case-insensitive title and ID. Newest sorts creation timestamp descending then ID descending. Title sorts case-insensitive database text then ID; no browser-dependent reordering of a paginated result. Global usage includes future finalized Masses, as documented in ADR-006.
+M2 ordering values are `title` (default) and `newest_added`. Newest sorts creation timestamp descending then ID descending. Title sorts case-insensitive database text then ID; no browser-dependent reordering of a paginated result. M4 introduces `recently_used`, `least_recently_used`, `most_used`, and `least_used`; using these in M2 returns 400. The planned recent sorts place never-used last/first respectively; count sorts use zero for never-used and break ties by case-insensitive title then ID. Global usage will include future finalized Masses as documented in ADR-006.
 
 Examples: `?placements=8&seasons=6`, `?placements=8&languages=1,3`, `?q=mary&placements=11`, `?not_used_since=2026-04-01&never_used=false`.
 
@@ -102,9 +112,9 @@ Examples: `?placements=8&seasons=6`, `?placements=8&languages=1,3`, `?q=mary&pla
 
 Collections: `genres/`, `liturgical-seasons/`, `mass-placements/`, `languages/`, `tags/`.
 
-All support GET/POST and detail GET/PATCH/DELETE. Read is authenticated; writes Admin-only. `is_active` defaults true, and `is_active=all` includes inactive values. Settings uses all records. Seed labels never control behavior.
+All support GET/POST and detail GET/PATCH/DELETE; PUT is unsupported. Read is authenticated; writes Admin-only. The only category list parameter is `is_active=true|false|all`, default true. Lists are unpaginated arrays sorted by display order, then ID. Settings uses all records. Seed labels never control behavior.
 
-POST accepts `{name, description?, display_order?, is_active?}`. Slug is generated server-side and is not editable. PATCH supports the same fields. Reject negative order, blank names, and case-insensitive duplicates. Reads include the common source category fields. Detail includes `reference_counts` by direct reference kind for impact feedback; do not conflate hymn associations with usage occurrences.
+POST accepts `{name, description?, display_order?, is_active?}`; name is trimmed and limited to 150 characters. Slug is generated server-side and is not editable. PATCH supports the same fields. Reject negative order, blank names, and case-insensitive trimmed duplicates. Reads include all common source category fields. Detail and write responses include `reference_counts` by direct reference kind (currently `hymns`) for impact feedback; do not conflate hymn associations with usage occurrences.
 
 `POST {collection}/reorder/` accepts `{ordered_ids: [...]}` containing every record in that category type exactly once, including inactive records. Lock rows in stable ID order, validate membership/uniqueness, assign contiguous zero-based order, and commit atomically. Return 200 `{results: [...]}` with the new order. Full-category optimistic concurrency is deferred: the last valid order update wins, but updates cannot be partial. The small-team pilot must confirm this is acceptable.
 
@@ -180,8 +190,8 @@ Read-only `GET /health/live/` confirms the process; `GET /health/ready/` checks 
 
 ## 9. Frontend invalidation and contract evidence
 
-Use query keys `["hymns", filters]`, `["hymn", id]`, `["hymn-usage", id, filters]`, `["masses", filters]`, `["mass", id]`, `["recommendations", massId, placementId, filters]`, `["categories", kind, filters]`, and `["dashboard"]`.
+M2 uses `["hymns", queryString]`, `["hymn", id]`, and an aggregate `["categories"]` key that fetches all five category lists with `is_active=all`. Hymn mutations invalidate library variants, affected details, and category reference data. The router updates URL state synchronously so controlled filter inputs respond immediately; queries provide loading states independently. Later features introduce `["hymn-usage", id, filters]`, `["masses", filters]`, `["mass", id]`, `["recommendations", massId, placementId, filters]`, and `["dashboard"]`. Split category cache keys by kind/filter when M6 needs independent administration queries.
 
 Program mutation refreshes Mass lists/detail, affected recommendations, and dashboard. Finalize/reopen additionally refreshes affected hymn details, usage lists, all usage-filtered library variants, and history. Category/hymn edits refresh dependent selectors/cards without losing unsaved form data. Request hooks must include filter/season changes in cache keys or invalidation.
 
-M1 introduces validated OpenAPI generation; each endpoint arrives with its milestone and adds examples/errors/permissions to that schema. This document is the M0 contract, not a replacement for tested runtime behavior. Acceptance cases and exact fictional expectations are in [acceptance.md](acceptance.md).
+Implemented endpoint shapes and errors are validated by the OpenAPI gate and integration tests; see [M2 evidence](m2-report.md). Future sections describe planned contracts, not available routes. Acceptance cases and exact fictional expectations are in [acceptance.md](acceptance.md).

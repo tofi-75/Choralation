@@ -32,7 +32,7 @@ for (const role of ['Admin', 'Planner', 'Viewer'] as const) {
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
-    if (testInfo.project.name === 'mobile') {
+    if (testInfo.project.name.startsWith('mobile')) {
       await page.getByRole('button', { name: 'Menu', exact: true }).click();
       await expect(page.getByRole('dialog', { name: 'Your workspace' })).toBeVisible();
       await page.keyboard.press('Escape');

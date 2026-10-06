@@ -9,8 +9,14 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     proxy: {
-      '/api': { target: 'http://127.0.0.1:8000', changeOrigin: false },
-      '/health': { target: 'http://127.0.0.1:8000', changeOrigin: false },
+      '/api': {
+        target: process.env.BACKEND_ORIGIN ?? 'http://127.0.0.1:8000',
+        changeOrigin: false,
+      },
+      '/health': {
+        target: process.env.BACKEND_ORIGIN ?? 'http://127.0.0.1:8000',
+        changeOrigin: false,
+      },
     },
   },
 });

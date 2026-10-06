@@ -23,6 +23,9 @@ from django.contrib.auth import get_user_model  # noqa: E402
 from django.contrib.auth.models import Group  # noqa: E402
 from django.db import transaction  # noqa: E402
 
+from hymns.models import Hymn  # noqa: E402
+from hymns.services import delete_hymn  # noqa: E402
+
 suffix = os.environ.get("E2E_USER_SUFFIX", "")
 if not re.fullmatch(r"[a-f0-9]{12}", suffix):
     raise ValueError("Provide this run's randomized E2E_USER_SUFFIX.")
@@ -41,7 +44,14 @@ with transaction.atomic():
             user.groups.add(Group.objects.get(name=role))
         print("This browser run's development accounts are ready.")
     elif sys.argv[1] == "cleanup":
+        # Created_by records ownership of these temporary test artifacts only.
+        actor = user_model.objects.get(username=names[0])
+        for hymn_id in Hymn.objects.filter(created_by__username__in=names).values_list(
+            "id", flat=True
+        ):
+            # The service also removes this run's uploaded PDFs after commit.
+            delete_hymn(hymn_id, actor)
         user_model.objects.filter(username__in=names).delete()
-        print("This browser run's accounts removed; other records preserved.")
+        print("This browser run's hymn artifacts/accounts removed; other records preserved.")
     else:
         raise ValueError("Expected create or cleanup.")

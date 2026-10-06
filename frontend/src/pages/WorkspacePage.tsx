@@ -17,11 +17,16 @@ export function WorkspacePage() {
         <div>
           <h2 id="workspace-title">You're connected to your team.</h2>
           <p>
-            Your account is ready. Hymn library and Mass planning tools will be available here as
-            they are introduced.
+            Your hymn library is ready. Browse your team's repertoire and keep its classifications
+            up to date. Mass planning tools will follow in the next increment.
           </p>
         </div>
       </section>
+      <p>
+        <a className="button primary" href="/hymns">
+          Open hymn library
+        </a>
+      </p>
       <section className="access-card" aria-labelledby="access-title">
         <p className="eyebrow">Account</p>
         <h2 id="access-title">Your workspace access</h2>

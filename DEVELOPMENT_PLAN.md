@@ -2,12 +2,14 @@
 
 **Prepared:** October 5, 2026  
 **Source:** [mass_hymn_picker_codex_spec.md](mass_hymn_picker_codex_spec.md)  
-**Status:** M0 and M1 engineering work completed October 6, 2026. M2–M7 have not started. See [M0 report](docs/m0-report.md) and [M1 report](docs/m1-report.md). Coordinator acceptance remains pending.  
-**Current repository:** Documented Django/PostgreSQL and React application with session authentication, role policy, responsive shell, resolved dependencies, project-local setup, and automated checks. Container configuration is supplied but has not been executed on this machine.
+**Status:** M0–M2 engineering work completed October 6, 2026. M3–M7 have not started. See [M0 report](docs/m0-report.md), [M1 report](docs/m1-report.md), and [M2 report](docs/m2-report.md). Coordinator acceptance remains pending.  
+**Current repository:** Documented Django/PostgreSQL and React application with session authentication, role policy, a persistent hymn library, five classifications, seeds, responsive forms/detail/filter screens, project-local setup, and automated checks. Container configuration is supplied but has not been executed on this machine.
 
 ## 1. Delivery objective
 
 Deliver a dependable internal tool that lets a church music coordinator build a hymn library, prepare a Mass program, review previous programs, and choose appropriate hymns with explainable recommendations.
+
+**Primary usage is on phones.** Design and verify each delivered workflow for phone use first, with compact search/tag controls, readable content, and easy touch interaction. Preserve a usable desktop layout alongside it.
 
 The development sequence must produce working software gradually. Each milestone includes database persistence, backend permissions and validation, a React interface, relevant tests, and a demonstrable user workflow. Avoid completing the whole backend before delivering any usable frontend.
 
@@ -41,6 +43,8 @@ Targets above are planning goals, not measured results. Record actual measuremen
 ### Explicitly deferred
 
 CSV/Excel import, optional CSV export, automatic calendar calculation, multilingual variants, reusable setlists, attachments, musician assignments, tenancy, advanced analytics, notifications, integrations, and AI recommendations are outside the initial delivery. They must not replace unfinished required work. Optional CSV export may be considered after the version 1 gate; it has no milestone dependency.
+
+**Later improvement — parish/choir accounts and collaboration (requested October 6, 2026):** Accounts will belong to a parish and a choir, and the people responsible for that choir will be able to edit its Mass list collaboratively. Schedule this only after all other planned work is complete, including M0–M7 and the version 1 release gate. Track the follow-up in [the deferred backlog](docs/backlog.md#deferred-until-all-other-planned-work-is-complete); it does not change the initial shared-workspace permissions or current milestone scope.
 
 No user-management React screen or full audit-log framework is required. Initially provision users and assign groups through protected Django admin or documented management commands.
 
@@ -158,6 +162,8 @@ Allow an additional 20% contingency for discoveries and pilot feedback: roughly 
 
 ### M1 — Running authenticated application
 
+**Review follow-up:** [M1 review](docs/m1-review.md) records the implemented PDF sheet-music uploads, polyphony with multiple voices, numeric duration, compact search/tags, and phone-first layouts, with verification evidence. Coordinator review remains pending.
+
 **Engineering status:** Implemented and verified against real PostgreSQL and desktop/mobile browsers. See [M1 evidence and limits](docs/m1-report.md); [README](README.md) supplies the setup and demo commands. Docker execution and coordinator review remain unverified.
 
 **Usable increment:** An Admin, Planner, or Viewer can log in, navigate the shell, and log out.
@@ -184,6 +190,8 @@ Allow an additional 20% contingency for discoveries and pilot feedback: roughly 
 **Not exposed yet:** Library, planner, and settings screens with no functionality.
 
 ### M2 — Library pilot: maintain and find real hymns
+
+**Engineering status:** Implemented with real PostgreSQL persistence, secured API/admin, and desktop/mobile browser evidence. See [M2 evidence and limits](docs/m2-report.md). Changes remain uncommitted unless the user explicitly requests a commit. Coordinator review remains pending.
 
 **Usable increment:** The coordinator can enter their library and find hymns using real classifications.
 
@@ -469,4 +477,4 @@ The original phases are preserved in substance: foundation, hymn domain, plannin
 - [ ] README, environment examples, architecture/API docs, release notes, and known limitations are current.
 - [ ] Coordinator acceptance is recorded; no unresolved required-feature or data-integrity blocker remains.
 
-**Next implementation action:** Deliver M2's useful hymn library on the verified M1 authentication foundation. Start with classification/Hymn models, migrations, secured admin and idempotent category seeds, then deliver the API and usable library together. Do not start recommendations or optional imports before the library, saved programs, and historical usage are verified.
+**Next implementation action:** Deliver M3's persistent draft planning on the verified M2 library. Start with Mass/selection migrations, revision guards, and atomic program saves, then add the usable multi-placement planner, manual picker, ordering, notes, and recoverable autosave. Finalization/history remain M4; recommendations remain M5.
