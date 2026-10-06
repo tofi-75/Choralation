@@ -14,7 +14,7 @@ function Get-VerifiedArchive([string] $Uri, [string] $RelativePath, [string] $Sh
     New-Item -ItemType Directory -Force -Path ([System.IO.Path]::GetDirectoryName($target)) | Out-Null
     if (-not (Test-Path -LiteralPath $target)) {
         Write-Host "Downloading portable runtime to $RelativePath"
-        Invoke-WebRequest -Uri $Uri -OutFile $target -TimeoutSec 600
+        Invoke-WebRequest -UseBasicParsing -Uri $Uri -OutFile $target -TimeoutSec 600
     }
     if ((Get-FileHash -Algorithm SHA256 -LiteralPath $target).Hash.ToLowerInvariant() -ne $Sha256) {
         throw "Runtime checksum mismatch: $RelativePath. Remove that project-local archive and retry."
@@ -40,8 +40,12 @@ if (-not (Test-Path -LiteralPath $ProjectNode)) {
 }
 if (-not (Test-Path -LiteralPath $ProjectNpm)) {
     $npmArchive = Join-Path $ProjectRoot '.cache\downloads\npm-11.21.0.tgz'
-    if (-not (Test-Path -LiteralPath $npmArchive)) { Invoke-WebRequest -Uri 'https://registry.npmjs.org/npm/-/npm-11.21.0.tgz' -OutFile $npmArchive -TimeoutSec 120 }
-    $sri = [Convert]::ToBase64String([System.Security.Cryptography.SHA512]::HashData([System.IO.File]::ReadAllBytes($npmArchive)))
+    if (-not (Test-Path -LiteralPath $npmArchive)) { Invoke-WebRequest -UseBasicParsing -Uri 'https://registry.npmjs.org/npm/-/npm-11.21.0.tgz' -OutFile $npmArchive -TimeoutSec 120 }
+    # Instance ComputeHash also works in Windows PowerShell 5.1's .NET Framework.
+    $npmHasher = [System.Security.Cryptography.SHA512]::Create()
+    try {
+        $sri = [Convert]::ToBase64String($npmHasher.ComputeHash([System.IO.File]::ReadAllBytes($npmArchive)))
+    } finally { $npmHasher.Dispose() }
     if ($sri -ne 'Zov8KhamNneiLdELtj5YALtNmJW4L4fCLTzjfpzXG2w6MSHcf0UxgdlK5uloCuksWT+7mGUU7wi79cO6RqivPg==') { throw 'npm checksum mismatch.' }
     Invoke-Checked $ProjectPython @('-B', (Join-Path $PSScriptRoot 'extract-runtime.py'), $npmArchive, (Join-Path $ProjectRoot '.local\npm'))
 }
@@ -53,4 +57,4 @@ if (-not (Test-Path -LiteralPath (Join-Path $ProjectPostgres 'postgres.exe'))) {
 Invoke-Checked $ProjectPython @('-B', '-m', 'pip', 'install', '-r', (Join-Path $ProjectRoot 'backend\requirements\dev.txt'))
 Invoke-Npm @('ci', '--no-fund', '--no-audit')
 Invoke-Checked $ProjectPython @('-B', (Join-Path $PSScriptRoot 'local-environment.py'))
-Write-Output 'Setup ready. Next: .\scripts\dev.ps1 db-start, then migrate, then admin.'
+Write-Output 'Setup ready. Next: .\dev.cmd db-start, then migrate, then admin.'

@@ -57,3 +57,9 @@ HTTP-only session/CSRF cookies use same-origin requests and a masked bootstrap t
 - Authentication throttling, production hosting/static configuration, recovery, and broader accessibility/performance review remain M7 work. M1 is a local development preview.
 
 **Next:** M2 classification/Hymn models, seeds, secured CRUD/search/filter APIs, and the usable library. See [the backlog](backlog.md).
+
+## Windows launcher follow-up
+
+Direct `.ps1` execution was blocked in the user's terminal. The project now provides [dev.cmd](../dev.cmd), which invokes Windows PowerShell with a temporary child-process execution policy and preserves task exit codes. Saved execution policy and global/profile files are unchanged. README commands use this entrypoint; direct PowerShell tasks remain available.
+
+Verified: setup succeeds from a parent with `Restricted` execution policy, retains existing credentials, and reinstalls from locks; role provisioning also works from the `docs` subdirectory; an invalid task returns failure. Bootstrap's compatible SHA512 implementation was verified in Windows PowerShell 5.1.26100.9444. Downloads use basic parsing so Windows PowerShell does not require Internet Explorer initialization.

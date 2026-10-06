@@ -10,6 +10,9 @@ Dockerfile text eol=lf
 *.yml text eol=lf
 *.yaml text eol=lf
 
+# Windows command entrypoints use CRLF on checkout.
+*.cmd text eol=crlf
+
 # Preserve media as binary if such assets are introduced later.
 *.png binary
 *.jpg binary
