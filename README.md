@@ -2,7 +2,7 @@
 
 A shared application for a church music team to maintain hymns and prepare Mass programs.
 
-**Current milestone: M2 useful hymn library, October 6, 2026.** Your team can add, edit, classify, search, and filter saved hymns. Viewer access is read-only; Admins can deactivate, reactivate, and delete hymns safely. See the [development plan](DEVELOPMENT_PLAN.md) and [M2 completion report](docs/m2-report.md) for scope and verification evidence. Coordinator review remains pending.
+**Delivered: M3 persistent draft planning, including October 8 reviews. M4 is next and authorized to start.** Your team can maintain the hymn library and prepare saved Mass programs with multiple hymns, ordering, notes, recoverable autosave, and revision conflict review. Viewer access is read-only; Admins can confirm draft deletion. See the [development plan](DEVELOPMENT_PLAN.md) and [M3 report](docs/m3-report.md) for scope and verification evidence. Coordinator walkthrough and physical-phone acceptance remain pending and are required by the M4 gate.
 
 The [M1 review](docs/m1-review.md) adds private PDF sheet music, polyphony with named voices, numeric duration, and a more compact interface designed primarily for phones.
 
@@ -52,16 +52,30 @@ Use **Sheet music PDF** to attach a PDF up to 10 MB, and download the saved atta
 
 Search and combine classification filters. Filters persist in the URL for refresh, sharing, and browser history. Seasons match saved season links literally: an Easter filter does not include a neutral-only hymn. Library sorting currently supports title and newest added. Admin actions on hymn detail require confirmation; inactive hymns remain searchable using the active-status filter.
 
-`seed` creates **38 defaults**: 7 genres, 7 seasons, 11 placements, 4 languages, and 9 tags. It creates no hymns or passwords and preserves existing labels, order, and active state. Deactivate unwanted defaults instead of deleting them: explicitly rerunning the seed recreates deleted defaults. Categories are maintained through the secured API or Django admin now; the full React Settings interface arrives in M6. Django admin additionally requires staff status and model permissions; an application Admin group alone does not grant that access.
+`seed` creates **45 defaults**: 7 genres, 14 seasons (original choices plus seven Maronite additions), 11 placements, 4 languages, and 9 tags. It creates no hymns or passwords and preserves existing labels, order, and active state. Deactivate unwanted defaults instead of deleting them: explicitly rerunning the seed recreates deleted defaults. Categories are maintained through the secured API or Django admin now; the full React Settings interface arrives in M6. Django admin additionally requires staff status and model permissions; an application Admin group alone does not grant that access.
 
-An optional development-only command adds three clearly fictional hymns without real lyrics or usage history. In a temporary project PowerShell terminal (`powershell.exe -NoProfile -ExecutionPolicy Bypass`), run:
+An optional development-only command adds **36 fictional demo hymns** covering active categories/tags, with varied durations and some polyphonic examples. It supplies no real lyrics, audio/PDF files, Masses or usage history. In a temporary project PowerShell terminal (`powershell.exe -NoProfile -ExecutionPolicy Bypass`), run:
 
 ```powershell
 . .\scripts\project.ps1
 Invoke-Manage @('seed_demo_data', '--username', 'your-existing-editor')
 ```
 
-The named account must be an existing Admin or Planner. Existing matching demo hymns are preserved. No demo hymns were added to the development database during M2 delivery. Draft Mass planning comes in M3; finalization and usage in M4.
+The named account must be an existing Admin or Planner. Existing matching demo hymns and user data are preserved on replay. The October 8 review requested this data in the local development database. Finalization and usage arrive in M4.
+
+## Prepare draft Mass programs
+
+When upgrading, run `migrate` with PostgreSQL running, then restart the backend. Open **Mass plans**, choose **Create Mass**, enter the date/details, then choose **Next** to open the editor. The default date is the nearest Sunday in Beirut; changing the date suggests its Maronite season. You can override or clear the season. Existing saved plans keep their season until you change the date or select another season. [Calendar notes](docs/calendar.md) explain the public Evangelizo API, local fallback and future Settings editor. Expand **Title and notes (optional)** to customize the title or add notes; a blank title generates a date-based title. On the saved planner, these fields are under **Title and Mass notes**. Search plans directly, or expand **Filter by date or season**; **Clear filters** restores the full list.
+
+The list shows **Today and upcoming** Masses nearest date first, followed by **Archived** past Masses, most recent first. The team timezone determines today. Archived is a date-based grouping: past drafts still open normally and remain editable by planners. Ordering applies across all pages and filters.
+
+Choose **+** beside a placement to see its active hymns. Hymns for the selected season and season-neutral hymns appear first, followed by other-season choices. This preference applies before pagination and keeps title/newest ordering within each group. The picker scrolls independently on phones. Expand **Filters and sort** for language/genre filters, secondary ordering, or an explicit **Search all placements** override. If a hymn is repeated or differently classified, **Add anyway** acknowledges the focused warning; **Cancel choice** returns to search. Left-hand arrows reorder hymns within their placement. The pencil opens selection notes and **Change hymn** (preserving notes/order); **Edit library details** edits the shared hymn. The bin removes that selection from the Mass, preserving the hymn in the library. Empty placements remain optional. Changes autosave after a short pause. Failed saves retain the working copy and offer retry. Inactive saved selections remain visible and can retain notes/order, but cannot be newly added.
+
+When finished planning, choose **Save draft**. It waits for pending autosave and opens a compact read-only program. Mass list links open this view too; **Edit** returns to the draft editor. Selection notes and Mass notes remain visible. Empty active sections stay visible in their configured order and show **Hymn not selected**. Viewers have no Edit action. Saving retains draft status; finalization/history remains M4. [Picker and saved-view notes](docs/m3-picker-view-review.md) explain behavior and verification.
+
+If another planner saves first, **Review saved version** shows the server program while preserving yours. Explicitly discard/reload to resume from the latest revision; there is no silent overwrite or automatic merge. Edits are held in memory until saved, so this is not offline storage. Navigation and sign-out warn about unconfirmed changes. Admins can confirm deletion of a saved draft. Django admin permits read-only Mass/selection inspection. Finalization/history remain M4; recommendations remain M5.
+
+On a draft Mass, **Random hymns** fills empty active placements with one active hymn each, matching the selected season or season-neutral classification. It preserves existing choices and notes, avoids repeats, and reports any placements without an unused match. Select a season first; manual additions remain available with **+**. Random choices use the same autosave/retry/conflict handling as manual choices. Remove a choice and pick again to try another eligible hymn. See [picker implementation and checks](docs/random-picker.md).
 
 ## Provision team access
 
@@ -131,7 +145,7 @@ Compose stores private PDFs in the `backend-media` named volume mounted at `/app
 | [Original specification](mass_hymn_picker_codex_spec.md) | Authoritative requirements, preserved unchanged |
 | [Development plan](DEVELOPMENT_PLAN.md) | Gradual milestones and acceptance gates |
 | [Architecture](docs/architecture.md) | Permissions, session security, domain decisions |
-| [API contract](docs/api.md) | Implemented auth/library and planned Mass/usage interfaces |
+| [API contract](docs/api.md) | Implemented auth/library/draft Mass contracts and planned lifecycle/usage interfaces |
 | [Dependencies](docs/dependencies.md) | Actual runtimes, resolved pins, limitations |
 | [Backlog](docs/backlog.md) | Delivered and upcoming packages |
 | [Code documentation](docs/code-documentation.md) | Contracts and comments to maintain |
@@ -140,6 +154,9 @@ Compose stores private PDFs in the `backend-media` named volume mounted at `/app
 | [M0 report](docs/m0-report.md) | Engineering preparation evidence |
 | [M1 report](docs/m1-report.md) | Implementation, checks, limits |
 | [M2 report](docs/m2-report.md) | Library delivery, acceptance evidence, remaining scope |
+| [M3 report](docs/m3-report.md) | Draft planning, autosave/concurrency evidence, remaining scope |
+| [M3 UI review](docs/m3-ui-review.md) | Compact planner, icon actions, Maronite calendar and 36 demo hymns |
+| [Calendar](docs/calendar.md) | Public API, fallback boundaries, manual overrides and future Settings |
 
 ## Save progress with Git
 

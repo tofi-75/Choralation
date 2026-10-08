@@ -1,8 +1,12 @@
 # API contract — implementation baseline
 
-**Date:** October 6, 2026. **Status:** M1 sessions, protected JSON OpenAPI schema, and M2 hymn/category endpoints are implemented. Masses, usage, recommendations, and dashboard remain planned for their stated milestones.  
+**Date:** October 8, 2026. **Status:** M1 sessions, M2 hymn/category endpoints, M3 draft Mass/program endpoints and Maronite calendar suggestions are implemented. Lifecycle/usage (M4), recommendations (M5), and dashboard (M7) remain planned.
 **Owner:** Implementation owner. **Base:** `/api/v1/`.  
 Changes to this contract must update [architecture decisions](architecture.md), frontend types, OpenAPI schemas, and relevant tests together.
+
+## Maronite calendar suggestions (October 8 review)
+
+Authenticated `GET /api/v1/calendar/maronite/?date=YYYY-MM-DD` returns `date`, `calendar: "maronite"`, `season_slug`, `season_name`, active `season_id` (nullable), `day_title` (nullable), `source` (`evangelizo` or `local`) and `source_url`. Invalid dates/years outside 1900–2199 return 400. This read-only endpoint does not alter saved Masses/categories. Public-feed mapping and local fallback boundaries are documented in [calendar notes](calendar.md); explicit manual season selection remains available.
 
 ## 1. Common conventions
 
@@ -100,6 +104,7 @@ Read responses include nested categories, all optional metadata, active/neutral 
 | `not_used_since` | No finalized occurrence on/after date, including never-used |
 | `never_used` | `true` means no global finalized occurrences; `false` means at least one; omit means no usage predicate |
 | `ordering` | One documented value below |
+| `preferred_season` | Optional existing positive season ID; season-linked and neutral hymns first, then other results, retaining the selected ordering within both groups. Ordering only; does not broaden literal filters. |
 | `page`, `page_size` | Pagination conventions above |
 
 Unknown IDs within a supplied category filter return 400. Inactive existing IDs can be used to inspect old records. Empty list parameters are errors; omit them instead. Impossible date ranges return 400. Contradictory valid predicates yield zero results, not a silent change to user intent. Usage query parameters are introduced in M4; before then return 400 explaining unavailability.
@@ -124,11 +129,13 @@ Category DELETE returns 204 for unreferenced rows only; check M2M links, Hymn la
 
 `GET/POST masses/`, `GET/PATCH/DELETE masses/{id}/`.
 
+M3 implements these routes and `PUT masses/{id}/program/`. Mass collection responses are paginated summaries: metadata, nested season, audit fields, revision, and `selection_count`; they omit program rows/warnings. Detail and create/PATCH responses include the entire program with nested hymn/placement records and warnings. PUT returns the program envelope below. Detail/POST/PATCH/PUT success responses include `X-Mass-Revision`. A 412 response includes numeric `current_revision` and the same header. Lifecycle routes remain unavailable until M4; Django admin permits inspection only, so no internal edit/delete bypasses revision checks.
+
 POST accepts `{date, title?, liturgical_season_id?, notes?}`; status/revision are server-owned. Title defaults to the source's `Sunday Mass — <formatted date>` even when the date is not Sunday; the user can supply a special-Mass title. Do not require Sunday or a season. On update an unchanged inactive season is retainable; a new inactive season is rejected.
 
 Reads include ID, source Mass fields, `revision`, `selection_count`, a saved `program` with ordered rows, and `warnings`. Lists may provide a compact preview instead of the entire program, documented separately in the implemented OpenAPI schema. Read detail and mutation responses include `X-Mass-Revision: 7`, matching the numeric `revision` field. Writes submit `X-Expected-Mass-Revision: 7`. This precondition protects Mass-owned metadata/program/state; live hymn/category labels and warnings do not advance a Mass revision. Explicit headers avoid incorrectly treating the aggregate version as a strong HTTP representation ETag. Application data responses use `Cache-Control: no-store`; TanStack Query handles in-memory caching.
 
-List queries: inclusive `from`/`to`, `status=draft|finalized`, `season=<single ID>`, `q` across title/notes, pagination, newest-date/Mass-ID first. A draft appears in planning/history lists when requested but never in usage calculations.
+List queries: inclusive `from`/`to`, `status=draft|finalized`, `season=<single ID>`, `q` across title/notes, pagination. Today and upcoming Masses appear first, date ascending; past Masses follow, date descending (closest past first). Same-day ties use descending Mass ID. Ordering happens before pagination. List summaries include `is_archived`, derived from the same team-local day (`APP_TIME_ZONE`, default `Asia/Beirut`) used for ordering. This powers the list's Archived section without changing persisted draft/finalized status, revision, editing permissions or usage. A draft appears in planning/history lists when requested but never in usage calculations.
 
 PATCH accepts editable metadata only and requires `X-Expected-Mass-Revision`. Delete requires Admin, draft state, and that same header; 204. Finalized PATCH/DELETE returns 409 when the revision is current. Missing revision returns 428; stale returns 412 with the current revision and `X-Mass-Revision`. The client must refetch the actual record for conflict review. Parse the header as a positive integer; reject arrays, wildcard, or malformed values. Authenticate/authorize first, then check revision, then state, before writes.
 
@@ -148,6 +155,16 @@ PATCH accepts editable metadata only and requires `X-Expected-Mass-Revision`. De
 Omitted existing rows are removed. IDs, when supplied, belong to this Mass and appear only once; new rows omit ID. Validate all entries before writing. Require distinct contiguous positions per placement; reject duplicates/gaps rather than silently changing the caller's order. Return 200 `{mass_id, revision, selections, warnings}` with persisted IDs and current `X-Mass-Revision`. Full empty list is a valid draft program. Replaying the committed representation with existing IDs is a no-op; repeating a request with an old revision gets 412.
 
 Retained inactive selections are allowed by identity; new inactive hymn/placement links are 400 field errors. Category suitability and repeat use are warnings only, returned as `{code, hymn_id, selection_ids, placement_id?, facts}` objects. Do not reject active manual selections because they lack a season/placement classification.
+
+M3 warning codes are `placement_mismatch`, `season_mismatch`, `duplicate_hymn`, and `inactive_selection`. Duplicate facts include `occurrences`. Retaining an inactive row requires its saved ID and unchanged hymn **and** placement; reordering or note edits are permitted. A position swap retains selection IDs; the PostgreSQL uniqueness constraint is deferred until transaction commit. Each effective metadata/program change advances the Mass revision once; identical representations are no-ops.
+
+### Random picks — delivered M3 follow-up
+
+`POST masses/{id}/random-picks/` requires Planner/Admin and a draft Mass. The body is `{season_id, placement_ids, excluded_hymn_ids}`: an existing season ID, 1–100 distinct active placement IDs, and up to 10,000 positive excluded hymn IDs (an empty exclusion list is valid). Unknown fields, invalid IDs, duplicate/inactive placements or missing season return 400; missing Mass returns 404; finalized Mass returns 409. The season may be a retained inactive choice. Excluded IDs are exclusions only and need not still exist.
+
+This POST is a **read-only suggestion request**, with CSRF protection but no revision precondition or revision advance. The explicit body describes the browser's possibly unsaved season/choices. It returns `{picks: [{placement_id, hymn: <full Hymn>}], unfilled_placement_ids: [...]}`. Candidates come from the whole active library with the requested placement and either the requested season or season-neutral status. Randomized maximum matching avoids duplicates and maximizes placement coverage; assignments are not sampled uniformly over all possible programs. No-match returns 200 with empty picks. No history, usage or ranking is calculated.
+
+The client inserts only into placements still empty in its latest working copy, rechecks duplicates/classifications, and discards responses after date/season/calendar-context changes or unmount. It then saves through the existing revision-guarded program PUT. Existing rows retain identities, notes and order. The endpoint does not reserve choices; later library changes follow the normal active-reference validation and advisory warning behavior. See [implementation notes](random-picker.md).
 
 ### Lifecycle — M4
 
@@ -190,8 +207,14 @@ Read-only `GET /health/live/` confirms the process; `GET /health/ready/` checks 
 
 ## 9. Frontend invalidation and contract evidence
 
-M2 uses `["hymns", queryString]`, `["hymn", id]`, and an aggregate `["categories"]` key that fetches all five category lists with `is_active=all`. Hymn mutations invalidate library variants, affected details, and category reference data. The router updates URL state synchronously so controlled filter inputs respond immediately; queries provide loading states independently. Later features introduce `["hymn-usage", id, filters]`, `["masses", filters]`, `["mass", id]`, `["recommendations", massId, placementId, filters]`, and `["dashboard"]`. Split category cache keys by kind/filter when M6 needs independent administration queries.
+M2 uses `["hymns", queryString]`, `["hymn", id]`, and an aggregate `["categories"]` key that fetches all five category lists with `is_active=all`. Hymn mutations invalidate library variants, affected details, and category reference data. The router updates URL state synchronously so controlled filter inputs respond immediately; queries provide loading states independently. M3 adds the Mass keys described below. Later milestones introduce `["hymn-usage", id, filters]`, `["recommendations", massId, placementId, filters]`, and `["dashboard"]`. Split category cache keys by kind/filter when M6 needs independent administration queries.
 
-Program mutation refreshes Mass lists/detail, affected recommendations, and dashboard. Finalize/reopen additionally refreshes affected hymn details, usage lists, all usage-filtered library variants, and history. Category/hymn edits refresh dependent selectors/cards without losing unsaved form data. Request hooks must include filter/season changes in cache keys or invalidation.
+Program mutation refreshes Mass lists/detail. M5/M7 will additionally refresh affected recommendations and dashboard. M4 finalize/reopen will refresh affected hymn details, usage lists, all usage-filtered library variants, and history. Category/hymn edits refresh dependent selectors/cards without losing unsaved form data. Request hooks must include filter/season changes in cache keys or invalidation.
 
 Implemented endpoint shapes and errors are validated by the OpenAPI gate and integration tests; see [M2 evidence](m2-report.md). Future sections describe planned contracts, not available routes. Acceptance cases and exact fictional expectations are in [acceptance.md](acceptance.md).
+
+M3 uses `["masses", queryString]` for list summaries and `["mass", id]` for saved detail. A mounted `DraftSaver` owns the working copy and its revision; background query refreshes preserve local Mass metadata, rows, order, and notes while reconciling live hymn/placement references. Advisory warnings derive from that local program and its refreshed references, including pending edits. A newly opened editor waits for its initial detail refresh before creating that working copy. Its 600 ms autosave debounce coalesces edits and serializes metadata PATCH then program PUT, using the acknowledgement's revision for the next request. Canonical metadata acknowledgements replace only fields unchanged since the request and become the next save baseline. Each endpoint is atomic independently; if metadata commits and program saving fails, retry preserves that metadata acknowledgement. Server-generated row IDs attach by local identity without overwriting subsequent edits. Unmounting stops queued requests, including the program PUT after a pending metadata PATCH; already-started requests may settle. Failures halt automatic writes until retry; revision/state conflicts require saved-version review and explicit discard/reload. Saved acknowledgements invalidate list summaries and saved detail. Internal navigation, browser unload, and sign-out warn about unconfirmed edits; offline durable storage and automatic merging remain deferred. See [M3 evidence](m3-report.md).
+
+The October 8 picker/view follow-up adds `preferred_season` to the hymn list contract. The section picker sends `placements=<current ID>` by default and includes placement/season/override in its query key. Preference is calculated in PostgreSQL before pagination with a season subquery, avoiding duplicate rows from multi-season links. Unknown, malformed or repeated preference IDs return 400. Literal `seasons` filters retain their earlier behavior.
+
+Frontend `/masses/:id` now displays saved read-only detail; `/masses/:id/edit` hosts the draft editor. Creation opens the editor, while list links open the view. **Save draft** awaits the shared saver drain (including an already-started autosave), then navigates only after React observes `Saved`. Calendar/random lookup must settle before finishing; editor controls stop accepting changes during the save. Failure/conflict keeps the editor and its working copy. The view waits for a fresh mount-time detail read and never changes Mass status or writes a program. Viewer/finalized edit routes redirect to the view. No new save/finalize endpoint or database flag is introduced. See [review notes](m3-picker-view-review.md).

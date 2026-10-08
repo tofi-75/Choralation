@@ -12,6 +12,8 @@ export function AppShell() {
   const [signingOut, setSigningOut] = useState(false);
 
   async function logout() {
+    if (!window.dispatchEvent(new Event('choralation:before-signout', { cancelable: true })))
+      return;
     setFailure(null);
     setSigningOut(true);
     try {
@@ -49,6 +51,12 @@ export function AppShell() {
           >
             Hymn library
           </NavLink>
+          <NavLink
+            className={({ isActive }) => `nav-item ${isActive ? 'current' : ''}`}
+            to="/masses"
+          >
+            Mass plans
+          </NavLink>
         </nav>
         <div className="sidebar-footer">
           <p>Music for every gathering.</p>
@@ -66,6 +74,11 @@ export function AppShell() {
                   <Dialog.Title>Your workspace</Dialog.Title>
                   <Dialog.Description>Navigate your team's shared workspace.</Dialog.Description>
                   <nav aria-label="Mobile">
+                    <Dialog.Close asChild>
+                      <Link className="nav-item" to="/masses">
+                        Mass plans
+                      </Link>
+                    </Dialog.Close>
                     <Dialog.Close asChild>
                       <Link className="nav-item" to="/hymns">
                         Hymn library

@@ -2,8 +2,8 @@
 
 **Prepared:** October 5, 2026  
 **Source:** [mass_hymn_picker_codex_spec.md](mass_hymn_picker_codex_spec.md)  
-**Status:** M0–M2 engineering work completed October 6, 2026. M3–M7 have not started. See [M0 report](docs/m0-report.md), [M1 report](docs/m1-report.md), and [M2 report](docs/m2-report.md). Coordinator acceptance remains pending.  
-**Current repository:** Documented Django/PostgreSQL and React application with session authentication, role policy, a persistent hymn library, five classifications, seeds, responsive forms/detail/filter screens, project-local setup, and automated checks. Container configuration is supplied but has not been executed on this machine.
+**Status:** M0–M3 engineering work is complete, including the October 8 M3 review changes. The owner authorized the M3 checkpoint and starting M4 on October 8. M4–M7 are not yet delivered. See [M0 report](docs/m0-report.md), [M1 report](docs/m1-report.md), [M2 report](docs/m2-report.md), and [M3 report](docs/m3-report.md). Coordinator acceptance remains pending.
+**Current repository:** Documented Django/PostgreSQL and React application with session authentication, role policy, a persistent hymn library, five classifications, seeds, responsive forms/detail/filter screens, and a persistent multi-placement draft planner with recoverable autosave and revision conflicts. Project-local setup and automated checks cover the delivered workflows. Container configuration is supplied but has not been executed on this machine.
 
 ## 1. Delivery objective
 
@@ -220,15 +220,19 @@ Allow an additional 20% contingency for discoveries and pilot feedback: roughly 
 
 ### M3 — Planning pilot: persistent draft programs
 
+**Engineering status:** Complete through October 8, 2026, including calendar/demo data, random picking, section-scoped scrolling picker, saved view/Edit, visible empty sections, creation Next label, and upcoming/Archived ordering. See [delivery report](docs/m3-report.md) and [latest review](docs/m3-picker-view-review.md). The owner authorized committing M3 and beginning M4. Human walkthrough and physical-phone acceptance remain open and are explicit M4 gate items.
+
 **Usable increment:** The coordinator can prepare a real Mass program and return to it later.
 
 **Work packages**
 
 - **M3.1 — Domain/API:** Add Mass and MassHymnSelection, draft CRUD/date filters, selection ordering constraints, revision preconditions, and the transactional bulk program endpoint.
-- **M3.2 — Planner:** Create Mass by any valid calendar date, optional title/manual season/notes; generate the specified default title. Render active placements from server configuration in display order.
+- **M3.2 — Planner:** Create Mass by any valid date, optional title/season/notes; generate the specified default title. October 8 review: default to the nearest Sunday and suggest a Maronite season, retaining manual overrides; see [calendar sources and rules](docs/calendar.md). Render active placements from server configuration in display order.
 - **M3.3 — Selection:** Deliver an All Hymns picker with search/filters; add/remove multiple hymns per placement, move up/down, and edit selection notes. Include explicit placement/season mismatch acknowledgement and duplicate warnings.
 - **M3.4 — Saving:** Implement serialized/coalesced autosave for metadata and program changes, retryable failures, unsaved navigation warnings, and stale-revision conflict handling that preserves local edits.
 - **M3.5 — Program view:** Provide draft list/detail views, saved program preview, and a completion indicator counting filled active placements; empty placements are optional.
+- **M3.6 — Random picker (October 8 follow-up):** Fill empty active placements with distinct active hymns matching the selected season or season-neutral classification. Preserve current selections/notes and use the existing autosave queue. Report unmatched placements, cancel obsolete results after date/season changes, and verify retry/reload on desktop and phone widths. See [implementation and checks](docs/random-picker.md).
+- **M3.7 — Picker and saved view (October 8 follow-up):** Default choices to the current placement, prioritize selected-season/neutral hymns before pagination, and make the dialog scroll on phones. Save draft waits for all queued writes, then opens a compact read-only program; list links open that view and Edit returns to planning. Preserve failure/conflict recovery and draft status. See [review notes](docs/m3-picker-view-review.md).
 
 **Demo:** Create a non-Sunday Mass, choose its season, add two Communion hymns and an Entrance hymn, reorder them, add notes, refresh, and reopen the same draft from another browser session.
 
@@ -240,7 +244,7 @@ Allow an additional 20% contingency for discoveries and pilot feedback: roughly 
 - Intentional duplicate hymns and classification mismatches can be saved after soft warnings.
 - Rapid successive edits do not lose the last change. Simulate slow responses and a failed save; the UI never displays `Saved` until confirmed.
 - Two tabs editing the same revision produce a clear conflict instead of a silent overwrite. The losing tab retains its working copy and can review/reload safely.
-- Mass creation allows non-Sunday dates, and season remains manual. Up/down reordering works by keyboard and touch.
+- Mass creation allows non-Sunday dates, and suggested seasons can be overridden manually. Up/down reordering works by keyboard and touch.
 - Planner and Admin may edit drafts; Viewer reads only. Admin draft deletion is confirmed.
 
 **Bounded deferral:** Finalization is delivered together with trustworthy history in M4. Do not offer a functioning-looking finalize action before its history semantics exist. The Recommended tab appears at M5.
@@ -268,6 +272,7 @@ Allow an additional 20% contingency for discoveries and pilot feedback: roughly 
 - Deactivation and category edits leave old selection IDs, notes, and order intact. Referenced hymn/category deletion is rejected.
 - Usage date filters use the documented occurrence/range semantics. Future finalized entries receive scheduled wording rather than negative `days ago` text.
 - A real-backend browser test covers login → add hymn → create draft → select → finalize → see history.
+- **Physical-phone acceptance (required):** A coordinator completes create → pick/scroll → reorder by touch → notes with the keyboard open → Save draft → reopen/Edit → finalize → history on a real phone. Test narrow portrait and landscape, navigation/dialog scrolling, reachable actions, no horizontal overflow, and retry after a connection interruption. Record device, OS/browser, date, results and defects in the M4 report. Cover iOS Safari and Android Chrome where available; mark unavailable devices as pending. Browser width emulation is supporting evidence, not completion of this gate. Include desktop keyboard and Firefox regression checks. Human acceptance remains pending until recorded.
 
 **MVP gate:** A coordinator can carry out the full manual weekly workflow without developer assistance, except category changes. Recommendations and full Settings remain clearly identified as upcoming capabilities.
 
@@ -477,4 +482,4 @@ The original phases are preserved in substance: foundation, hymn domain, plannin
 - [ ] README, environment examples, architecture/API docs, release notes, and known limitations are current.
 - [ ] Coordinator acceptance is recorded; no unresolved required-feature or data-integrity blocker remains.
 
-**Next implementation action:** Deliver M3's persistent draft planning on the verified M2 library. Start with Mass/selection migrations, revision guards, and atomic program saves, then add the usable multi-placement planner, manual picker, ordering, notes, and recoverable autosave. Finalization/history remain M4; recommendations remain M5.
+**Next implementation action:** M4 finalization and trustworthy history, following the verified M3 draft planner. Implement guarded finalize/reopen transitions and derived finalized usage together, then expose history and the complete weekly workflow. Recommendations remain M5.

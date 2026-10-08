@@ -37,6 +37,9 @@ def exception_handler(exc, context):
         elif isinstance(exc, exceptions.PermissionDenied):
             code = "csrf_failed" if detail.startswith("CSRF Failed:") else "permission_denied"
     response.data = {"detail": detail, "code": code, "errors": errors}
+    if hasattr(exc, "current_revision"):
+        response.data["current_revision"] = exc.current_revision
+        response["X-Mass-Revision"] = str(exc.current_revision)
     return response
 
 

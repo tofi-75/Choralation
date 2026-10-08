@@ -43,7 +43,7 @@ export default defineConfig({
       command:
         '"..\\.venv\\Scripts\\python.exe" -B ..\\backend\\manage.py runserver 127.0.0.1:8001 --noreload',
       url: 'http://127.0.0.1:8001/health/ready/',
-      env: { CSRF_TRUSTED_ORIGINS: 'http://127.0.0.1:5174' },
+      env: { CSRF_TRUSTED_ORIGINS: 'http://127.0.0.1:5174', MARONITE_FEED_ENABLED: 'false' },
       reuseExistingServer: false,
       timeout: 30_000,
     },

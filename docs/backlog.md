@@ -1,7 +1,7 @@
 # Delivery backlog and accountability
 
-**Baseline:** October 6, 2026. M0–M2 engineering work is complete; M3–M7 have not started. Container execution and coordinator review remain pending.  
-**Accountable implementation owner for every milestone:** Codex, working in this project/chat. Backend, frontend, and quality roles below are responsibility areas for that owner, not invented staffing assignments. No subagents have been delegated.  
+**Baseline:** October 8, 2026. M0–M3 engineering work and requested M3 follow-ups are complete. The owner authorized the M3 commit and beginning M4. M4–M7 are not yet delivered. Container execution and coordinator review remain pending; physical-phone acceptance is an explicit M4 gate.
+**Accountable implementation owner for every milestone:** Codex, working in this project/chat. Backend, frontend, and quality roles below are responsibility areas for that owner, not invented staffing assignments. Implementation was not delegated; the owner requested one read-only subagent review of M2 changes.
 **Product reviewer:** Church music coordinator, not yet assigned; human acceptance remains pending.
 
 Follow the [development plan](../DEVELOPMENT_PLAN.md) for complete milestone gates and estimates, [architecture](architecture.md) for resolved choices, and [API contract](api.md) for payload/error details. A work package is split into smaller tickets when it exceeds one or two working days.
@@ -34,7 +34,7 @@ Follow the [development plan](../DEVELOPMENT_PLAN.md) for complete milestone gat
 
 ## M2 — Library pilot
 
-**Status:** Implemented. [Completion report](m2-report.md) records library delivery and acceptance evidence. Models, seeds, API, interface, and safety tickets below are complete. The coordinator can begin entering real hymns; M3 draft planning is next.
+**Status:** Implemented. [Completion report](m2-report.md) records library delivery and acceptance evidence. Models, seeds, API, interface, and safety tickets below are complete. The coordinator can enter real hymns and use the M3 draft planner.
 
 **Depends on:** M1. **Acceptance scenarios:** A02–A04. **Pilot evidence:** Enter/edit/classify real records; URL search/filter persistence; inactive/permission and seed behavior.
 
@@ -50,6 +50,8 @@ Usage fields/filters wait until M4 and must not be presented as real data earlie
 
 ## M3 — Draft planning pilot
 
+**Status:** Complete through October 8, including all requested reviews; approved for the M3 checkpoint by the owner. See [delivery report](m3-report.md) and [latest review](m3-picker-view-review.md). M2 is recorded at `aada303`. Coordinator walkthrough and physical-phone acceptance carry into the M4 gate.
+
 **Depends on:** M2. **Acceptance scenarios:** A05–A07. **Pilot evidence:** Saved two-hymn Communion section, order/notes persisted, no data loss during rapid edits/failure/conflict.
 
 | Ticket | Responsibility | Depends on | Deliverable/check |
@@ -59,6 +61,10 @@ Usage fields/filters wait until M4 and must not be presented as real data earlie
 | M3.3 Selection | Frontend/backend | M3.2 | All Hymns picker, multiple rows, notes/up-down, suitability/duplicate warnings |
 | M3.4 Saving | Frontend/backend/quality | M3.1–M3.3 | Serialized/coalesced autosave, preserved edits, two-tab conflict, transactional tests |
 | M3.5 Program view | Frontend | M3.2–M3.4 | Draft list/detail, completion count, retained inactive sections |
+| M3.6 Random picker | Backend/frontend/quality | M3.1–M3.4 | Implemented October 8: fill empty placements with distinct active season/neutral matches; preserve selections/notes; autosave/retry; report unmatched placements. See [implementation](random-picker.md). |
+| M3.7 Picker and saved view | Backend/frontend/quality | M3.1–M3.6 | Section-scoped picker, season/neutral preference before pagination, scrollable phone dialog; Save draft waits for autosave then opens compact read-only detail; Edit reopens planning. See [review](m3-picker-view-review.md). |
+
+Completed list/view refinements also include **Next** for creation, **Hymn not selected** for empty saved sections, and upcoming-nearest/Archived-past grouping.
 
 Finalization appears only with history in M4; recommendations only in M5.
 
@@ -73,6 +79,7 @@ Finalization appears only with history in M4; recommendations only in M5.
 | M4.3 History | Backend/frontend | M4.2 | Hymn usage and Mass history with filters/previews |
 | M4.4 Library usage | Frontend/backend | M4.2 | Usage columns, literal recency filters, all sorting, scheduled labels |
 | M4.5 Cache correctness | Frontend/quality | M4.3–M4.4 | Immediate usage refresh; real-browser full-flow test |
+| M4.6 Physical-phone acceptance | Product/quality | M4.1–M4.5 | Required real-device create/picker/touch reorder/keyboard/save/edit/finalize/history journey; connection retry; record device/browser/results. iOS Safari and Android Chrome where available; unavailable coverage remains pending. Emulation does not close the gate. |
 
 ## M5 — Assisted planning beta
 
@@ -96,6 +103,7 @@ Finalization appears only with history in M4; recommendations only in M5.
 | M6.2 Reordering | Backend/frontend | M6.1 | Atomic reorder; keyboard/touch controls; full membership validation |
 | M6.3 Impact feedback | Backend/frontend | M6.1 | Reference counts, delete rejection, deactivation confirmation |
 | M6.4 Integration | Frontend/quality | M6.1–M6.3 | Active choices refresh, saved inactive labels remain, seed replay |
+| M6.5 Calendar settings | Backend/frontend | M6.1; Maronite date adapter | Select calendar/timezone; edit local season/date overrides with preview; expose provider/refresh status; preserve saved plans. Requested October 8; see [calendar notes](calendar.md). |
 
 ## M7 — Complete version 1
 

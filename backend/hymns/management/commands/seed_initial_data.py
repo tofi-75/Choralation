@@ -17,6 +17,13 @@ DEFAULTS = {
         "Holy Week",
         "Easter",
         "Pentecost",
+        "Birth of Our Lord",
+        "Epiphany",
+        "Commemorations",
+        "Great Lent",
+        "Passion Week",
+        "Resurrection",
+        "Holy Cross",
     ],
     "mass-placements": [
         "Entrance / Processional",

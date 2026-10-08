@@ -1217,3 +1217,286 @@ input[aria-invalid='true'] {
     grid-template-columns: 1fr;
   }
 }
+/* Draft planning keeps reading order and touch targets usable on narrow phones. */
+.mass-planner {
+  font-size: 0.875rem;
+}
+.mass-planner .page-title {
+  font-size: 1.65rem;
+}
+.mass-planner .form-section {
+  padding: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+.mass-planner .field,
+.mass-planner .form-section legend {
+  font-size: 0.875rem;
+}
+.mass-planner input,
+.mass-planner select,
+.mass-planner textarea,
+.hymn-picker input,
+.hymn-picker select {
+  font-size: 16px;
+}
+.calendar-notice {
+  margin: 0;
+}
+.mass-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 1rem;
+}
+.mass-card {
+  display: block;
+  padding: 1.25rem;
+  border: 1px solid #e3d9cb;
+  border-radius: 16px;
+  color: inherit;
+  text-decoration: none;
+  background: white;
+}
+.mass-card h3 {
+  margin: 0.5rem 0;
+  overflow-wrap: anywhere;
+}
+.mass-group {
+  margin-bottom: 1.5rem;
+}
+.mass-group-heading {
+  font-family: inherit;
+  font-size: 1rem;
+  margin: 0 0 0.75rem;
+}
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.planner-sections {
+  background: white;
+  border: 1px solid #e3d9cb;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  padding: 0 0.85rem;
+  font-size: 0.875rem;
+}
+.workspace-actions {
+  margin: 1rem 0 1.5rem;
+}
+.random-picker {
+  padding: 0.85rem 0;
+  border-bottom: 1px solid #e3d9cb;
+  overflow-wrap: anywhere;
+}
+.random-picker p {
+  margin: 0.5rem 0 0;
+}
+.placement-section {
+  padding: 0.4rem 0;
+  border-bottom: 1px solid #e3d9cb;
+}
+.placement-section:last-child {
+  border-bottom: 0;
+}
+.planner-sections .section-heading {
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+}
+.planner-sections .section-heading h2 {
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+/* Icons retain 44px touch targets; text stays compact and inputs avoid iOS zoom. */
+.button.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  flex-shrink: 0;
+  font-size: 1.4rem;
+}
+.placement-section > .section-heading .icon-button {
+  border-color: transparent;
+  background: transparent;
+}
+.planner-details {
+  grid-column: 1 / -1;
+}
+.planner-details > .form-grid,
+.mass-filters > .form-grid {
+  margin-top: 1rem;
+}
+.mass-filters {
+  margin: 1rem 0;
+}
+.planner-sections .section-heading h2 {
+  margin: 0;
+}
+.planner-sections .section-heading + .muted {
+  margin-bottom: 0;
+}
+.program-rows {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.program-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0;
+  border-top: 1px solid #eee7dd;
+  overflow-wrap: anywhere;
+}
+.program-row:has(.row-reorder) {
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+}
+.row-reorder,
+.row-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.row-summary {
+  min-width: 0;
+}
+.row-summary p {
+  margin: 0.2rem 0 0;
+}
+.row-summary a {
+  font-weight: 600;
+}
+.selection-editor {
+  grid-column: 1 / -1;
+  padding: 0.6rem;
+  border-radius: 8px;
+  background: #faf7f2;
+}
+.selection-editor textarea {
+  min-height: 70px;
+  font-size: 16px;
+}
+.selection-editor .form-actions {
+  margin-top: 0.5rem;
+  align-items: center;
+}
+.save-status {
+  padding: 0.5rem 1rem;
+  border-radius: 100px;
+  background: #e8f1e8;
+  font-weight: 600;
+}
+.save-status.pending {
+  background: #fff0d3;
+}
+.picker-results {
+  list-style: none;
+  padding: 0;
+}
+.picker-results li {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e3d9cb;
+}
+.hymn-picker {
+  width: min(680px, calc(100vw - 2rem));
+  font-size: 0.875rem;
+  /* Radix locks background scrolling. The fixed dialog needs its own bounded
+     scroll area so every result and action remains reachable on a phone. */
+  top: 1rem;
+  bottom: auto;
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y pinch-zoom;
+  padding: 1rem;
+}
+.hymn-picker .form-actions {
+  position: sticky;
+  bottom: 0;
+  background: white;
+  padding: 0.75rem 0;
+}
+.hymn-picker .notice .form-actions {
+  position: static;
+  background: transparent;
+  padding: 0;
+}
+.hymn-picker .notice h3 {
+  font: inherit;
+  font-weight: 650;
+}
+.mass-view {
+  max-width: 850px;
+  margin-inline: auto;
+  overflow-wrap: anywhere;
+}
+.mass-view .page-heading {
+  gap: 0.75rem;
+}
+.mass-view .page-heading .eyebrow {
+  /* Saved state remains useful on phones, where decorative eyebrows are hidden. */
+  display: block;
+}
+.mass-view .page-title {
+  font-size: clamp(1.3rem, 4vw, 1.7rem);
+}
+.saved-program {
+  background: white;
+  border: 1px solid #e3d9cb;
+  border-radius: 12px;
+  padding: 0.25rem 0.85rem;
+  font-size: 0.875rem;
+}
+.saved-placement {
+  padding: 0.65rem 0;
+  border-bottom: 1px solid #e3d9cb;
+}
+.saved-placement:last-child {
+  border-bottom: 0;
+}
+.saved-placement h2 {
+  font: inherit;
+  font-weight: 650;
+  margin: 0 0 0.4rem;
+}
+.saved-placement ol {
+  margin: 0;
+  padding-inline-start: 1.35rem;
+}
+.saved-placement > p {
+  margin: 0;
+}
+.saved-placement li + li {
+  margin-top: 0.4rem;
+}
+.saved-placement li p {
+  margin: 0.2rem 0 0;
+}
+.mass-view-notes {
+  font-size: 0.875rem;
+}
+.saved-program-notes {
+  margin-top: 1rem;
+  font-size: 0.875rem;
+}
+@media (min-width: 600px) {
+  .program-row:has(.row-reorder) {
+    grid-template-columns: 44px minmax(0, 1fr) 90px;
+  }
+  .row-actions {
+    flex-direction: row;
+  }
+}

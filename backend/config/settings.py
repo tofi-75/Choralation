@@ -25,6 +25,7 @@ CSRF_TRUSTED_ORIGINS = csv("CSRF_TRUSTED_ORIGINS")
 TIME_ZONE = os.environ.get("APP_TIME_ZONE", "Asia/Beirut")
 USE_TZ = True
 LANGUAGE_CODE = "en-us"
+MARONITE_FEED_ENABLED = boolean("MARONITE_FEED_ENABLED", True)
 
 database_url = os.environ.get("DATABASE_URL", "")
 if not database_url.startswith(("postgres://", "postgresql://")):
@@ -46,6 +47,7 @@ INSTALLED_APPS = [
     "accounts",
     "common",
     "hymns",
+    "masses",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

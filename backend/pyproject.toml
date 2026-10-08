@@ -15,7 +15,7 @@ select = ["E", "F", "I", "B", "UP"]
 ignore = ["E501"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["accounts", "common", "config", "hymns"]
+known-first-party = ["accounts", "common", "config", "hymns", "masses"]
 
 [tool.ruff.format]
 quote-style = "double"

@@ -11,9 +11,56 @@ from django.test.utils import CaptureQueriesContext
 from rest_framework.test import APIClient
 
 from hymns.admin import HymnForm
-from hymns.models import CATEGORY_TYPES, Genre, Hymn, Language, MassPlacement, Tag
+from hymns.models import CATEGORY_TYPES, Genre, Hymn, Language, LiturgicalSeason, MassPlacement, Tag
 
 pytestmark = pytest.mark.django_db
+
+
+@pytest.mark.parametrize("ordering", ["title", "newest_added"])
+def test_picker_season_preference_before_pagination_and_with_section_filter(library, ordering):
+    api, _, categories, payload = library
+    season = categories["liturgical-seasons"]
+    placement = categories["mass-placements"]
+    other = LiturgicalSeason.objects.create(name="Picker other season", slug="picker-other")
+    wrong_slot = MassPlacement.objects.create(name="Picker other placement", slug="picker-other")
+    preferred = []
+    for title, neutral, target, target_season in [
+        ("ZZ matching", False, placement, season),
+        ("ZZ neutral", True, placement, None),
+        ("AA wrong section", True, wrong_slot, None),
+        *[(f"AA other season {i:02}", False, placement, other) for i in range(26)],
+    ]:
+        hymn = Hymn.objects.create(
+            title=title, language=categories["languages"], is_season_neutral=neutral
+        )
+        hymn.placements.add(target)
+        if target_season:
+            hymn.seasons.add(target_season)
+        if title.startswith("ZZ"):
+            preferred.append(hymn.pk)
+    url = (
+        f"/api/v1/hymns/?placements={placement.pk}&preferred_season={season.pk}&ordering={ordering}"
+    )
+    first = api.get(url)
+    assert first.status_code == 200, first.data
+    assert first.data["count"] == 28
+    assert {row["id"] for row in first.data["results"][:2]} == set(preferred)
+    assert len({row["id"] for row in first.data["results"]}) == 25
+    assert all(row["placements"][0]["id"] == placement.pk for row in first.data["results"])
+    second = api.get(url + "&page=2")
+    assert len(second.data["results"]) == 3
+    assert not set(preferred) & {row["id"] for row in second.data["results"]}
+    # Preference does not broaden a literal season filter or defeat text search.
+    literal = api.get(url + f"&seasons={season.pk}")
+    assert [row["title"] for row in literal.data["results"]] == ["ZZ matching"]
+    searched = api.get(url + "&q=other%20season")
+    assert searched.data["count"] == 26
+
+
+@pytest.mark.parametrize("value", ["", "0", "-1", "abc", "999999", "1,2", "1&preferred_season=2"])
+def test_picker_season_preference_rejects_invalid_or_repeated_ids(library, value):
+    api, *_ = library
+    assert api.get(f"/api/v1/hymns/?preferred_season={value}").status_code == 400
 
 
 @pytest.fixture
@@ -251,6 +298,9 @@ def test_pagination_same_titles_and_query_count(library):
 @pytest.mark.parametrize("kind", list(CATEGORY_TYPES))
 def test_category_crud_unique_names_immutable_slugs_reorder_and_protection(library, kind):
     api, users, categories, payload = library
+    seeded_ids = list(
+        CATEGORY_TYPES[kind].objects.exclude(pk=categories[kind].pk).values_list("pk", flat=True)
+    )
     create(api, payload)
     url = f"/api/v1/{kind}/"
     assert api.post(url, {"name": "Another"}, format="json").status_code == 403
@@ -268,11 +318,16 @@ def test_category_crud_unique_names_immutable_slugs_reorder_and_protection(libra
         == slug
     )
     assert api.patch(f"{url}{pk}/", {"slug": "changed"}, format="json").status_code == 400
-    assert len(api.get(url).data) == 1 and len(api.get(f"{url}?is_active=all").data) == 2
+    assert len(api.get(url).data) == len(seeded_ids) + 1
+    assert len(api.get(f"{url}?is_active=all").data) == len(seeded_ids) + 2
     assert api.post(f"{url}reorder/", {"ordered_ids": [pk]}, format="json").status_code == 400
-    ordered = api.post(f"{url}reorder/", {"ordered_ids": [pk, existing.pk]}, format="json")
+    ordered = api.post(
+        f"{url}reorder/", {"ordered_ids": [pk, existing.pk, *seeded_ids]}, format="json"
+    )
     assert ordered.status_code == 200
-    assert [row["display_order"] for row in ordered.data["results"]] == [0, 1]
+    assert [row["display_order"] for row in ordered.data["results"]] == list(
+        range(len(seeded_ids) + 2)
+    )
     assert api.get(f"{url}{existing.pk}/").data["reference_counts"]["hymns"] == 1
     protected = api.delete(f"{url}{existing.pk}/")
     assert protected.status_code == 409 and protected.data["code"] == "referenced_record"
@@ -333,8 +388,23 @@ def test_optional_demo_seed_is_repeatable_and_not_part_of_production_seed(librar
     assert Hymn.objects.count() == 0
     for _ in range(2):
         call_command("seed_demo_data", username=users["Admin"].username, stdout=StringIO())
-    assert Hymn.objects.count() == 3
+    assert Hymn.objects.count() == 36
     assert all("fictional" in hymn.source_or_hymnal for hymn in Hymn.objects.all())
+    for kind, model in CATEGORY_TYPES.items():
+        field = {
+            "liturgical-seasons": "seasons",
+            "mass-placements": "placements",
+            "languages": "language",
+        }.get(kind, kind)
+        assert set(model.objects.filter(is_active=True).values_list("pk", flat=True)) <= set(
+            Hymn.objects.values_list(field, flat=True)
+        )
+    edited = Hymn.objects.first()
+    edited.notes = "Keep my demo edits"
+    edited.save()
+    call_command("seed_demo_data", username=users["Admin"].username, stdout=StringIO())
+    edited.refresh_from_db()
+    assert edited.notes == "Keep my demo edits"
 
 
 def test_django_admin_creates_valid_library_records_and_protects_referenced_categories(library):

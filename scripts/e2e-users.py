@@ -25,11 +25,16 @@ from django.db import transaction  # noqa: E402
 
 from hymns.models import Hymn  # noqa: E402
 from hymns.services import delete_hymn  # noqa: E402
+from masses.models import Mass  # noqa: E402
+from masses.services import delete_mass  # noqa: E402
 
 suffix = os.environ.get("E2E_USER_SUFFIX", "")
 if not re.fullmatch(r"[a-f0-9]{12}", suffix):
     raise ValueError("Provide this run's randomized E2E_USER_SUFFIX.")
-if not settings.DEBUG or settings.DATABASES["default"]["HOST"] not in {"localhost", "127.0.0.1"}:
+if not settings.DEBUG or settings.DATABASES["default"]["HOST"] not in {
+    "localhost",
+    "127.0.0.1",
+}:
     raise ValueError("Browser fixtures are restricted to a local development database.")
 roles = ("Admin", "Planner", "Viewer")
 names = [f"e2e-{suffix}-{role.lower()}" for role in roles]
@@ -46,6 +51,8 @@ with transaction.atomic():
     elif sys.argv[1] == "cleanup":
         # Created_by records ownership of these temporary test artifacts only.
         actor = user_model.objects.get(username=names[0])
+        for mass in Mass.objects.filter(created_by__username__in=names):
+            delete_mass(mass.pk, actor, str(mass.revision))
         for hymn_id in Hymn.objects.filter(created_by__username__in=names).values_list(
             "id", flat=True
         ):

@@ -1,6 +1,6 @@
 # UX walkthrough and coordinator demo
 
-**Status:** M0 annotated sketches, reviewed against the written requirements. No interactive prototype or human usability validation has been performed.  
+**Status:** These M0 sketches preserve the original design intent; M1–M3 now have a working application and automated browser evidence. Current M3 behavior is documented in the [README](../README.md) and [review notes](m3-picker-view-review.md). Human usability and physical-phone validation remain pending and are mandatory in M4.  
 **Purpose:** Establish what the first implementation should do before investing in components.  
 **Review owner:** Implementation owner; eventual coordinator reviewer is not assigned.
 

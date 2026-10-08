@@ -18,15 +18,18 @@ export function WorkspacePage() {
           <h2 id="workspace-title">You're connected to your team.</h2>
           <p>
             Your hymn library is ready. Browse your team's repertoire and keep its classifications
-            up to date. Mass planning tools will follow in the next increment.
+            up to date. Prepare draft Mass programs with saved hymn order and notes.
           </p>
         </div>
       </section>
-      <p>
+      <div className="form-actions workspace-actions">
         <a className="button primary" href="/hymns">
           Open hymn library
+        </a>{' '}
+        <a className="button secondary" href="/masses">
+          Open Mass plans
         </a>
-      </p>
+      </div>
       <section className="access-card" aria-labelledby="access-title">
         <p className="eyebrow">Account</p>
         <h2 id="access-title">Your workspace access</h2>

@@ -2,7 +2,7 @@
 
 import re
 
-from django.db.models import Q, QuerySet
+from django.db.models import BooleanField, ExpressionWrapper, Q, QuerySet
 from django.db.models.functions import Lower
 from rest_framework.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
@@ -50,7 +50,10 @@ def hymn_queryset() -> QuerySet:
 
 def library_queryset(params) -> QuerySet:
     """AND dimensions, OR IDs within each; neutral does not broaden season matches."""
-    validate_query(params, {*FILTER_TYPES, "q", "is_active", "ordering", "page", "page_size"})
+    validate_query(
+        params,
+        {*FILTER_TYPES, "q", "is_active", "ordering", "page", "page_size", "preferred_season"},
+    )
     rows = active_filter(hymn_queryset(), params.get("is_active", "true"))
     for name, model in FILTER_TYPES.items():
         if name not in params:
@@ -84,6 +87,21 @@ def library_queryset(params) -> QuerySet:
         raise ValidationError(
             {"ordering": ["Use title or newest_added; usage sorting arrives in M4."]}
         )
+    if "preferred_season" in params:
+        value = params["preferred_season"]
+        if (
+            not re.fullmatch(r"[1-9]\d*", value)
+            or not CATEGORY_TYPES["liturgical-seasons"].objects.filter(pk=value).exists()
+        ):
+            raise ValidationError({"preferred_season": ["Supply one existing positive season ID."]})
+        # A subquery avoids multiplying rows for multi-season hymns. Preference
+        # changes ordering only; literal season filtering above stays unchanged.
+        matching_ids = Hymn.objects.filter(seasons=value).values("pk")
+        rows = rows.annotate(
+            _season_preferred=ExpressionWrapper(
+                Q(is_season_neutral=True) | Q(pk__in=matching_ids), output_field=BooleanField()
+            )
+        ).order_by("-_season_preferred", *rows.query.order_by)
     return rows.distinct()
 
 

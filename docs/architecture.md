@@ -1,8 +1,8 @@
-# Architecture decisions — M0 through M2
+# Architecture decisions — M0 through M3
 
 **Decision date:** October 6, 2026. **Owner:** Implementation owner (Codex, this project).  
 **Authority:** [Source specification](../mass_hymn_picker_codex_spec.md) and [development plan](../DEVELOPMENT_PLAN.md).  
-**State:** Authentication/runtime foundations and hymn/category library are implemented through M2. Mass lifecycle, usage, recommendations, and release decisions remain the baseline for M3–M7. See [M1 evidence](m1-report.md) and [M2 evidence](m2-report.md) for current behavior and limits.
+**State:** Authentication/runtime foundations, hymn/category library, and draft Mass planning are implemented through M3. Lifecycle/usage, recommendations, and release decisions remain the baseline for M4–M7. See [M1 evidence](m1-report.md), [M2 evidence](m2-report.md), and [M3 evidence](m3-report.md) for current behavior and limits.
 
 ## ADR-001 — Runtime and repository boundaries
 
@@ -61,7 +61,7 @@ Use cookie sessions and same-origin requests. Vite proxies `/api` locally; produ
 
 ## ADR-003 — Domain and database integrity
 
-Use `BigAutoField` primary keys; do not rely on seeded numeric IDs. Preserve all source Hymn and Mass fields. ISO calendar dates represent the day of a Mass, while creation/update/finalization timestamps are timezone-aware and serialize in UTC. Configure the team's display timezone through `APP_TIME_ZONE`, initially `Asia/Beirut`; never infer seasons from a date.
+Use `BigAutoField` primary keys; do not rely on seeded numeric IDs. Preserve all source Hymn and Mass fields. ISO calendar dates represent the day of a Mass, while creation/update/finalization timestamps are timezone-aware and serialize in UTC. Configure the team's display timezone through `APP_TIME_ZONE`, initially `Asia/Beirut`. The owner's October 8 request supersedes the original manual-only season rule: suggest a Maronite season on creation/date changes, allow manual overrides, and never recalculate saved plans on opening. See [calendar sources and rules](calendar.md).
 
 Classification tables have the source fields: name, stable unique slug, description, active state, nonnegative display order, and timestamps. Trim names; enforce a database uniqueness expression equivalent to lowercase trimmed name within each table. Unicode is retained; accent-insensitive or Arabic normalization search is deferred. Stable slugs are immutable after creation. For names without a usable slug, use a unique generated suffix; collisions are retried under the uniqueness constraint, not resolved only by a race-prone precheck.
 
@@ -108,6 +108,8 @@ Choose explicit revision headers rather than HTTP ETags: a Mass response contain
 Stale revisions fail before idempotent state handling. A replay carrying the old pre-finalization revision therefore gets 412; refetching and retrying with the current revision safely returns the finalized record. No separate usage rows/counters are created.
 
 Serialize autosave requests per Mass and coalesce later edits. Maintain a temporary working copy with save status, not a second global data store. Only apply an acknowledgement to the client version it acknowledges; never replace newer unsaved edits with an old server response. On failure keep edits in memory, offer retry, and warn on navigation. On 412 show local versus saved program for review; never auto-force an overwrite. Cross-tab merge/offline durable storage is out of scope.
+
+**M3 implementation (October 7, 2026):** `masses` stores the protected aggregate and selection identities. Program saves lock Mass, then Hymns in ascending ID order, then placements in ascending ID order, matching library/category mutation ordering. Metadata changes lock the Mass before its season. A deferred PostgreSQL `(mass, placement, position)` uniqueness constraint permits atomic swaps without recreating retained rows. HTTP mutation adapters keep the service transaction open through response serialization, so acknowledgements describe the locked committed representation. Django admin is read-only for Masses/selections. The frontend uses a route-aware navigation blocker and a mounted serialized saver; pages load on demand to limit phone startup work. Metadata and program are separate atomic endpoints, sharing one revision. No lifecycle or recommendation routes are exposed yet.
 
 Finalization waits for all pending saves, rechecks revision, and works even with optional empty placements. An entirely empty program may be finalized only after a clear UI review warning; do not introduce an undocumented database minimum-selection rule. Hard validation protects identity/active additions. Classification/repetition are soft warnings and never become forced suitability constraints.
 

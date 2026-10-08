@@ -101,6 +101,10 @@ export async function fetchCategories(): Promise<Categories> {
 export function fetchHymns(query: string) {
   return request(`/hymns/${query ? `?${query}` : ''}`, pageSchema);
 }
+/** Saved programs need configured empty sections as well as retained inactive ones. */
+export function fetchMassPlacements() {
+  return request('/mass-placements/?is_active=all', z.array(categorySchema));
+}
 export function fetchHymn(id: string) {
   return request(`/hymns/${id}/`, hymnSchema);
 }

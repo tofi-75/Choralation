@@ -1,6 +1,6 @@
 # Acceptance scenarios and fixture contract
 
-**Status:** Test design and verified planning examples; no application tests have run.  
+**Status:** Static M0 fixtures remain design examples. M1–M3 application tests and browser workflows have run; see their delivery reports and [latest M3 evidence](m3-picker-view-review.md). M4–M7 scenarios below remain acceptance contracts until implemented and verified. Physical-phone acceptance is required for M4 and remains pending.  
 Run `node .\scripts\verify-m0.mjs` from the project root to validate the static M0 package without installing dependencies or writing files.
 
 ## Fixture rules
@@ -44,6 +44,7 @@ Literal Easter + Communion + Traditional + Arabic finds H_RECENT and H_DOUBLE, e
 | A08 / M4 | Isolated one-selection draft; finalize, repeat current-revision finalize, reopen, re-finalize | Count 0→1→1→0→1; timestamp/revision follow contract; no duplicate selections; old-revision replay is conflict |
 | A09 / M4 | Load the complete fixture; inspect H_OLD/H_RECENT, history date predicates, and M_INACTIVE_HISTORY | Counts 2 and 3, expected max dates; inactive section visible; scheduled wording; joins do not multiply usage |
 | A10 / M4 | Race save/finalize using separate PostgreSQL transactions; direct edit/delete of finalized; reopen as Planner | Consistent committed program/state, no partial update, finalized writes rejected, only Admin reopens |
+| A10P / M4 | Coordinator on a real phone: create, scroll picker, touch reorder, notes with keyboard open, save/reopen/Edit, finalize/history, connection interruption/retry; portrait/landscape | Record device, OS/browser, date and outcomes; actions reachable, no horizontal overflow or data loss. iOS Safari and Android Chrome where available; unavailable coverage pending. Emulation alone does not pass. Desktop keyboard/Firefox regression also recorded. |
 | A11 / M5 | Rank fixture M_TARGET/Communion; filter by language/genre; remove season; clear eligible matches | Exact score map above; neutral eligibility; wrong-season/placement/inactive exclusion; no-season notice; empty results stay empty |
 | A12 / M5 | Create equal candidates with identical title/date/count; exercise 1/7/8/14/15/30/31/60/61/90/91-day history; test future/same-day drafts/finalized | Deterministic final ID tie; exact weights; history cutoff; reasons match facts; no double recency boost |
 | A13 / M5 | Finalize April 12 A; open April 19 suggestions with equally suitable older B; intentionally choose A, duplicate it, choose an unclassified active hymn | Older B outranks A; warnings show facts; overrides save; All Hymns remains usable after recommendations fail |

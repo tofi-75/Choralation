@@ -41,6 +41,11 @@ ERRORS = {400: ErrorSerializer, 403: ErrorSerializer, 404: ErrorSerializer, 409:
             OpenApiParameter("q", str, description="Literal substring of metadata or tag names."),
             OpenApiParameter("is_active", str, enum=["true", "false", "all"]),
             OpenApiParameter("ordering", str, enum=["title", "newest_added"]),
+            OpenApiParameter(
+                "preferred_season",
+                int,
+                description="Season matches and neutral hymns first; preserves other results and the selected secondary ordering.",
+            ),
         ],
     ),
     retrieve=extend_schema(responses={200: HymnReadSerializer, **ERRORS}),
