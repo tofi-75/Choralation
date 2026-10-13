@@ -337,6 +337,7 @@ it('refreshes references without replacing local metadata, rows, order, notes, o
           ...hymn,
           title: 'Renamed',
           is_season_neutral: false,
+          seasons: [{ ...category, id: 99, name: 'Other season' }],
           updated_at: '2026-10-08T00:00:00Z',
         },
       },

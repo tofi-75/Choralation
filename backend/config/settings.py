@@ -11,6 +11,7 @@ import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
 
 from config.environment import boolean, csv, load_environment
+from config.hosting import database_options, storage_options
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 PROJECT_ROOT = BASE_DIR.parent
@@ -26,6 +27,14 @@ TIME_ZONE = os.environ.get("APP_TIME_ZONE", "Asia/Beirut")
 USE_TZ = True
 LANGUAGE_CODE = "en-us"
 MARONITE_FEED_ENABLED = boolean("MARONITE_FEED_ENABLED", True)
+ALLOW_HOSTED_DEMO_DATA = boolean("ALLOW_HOSTED_DEMO_DATA")
+# Render supplies the public host. Additional custom domains stay explicit.
+render_hostname = os.environ.get("RENDER_EXTERNAL_HOSTNAME", "")
+if render_hostname:
+    ALLOWED_HOSTS.append(render_hostname)
+    CSRF_TRUSTED_ORIGINS.append(f"https://{render_hostname}")
+if boolean("DJANGO_TRUST_PROXY_HTTPS", bool(render_hostname)):
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 database_url = os.environ.get("DATABASE_URL", "")
 if not database_url.startswith(("postgres://", "postgresql://")):
@@ -34,6 +43,7 @@ DATABASES = {
     "default": dj_database_url.parse(database_url, conn_max_age=60, conn_health_checks=True)
 }
 DATABASES["default"]["TEST"] = {"NAME": os.environ.get("TEST_DATABASE_NAME", "test_choralation")}
+DATABASES["default"].setdefault("OPTIONS", {}).update(database_options(database_url, DEBUG))
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -79,6 +89,14 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 # Uploads are private: access goes through the authenticated hymn API, never /media/.
 MEDIA_ROOT = Path(os.environ.get("DJANGO_MEDIA_ROOT", PROJECT_ROOT / ".local" / "media"))
+STORAGES = storage_options()
+FRONTEND_ROOT = Path(os.environ.get("DJANGO_FRONTEND_ROOT", PROJECT_ROOT / "frontend" / "dist"))
+SERVE_FRONTEND = boolean("DJANGO_SERVE_FRONTEND")
+if SERVE_FRONTEND:
+    MIDDLEWARE.insert(1, "common.frontend.FrontendStaticMiddleware")
+elif not DEBUG:
+    MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
+WHITENOISE_ALLOW_ALL_ORIGINS = False
 FILE_UPLOAD_MAX_MEMORY_SIZE = 1024 * 1024
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_PASSWORD_VALIDATORS = [
@@ -96,6 +114,9 @@ CSRF_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SECURE = not DEBUG
 CSRF_FAILURE_VIEW = "common.errors.csrf_failure"
 SECURE_SSL_REDIRECT = not DEBUG
+# Internal readiness must query PostgreSQL, not report a healthy HTTPS redirect.
+# Render's edge still terminates HTTPS for public requests.
+SECURE_REDIRECT_EXEMPT = [r"^health/(?:live|ready)/$"]
 SECURE_HSTS_SECONDS = 0 if DEBUG else 31_536_000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
 SECURE_HSTS_PRELOAD = not DEBUG

@@ -1,35 +1,45 @@
-/** Search saved drafts; new plans default to the nearest Sunday and Maronite season. */
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router';
+/** Ready programs by default; URL-backed draft/search filters apply before pagination. */
+import { useQuery } from '@tanstack/react-query';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router';
 
-import { createMass, fetchMasses } from '../api/masses';
+import { fetchMasses } from '../api/masses';
 import { useSession } from '../features/auth/SessionProvider';
 import { useCategories } from '../features/hymns/queries';
-import { nearestSunday } from '../features/masses/calendar';
-import { MassDateFields } from '../features/masses/MassDateFields';
 
 export function MassesPage() {
   const [params, setParams] = useSearchParams();
+  // Save draft keeps the lifecycle at draft. Only explicit finalization makes
+  // a program ready; never infer readiness from hymn count or archive date.
+  const status = params.get('status') === 'draft' ? 'draft' : 'finalized';
+  const requestParams = new URLSearchParams(params);
+  requestParams.set('status', status);
+  const queryString = requestParams.toString();
   const query = useQuery({
-    queryKey: ['masses', params.toString()],
-    queryFn: () => fetchMasses(params.toString()),
+    queryKey: ['masses', queryString],
+    queryFn: () => fetchMasses(queryString),
   });
+  const [filtersOpen, setFiltersOpen] = useState(() =>
+    ['from', 'to', 'season'].some((key) => params.has(key)),
+  );
   const categories = useCategories();
   const { user } = useSession();
-  const navigate = useNavigate();
-  const client = useQueryClient();
-  const [creating, setCreating] = useState(false);
-  const [pending, setPending] = useState(false);
-  const [failure, setFailure] = useState<string | null>(null);
-  const [newDate, setNewDate] = useState(nearestSunday);
-  const [newSeason, setNewSeason] = useState<number | null>(null);
-  const [calendarPending, setCalendarPending] = useState(false);
-  const changeDate = useCallback((day: string, season: number | null) => {
-    setNewDate(day);
-    setNewSeason(season);
-  }, []);
-  const filtered = ['q', 'from', 'to', 'season', 'status'].some((key) => params.has(key));
+  const createButton = useRef<HTMLAnchorElement>(null);
+  const [showTop, setShowTop] = useState(false);
+  useEffect(() => {
+    const button = createButton.current;
+    if (!button) return;
+    // Show as soon as any part of the action scrolls above the viewport.
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setShowTop(entry.boundingClientRect.top < 0);
+      },
+      { threshold: [0, 1] },
+    );
+    observer.observe(button);
+    return () => observer.disconnect();
+  }, [user?.role]);
+  const filtered = ['q', 'from', 'to', 'season'].some((key) => params.has(key));
   const results = query.data?.results ?? [];
   function filter(key: string, value: string) {
     const next = new URLSearchParams(params);
@@ -44,119 +54,71 @@ export function MassesPage() {
         <div>
           <p className="eyebrow">Weekly planning</p>
           <h1 className="page-title">Mass plans</h1>
-          <p className="muted">Prepare and save your team's draft programs.</p>
+          <p className="muted">Access ready programs or continue planning your drafts.</p>
         </div>
         {user?.role !== 'Viewer' && (
-          <button
-            className="button primary"
-            aria-expanded={creating}
-            aria-controls="create-mass"
-            onClick={() => {
-              if (!creating) {
-                setNewDate(nearestSunday());
-                setNewSeason(null);
-              }
-              setCreating(!creating);
-            }}
-          >
+          <Link ref={createButton} className="button primary" to="/masses/new">
             Create Mass
-          </button>
+          </Link>
         )}
       </div>
-      {creating && (
-        <form
-          id="create-mass"
-          className="form-section"
-          onSubmit={async (event) => {
-            event.preventDefault();
-            if (pending || calendarPending) return;
-            const data = new FormData(event.currentTarget);
-            setPending(true);
-            setFailure(null);
-            try {
-              const saved = await createMass({
-                date: String(data.get('date')),
-                title: String(data.get('title')).trim() || null,
-                notes: String(data.get('notes')).trim() || null,
-                liturgical_season_id: data.get('season') ? Number(data.get('season')) : null,
-              });
-              void client.invalidateQueries({ queryKey: ['masses'] });
-              navigate(`/masses/${saved.id}/edit`);
-            } catch (error) {
-              setFailure(error instanceof Error ? error.message : 'Unable to create Mass.');
-            } finally {
-              setPending(false);
-            }
-          }}
-        >
-          <h2>Create a draft Mass</h2>
-          <fieldset disabled={pending} className="form-grid">
-            <legend className="sr-only">Mass details</legend>
-            <MassDateFields
-              date={newDate}
-              season={newSeason}
-              seasons={categories.data?.['liturgical-seasons'] ?? []}
-              initialSuggestion
-              onChange={changeDate}
-              onPending={setCalendarPending}
+      <section className="mass-list-controls" aria-label="Mass filters">
+        <div className="mass-search-toolbar">
+          <label className="field">
+            <span className="sr-only">Search Mass plans</span>
+            <input
+              type="search"
+              placeholder="Search titles or notes"
+              aria-describedby="mass-search-help"
+              value={params.get('q') ?? ''}
+              onChange={(event) => filter('q', event.target.value)}
             />
-            <details className="optional-details planner-details">
-              <summary>Title and notes (optional)</summary>
-              <div className="form-grid">
-                <label className="field">
-                  Title
-                  <input
-                    name="title"
-                    maxLength={255}
-                    placeholder="Leave blank for a date-based title"
-                    dir="auto"
-                  />
-                </label>
-                <label className="field">
-                  Notes
-                  <textarea name="notes" dir="auto" />
-                </label>
-              </div>
-            </details>
-          </fieldset>
-          {categories.error && (
-            <p className="notice error" role="alert">
-              Season choices could not refresh. You can add a season later.
-            </p>
-          )}
-          {failure && (
-            <p className="notice error" role="alert">
-              {failure} Your input has been kept.
-            </p>
-          )}
-          <div className="form-actions">
-            <button className="button primary" disabled={pending || calendarPending}>
-              {pending ? 'Creating…' : 'Next'}
-            </button>
-            <button
-              type="button"
-              className="button secondary"
-              disabled={pending}
-              onClick={() => setCreating(false)}
+          </label>
+          <button
+            className="button secondary mass-filter-toggle"
+            aria-label="Filters"
+            aria-expanded={filtersOpen}
+            aria-controls="mass-list-filters"
+            onClick={() => setFiltersOpen((open) => !open)}
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
             >
-              Cancel
-            </button>
-          </div>
-        </form>
-      )}
-      <section className="form-section" aria-label="Mass filters">
-        <label className="field">
-          Search Mass plans
-          <input
-            value={params.get('q') ?? ''}
-            onChange={(event) => filter('q', event.target.value)}
-          />
-        </label>
-        <details
-          className="optional-details mass-filters"
-          open={['from', 'to', 'season'].some((key) => params.has(key))}
-        >
-          <summary>Filter by date or season</summary>
+              <path d="M4 7h16M4 17h16M8 4v6M16 14v6" />
+            </svg>
+          </button>
+        </div>
+        <p id="mass-search-help" className="sr-only">
+          Search titles or notes in the selected list. Open Filters for dates or season.
+        </p>
+        <div className="mass-list-toggle" role="group" aria-label="Mass list">
+          <button
+            className="button secondary"
+            aria-pressed={status === 'finalized'}
+            onClick={() => filter('status', '')}
+          >
+            Ready Masses
+          </button>
+          <button
+            className="button secondary"
+            aria-pressed={status === 'draft'}
+            onClick={() => filter('status', 'draft')}
+          >
+            Pending drafts
+          </button>
+        </div>
+        <p className="tiny mass-list-description">
+          {status === 'draft'
+            ? 'Saved drafts awaiting finalization.'
+            : 'Finalized programs ready to use.'}
+        </p>
+        <div id="mass-list-filters" className="mass-list-filter-panel" hidden={!filtersOpen}>
           <div className="form-grid">
             <label className="field">
               From date
@@ -190,9 +152,14 @@ export function MassesPage() {
               </select>
             </label>
           </div>
-        </details>
+        </div>
         {filtered && (
-          <button className="text-button" onClick={() => setParams({}, { replace: true })}>
+          <button
+            className="text-button"
+            onClick={() =>
+              setParams(status === 'draft' ? { status: 'draft' } : {}, { replace: true })
+            }
+          >
             Clear filters
           </button>
         )}
@@ -208,7 +175,9 @@ export function MassesPage() {
       )}
       {query.data && (
         <>
-          <p className="muted">{query.data.count} saved plans</p>
+          <p className="muted">
+            {query.data.count} {status === 'draft' ? 'pending drafts' : 'ready Masses'}
+          </p>
           {[
             { label: 'Today and upcoming', archived: false },
             { label: 'Archived', archived: true },
@@ -241,29 +210,48 @@ export function MassesPage() {
             <p className="notice">
               {filtered
                 ? 'No Mass plans match these filters. Try another search or clear the filters.'
-                : user?.role === 'Viewer'
-                  ? 'No Mass plans yet. A planner can create the first draft.'
-                  : 'No Mass plans yet. Create your first draft to begin planning.'}
+                : status === 'draft'
+                  ? 'No pending drafts. New drafts appear here while you prepare them.'
+                  : 'No ready Masses yet. Finalize a saved draft to make it ready.'}
             </p>
           )}
-          <div className="form-actions">
-            <button
-              className="button secondary"
-              disabled={!query.data.previous}
-              onClick={() => filter('page', String(Number(params.get('page') ?? 1) - 1))}
-            >
-              Previous
-            </button>
-            <span>Page {params.get('page') ?? 1}</span>
-            <button
-              className="button secondary"
-              disabled={!query.data.next}
-              onClick={() => filter('page', String(Number(params.get('page') ?? 1) + 1))}
-            >
-              Next
-            </button>
-          </div>
+          {!query.data.next && query.data.count > 0 && (
+            <p className="list-end" role="status">
+              {filtered ? 'End of matching Mass plans' : 'End of Mass plans'}
+            </p>
+          )}
+          {(query.data.previous || query.data.next) && (
+            <div className="form-actions">
+              <button
+                className="button secondary"
+                disabled={!query.data.previous}
+                onClick={() => filter('page', String(Number(params.get('page') ?? 1) - 1))}
+              >
+                Previous
+              </button>
+              <span>Page {params.get('page') ?? 1}</span>
+              <button
+                className="button secondary"
+                disabled={!query.data.next}
+                onClick={() => filter('page', String(Number(params.get('page') ?? 1) + 1))}
+              >
+                Next
+              </button>
+            </div>
+          )}
         </>
+      )}
+      {showTop && (
+        <button
+          className="button primary scroll-to-top"
+          aria-label="Scroll to top"
+          onClick={() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            createButton.current?.focus({ preventScroll: true });
+          }}
+        >
+          <span aria-hidden="true">↑</span>
+        </button>
       )}
     </>
   );

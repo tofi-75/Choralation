@@ -8,6 +8,7 @@ import { useSession } from '../features/auth/SessionProvider';
 
 export function AppShell() {
   const session = useSession();
+  const [collapsed, setCollapsed] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
 
@@ -27,36 +28,46 @@ export function AppShell() {
   }
 
   return (
-    <div className="app-layout">
+    <div className={`app-layout ${collapsed ? 'sidebar-collapsed' : ''}`}>
       <a className="skip-link" href="#main-content">
         Skip to content
       </a>
       <aside className="sidebar" aria-label="Workspace navigation">
-        <Link className="wordmark" to="/dashboard">
-          <span className="mark" aria-hidden="true">
-            ♪
-          </span>{' '}
-          Mass Hymn Picker
-        </Link>
-        <nav aria-label="Main">
-          <NavLink
-            className={({ isActive }) => `nav-item ${isActive ? 'current' : ''}`}
-            to="/dashboard"
+        <div className="sidebar-brand">
+          <button
+            className="mark sidebar-toggle"
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-expanded={!collapsed}
+            aria-controls="desktop-navigation"
+            onClick={() => setCollapsed(!collapsed)}
           >
-            Your workspace
-          </NavLink>
-          <NavLink
-            className={({ isActive }) => `nav-item ${isActive ? 'current' : ''}`}
-            to="/hymns"
-          >
-            Hymn library
-          </NavLink>
-          <NavLink
-            className={({ isActive }) => `nav-item ${isActive ? 'current' : ''}`}
-            to="/masses"
-          >
-            Mass plans
-          </NavLink>
+            <span aria-hidden="true">{collapsed ? '›' : '♪'}</span>
+          </button>
+          <Link className="wordmark sidebar-brand-name" to="/dashboard">
+            Mass Hymn Picker
+          </Link>
+        </div>
+        <nav id="desktop-navigation" aria-label="Main">
+          {[
+            ['/dashboard', 'Your workspace', '⌂'],
+            ['/hymns', 'Hymn library', '♫'],
+            ['/masses', 'Mass plans', '▤'],
+            ['/history', 'Mass history', '◷'],
+          ].map(([path, label, icon]) => (
+            <NavLink
+              key={path}
+              className={({ isActive }) => `nav-item ${isActive ? 'current' : ''}`}
+              to={path}
+              aria-label={label}
+              title={collapsed ? label : undefined}
+            >
+              <span className="sidebar-nav-icon" aria-hidden="true">
+                {icon}
+              </span>
+              <span className="sidebar-nav-label">{label}</span>
+            </NavLink>
+          ))}
         </nav>
         <div className="sidebar-footer">
           <p>Music for every gathering.</p>
@@ -74,6 +85,11 @@ export function AppShell() {
                   <Dialog.Title>Your workspace</Dialog.Title>
                   <Dialog.Description>Navigate your team's shared workspace.</Dialog.Description>
                   <nav aria-label="Mobile">
+                    <Dialog.Close asChild>
+                      <Link className="nav-item" to="/history">
+                        Mass history
+                      </Link>
+                    </Dialog.Close>
                     <Dialog.Close asChild>
                       <Link className="nav-item" to="/masses">
                         Mass plans

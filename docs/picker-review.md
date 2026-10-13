@@ -1,0 +1,30 @@
+# October 10 picker and reorder review
+
+**Status:** Implemented and uncommitted. Required physical-phone M4 acceptance remains pending. These changes address the owner's eight picker/planner comments; saved-program performance mode remains deferred.
+
+## Delivered behavior
+
+- Search and Filters share a 44 px height and top edge. Search uses an accessible burgundy inset focus indicator instead of the golden outline. Language, genre and sorting occupy one compact row, including at 360 px; native selects retain 16 px text and 44 px touch targets.
+- The sidebar music mark collapses/restores desktop navigation. Collapsed route icons keep accessible names and titles. Mobile Menu remains available.
+- At 768 px and wider, suggestions use a semantic metadata table: Title, Language, Seasons, Genres, Tags, Key, Minutes and Voices, with an ascending/descending sort button on every data column. Title and Add stay visible during table scrolling. Phones use compact cards and the same sort choices in Filters. A wide table is less practical on a phone because it would require horizontal movement to read or select each hymn.
+- Sorting happens over the whole filtered PostgreSQL result set before pagination. Selected-season and Any-season preference remains first. Scalar category-label subqueries avoid duplicated hymns and retain complete labels even when a category filter is active. Duration sorts numerically and voices sort the displayed voice text (empty values last); ties use title/ID.
+- Actual season names replace the vague “Other season” label. The existing `is_season_neutral` flag displays **Any season** and suppresses both selection and program season notices, even if specific season links remain. Only explicit different-season classifications produce a season notice; absent legacy classification is unknown. Literal season filters and random eligibility retain their stricter existing semantics.
+- Existing screenshot hymns **Demo — Glory and Praise** and **Demo — The Open Door** are explicitly classified for Epiphany and Advent respectively. They still receive appropriate notices in Holy Cross Masses. No existing hymn classification was changed to hide a valid warning. Duplicate, placement and inactive notices remain independent.
+- Left drag handles replace hymn up/down arrows. Mouse and touch gestures preview order, capture the pointer and scroll near viewport edges; a successful drop updates the existing revision-guarded saver once. Space/Enter picks up or drops, arrows move, and Escape cancels. Interrupted pointers, access changes or changed placement membership cancel the preview. Latest draft membership, saved IDs, notes and other placement slots are preserved.
+
+## Verification
+
+- Engineering checks passed: **198 backend tests and 58 frontend tests**, dependency/Django/migration/schema/Python checks, TypeScript, ESLint, Prettier and production build. The existing 531 kB shared-entry build warning remains the documented later performance work.
+- Backend tests exercise every ascending/descending metadata order with placement/season preference and pagination, numeric duration across pages, complete multi-category labels without duplicate rows, and neutral/unspecified classification notices in saved responses and fresh reads.
+- Frontend tests exercise neutral and explicit-different-season choice acknowledgement, shared working-program warnings, desktop API sort toggles, keyboard preview/drop/Escape, disabled handles, changed membership cancellation and placement-only ordering that preserves IDs/notes.
+- The new real-browser journey passed at desktop and 360/390/430 px against the live HTTP LAN app. It verified aligned controls, single-row filters, column/selector sorting with preferred seasons, neutral and other-season notices, sidebar collapse, mouse/Chromium touch drag, reload order and saved IDs/notes. Screenshots were inspected. Artifacts: `.cache/review2-browser-results`.
+- **28 distinct browser cases passed across the isolated runs:** the new picker/drag journey at desktop (899 px) and 360/390/430 px; eleven existing planning/lifecycle cases each at desktop (1280 px) and 390 px; and the earlier creation/list review at 360/430 px. Cancellation by Escape and real Chromium touch-cancel restored order without persisting a preview. Existing save retry, conflict/navigation guard, background-reference refresh, saved filters, duplicate confirmation, finalization, history, reopen and usage flows remain verified. Artifacts are in `.cache/review2-isolated-results-*`.
+- The final presentation refinement pins Title and Add while scrolling. The first desktop recheck found frozen headers covering an offscreen sort action; fixed column widths and scroll padding corrected that overlap. The targeted desktop journey then passed, including a title-visibility assertion while horizontally scrolled. Its three phone cases passed in the preceding refinement run. These are combined results, not a claim that the first refinement run was entirely green. Final desktop artifacts: `.cache/review2-isolated-results-19db1a64e28a`; preceding phone artifacts: `.cache/review2-isolated-results-4b928b5f50c0`. Chromium touch input and width emulation do not complete physical iPhone/Safari or Android/Chrome acceptance.
+
+## Test data and service handling
+
+The API backend was restarted with the same LAN and protected HTTPS configuration to load selector changes; readiness returned 200. The frontend build was refreshed for the existing preview. No firewall or Windows-clock configuration was changed.
+
+During live testing, the owner selected one run-owned hymn in a manual Mass. The protected-delete guard preserved that choice. Cleanup now skips protected run-owned hymns, removes other run-owned fixtures/accounts and preserves other Masses. That selected hymn remains available. Subsequent browser verification uses a disposable isolated database and separate local test ports so test hymns do not enter the manual library.
+
+All edited source, docs, helpers, caches and artifacts remain within the project. No changes were staged or committed.

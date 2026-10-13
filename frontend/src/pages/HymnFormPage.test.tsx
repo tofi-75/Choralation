@@ -53,6 +53,8 @@ function mount(
           placements: choices['mass-placements'],
           tags: [],
           sheet_music_pdf: null,
+          usage_count: 0,
+          last_used_date: null,
           is_polyphonic: false,
           voices: [],
           estimated_duration_minutes: null,

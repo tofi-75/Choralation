@@ -9,3 +9,12 @@ frontend/dist
 backend/__pycache__
 **/__pycache__
 **/*.pyc
+
+backend/staticfiles
+backend/media
+frontend/test-results
+frontend/playwright-report
+**/*.log
+**/*.pem
+**/*.key
+backups

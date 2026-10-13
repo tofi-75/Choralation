@@ -8,6 +8,7 @@ import re
 from collections import defaultdict
 
 from django.db import transaction
+from django.utils import timezone
 from rest_framework.exceptions import APIException, ValidationError
 
 from accounts.permissions import Role
@@ -38,7 +39,9 @@ class MassFinalized(APIException):
     default_detail = "This Mass is finalized and cannot be edited."
 
 
-def checked_mass(pk: int, actor, expected: str | None, minimum: Role = Role.PLANNER) -> Mass:
+def checked_mass(
+    pk: int, actor, expected: str | None, minimum: Role = Role.PLANNER, *, draft_only: bool = True
+) -> Mass:
     """Require a transaction; authorize before parsing, then check revision/state."""
     require_role(actor, minimum)
     mass = locked_record(Mass, pk)
@@ -48,7 +51,7 @@ def checked_mass(pk: int, actor, expected: str | None, minimum: Role = Role.PLAN
         raise ValidationError({"revision": ["Supply a positive integer revision header."]})
     if int(expected) != mass.revision:
         raise RevisionConflict(mass.revision)
-    if mass.status != "draft":
+    if draft_only and mass.status != "draft":
         raise MassFinalized()
     return mass
 
@@ -175,3 +178,22 @@ def save_program(pk: int, rows: list[dict], actor, expected: str | None) -> Mass
 def delete_mass(pk: int, actor, expected: str | None) -> None:
     """Admin-only, revision-guarded draft deletion; cascades its own rows only."""
     checked_mass(pk, actor, expected, Role.ADMIN).delete()
+
+
+@transaction.atomic
+def transition_mass(pk: int, actor, expected: str | None, *, reopen: bool = False) -> Mass:
+    """Lock the same aggregate as saves; authorize, check revision, then transition.
+
+    Current-state repeats preserve timestamp/revision. Stale repeats still fail.
+    Selection identities/order/notes never change. Usage is derived from status,
+    so the transaction exposes both the lifecycle and history change together.
+    """
+    mass = checked_mass(
+        pk, actor, expected, Role.ADMIN if reopen else Role.PLANNER, draft_only=False
+    )
+    target = "draft" if reopen else "finalized"
+    if mass.status != target:
+        mass.status = target
+        mass.finalized_at = None if reopen else timezone.now()
+        advance(mass, actor)
+    return mass

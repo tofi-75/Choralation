@@ -1,6 +1,9 @@
 # Section picker and saved Mass view — October 8, 2026
 
-**October 8 checkpoint update:** M3 engineering and all requested follow-ups are complete. The owner authorized the M3 commit and starting M4. Statements about uncommitted changes below describe their original verification runs. Human walkthrough/physical-phone acceptance remains pending and is now a required M4 gate; see [acceptance criteria](acceptance.md). The [latest review](m3-picker-view-review.md) records saved view, empty sections and Mass ordering.
+**October 10 UI update:** The original dialog presentation below is historical. Placement + now opens a compact inline picker, and creation uses separate details/hymn steps with duplicate-date confirmation. See the [M4 planning review](m4-report.md#october-10-planning-review) for current behavior and verification. The saved-program performance-view redesign is recorded separately as deferred work.
+
+
+**October 8 checkpoint update:** M3 engineering and all requested follow-ups are complete and committed as `daefc9b`. The owner authorized the M3 commit and starting M4. Statements about uncommitted changes below describe their original verification runs. Human walkthrough/physical-phone acceptance remains pending and is now a required M4 gate; see [acceptance criteria](acceptance.md). The [latest review](m3-picker-view-review.md) records saved view, empty sections and Mass ordering.
 
 ## Delivered behavior
 

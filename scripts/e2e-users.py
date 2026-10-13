@@ -24,9 +24,9 @@ from django.contrib.auth.models import Group  # noqa: E402
 from django.db import transaction  # noqa: E402
 
 from hymns.models import Hymn  # noqa: E402
-from hymns.services import delete_hymn  # noqa: E402
+from hymns.services import ReferencedRecord, delete_hymn  # noqa: E402
 from masses.models import Mass  # noqa: E402
-from masses.services import delete_mass  # noqa: E402
+from masses.services import delete_mass, transition_mass  # noqa: E402
 
 suffix = os.environ.get("E2E_USER_SUFFIX", "")
 if not re.fullmatch(r"[a-f0-9]{12}", suffix):
@@ -52,13 +52,27 @@ with transaction.atomic():
         # Created_by records ownership of these temporary test artifacts only.
         actor = user_model.objects.get(username=names[0])
         for mass in Mass.objects.filter(created_by__username__in=names):
+            # Only this run's owned records: reopen through the guarded service
+            # before draft deletion, so finalized browser fixtures also clean up.
+            if mass.status == "finalized":
+                mass = transition_mass(mass.pk, actor, str(mass.revision), reopen=True)
             delete_mass(mass.pk, actor, str(mass.revision))
+        preserved = 0
         for hymn_id in Hymn.objects.filter(created_by__username__in=names).values_list(
             "id", flat=True
         ):
             # The service also removes this run's uploaded PDFs after commit.
-            delete_hymn(hymn_id, actor)
+            try:
+                delete_hymn(hymn_id, actor)
+            except ReferencedRecord:
+                # Live manual testing may have selected a run-owned hymn. Preserve
+                # those protected records and selections; never delete another Mass.
+                preserved += 1
         user_model.objects.filter(username__in=names).delete()
-        print("This browser run's hymn artifacts/accounts removed; other records preserved.")
+        print(
+            "This browser run's unreferenced artifacts/accounts removed; other records preserved."
+        )
+        if preserved:
+            print(f"Preserved {preserved} test hymns referenced by other Masses.")
     else:
         raise ValueError("Expected create or cleanup.")

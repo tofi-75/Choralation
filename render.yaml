@@ -1,0 +1,39 @@
+# Secrets are entered by the owner in Render, never committed here.
+services:
+  - type: web
+    name: choralation
+    runtime: docker
+    plan: free
+    region: frankfurt
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeployTrigger: checksPass
+    healthCheckPath: /health/ready/
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "false"
+      - key: DJANGO_STORAGE_BACKEND
+        value: s3
+      - key: DJANGO_TRUST_PROXY_HTTPS
+        value: "true"
+      - key: RUN_STARTUP_MIGRATIONS
+        value: "true"
+      - key: APP_TIME_ZONE
+        value: Asia/Beirut
+      - key: ALLOW_HOSTED_DEMO_DATA
+        value: "true"
+      - key: DATABASE_URL
+        sync: false
+      - key: AWS_STORAGE_BUCKET_NAME
+        value: sheet-music
+      - key: AWS_S3_ENDPOINT_URL
+        sync: false
+      - key: AWS_S3_REGION_NAME
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false

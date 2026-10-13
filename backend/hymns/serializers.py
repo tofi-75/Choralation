@@ -121,6 +121,8 @@ class SheetMusicReadSerializer(serializers.Serializer):
 
 
 class HymnReadSerializer(serializers.ModelSerializer):
+    usage_count = serializers.IntegerField(read_only=True)
+    last_used_date = serializers.DateField(read_only=True, allow_null=True)
     language = CategoryReadSerializer()
     genres = CategoryReadSerializer(many=True)
     seasons = CategoryReadSerializer(many=True)
@@ -142,6 +144,8 @@ class HymnReadSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "title",
+            "usage_count",
+            "last_used_date",
             "alternate_title",
             "first_line",
             "composer",

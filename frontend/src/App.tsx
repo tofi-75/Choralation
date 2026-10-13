@@ -21,11 +21,17 @@ const HymnFormPage = lazy(() =>
 const MassesPage = lazy(() =>
   import('./pages/MassesPage').then((module) => ({ default: module.MassesPage })),
 );
+const NewMassPage = lazy(() =>
+  import('./pages/NewMassPage').then((module) => ({ default: module.NewMassPage })),
+);
 const MassPlannerPage = lazy(() =>
   import('./pages/MassPlannerPage').then((module) => ({ default: module.MassPlannerPage })),
 );
 const MassViewPage = lazy(() =>
   import('./pages/MassViewPage').then((module) => ({ default: module.MassViewPage })),
+);
+const MassHistoryPage = lazy(() =>
+  import('./pages/MassHistoryPage').then((module) => ({ default: module.MassHistoryPage })),
 );
 
 function ProtectedRoute() {
@@ -49,10 +55,12 @@ export function App() {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<WorkspacePage />} />
             <Route path="/hymns" element={<LibraryPage />} />
+            <Route path="/history" element={<MassHistoryPage />} />
             <Route path="/hymns/new" element={<HymnFormPage />} />
             <Route path="/hymns/:id" element={<HymnDetailPage />} />
             <Route path="/hymns/:id/edit" element={<HymnFormPage />} />
             <Route path="/masses" element={<MassesPage />} />
+            <Route path="/masses/new" element={<NewMassPage />} />
             <Route path="/masses/:id" element={<MassViewPage />} />
             <Route path="/masses/:id/edit" element={<MassPlannerPage />} />
             <Route

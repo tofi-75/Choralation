@@ -1,0 +1,121 @@
+name: Application checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:18.6
+        env:
+          POSTGRES_DB: choralation_ci
+          POSTGRES_USER: choralation
+          POSTGRES_PASSWORD: ci-only-password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U choralation -d choralation_ci"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+    env:
+      DJANGO_SECRET_KEY: ci-only-secret-not-used-outside-the-run-0000000000000000000000
+      DJANGO_DEBUG: "true"
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,testserver
+      DATABASE_URL: postgresql://choralation:ci-only-password@127.0.0.1:5432/choralation_ci
+      TEST_DATABASE_NAME: test_choralation_ci
+      DJANGO_MEDIA_ROOT: ${{ github.workspace }}/.cache/ci-media
+      MARONITE_FEED_ENABLED: "false"
+      PIP_CACHE_DIR: ${{ github.workspace }}/.cache/pip
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.local/playwright
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14.8"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.19.0"
+      - name: Install locked dependencies
+        run: |
+          python -m pip install -r backend/requirements/dev.txt
+          npm install --global npm@11.21.0
+          npm ci --prefix frontend
+          python -m pip check
+      - name: Backend checks
+        working-directory: backend
+        run: |
+          python manage.py check
+          python manage.py makemigrations --check --dry-run
+          python -m ruff check --config pyproject.toml . ../scripts
+          python -m ruff format --config pyproject.toml --check . ../scripts
+          mkdir -p ../.cache/pytest-ci
+          python -m pytest --basetemp ../.cache/pytest-ci/tmp --tb=short
+          python manage.py spectacular --validate --fail-on-warn --file ../.cache/schema.yaml
+      - name: Frontend checks and build
+        working-directory: frontend
+        run: |
+          npm run typecheck
+          npm run test
+          npm run lint
+          npm run format:check
+          npm run build
+      - name: Real browser suite
+        run: |
+          python backend/manage.py migrate --noinput
+          python backend/manage.py seed_initial_data
+          cd frontend
+          npx playwright install --with-deps chromium
+          cd ..
+          python scripts/ci-browser.py
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-failures
+          path: frontend/test-results
+          retention-days: 7
+  production:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:18.6
+        env:
+          POSTGRES_DB: choralation_production_smoke
+          POSTGRES_USER: choralation
+          POSTGRES_PASSWORD: ci-only-password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U choralation -d choralation_production_smoke"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14.8"
+      - name: Build production image
+        run: docker build --tag choralation:ci .
+      - name: Start and verify production serving
+        run: |
+          docker run -d --name choralation-smoke --network host \
+            -e DJANGO_SECRET_KEY=ci-only-production-secret-00000000000000000000000000000000 \
+            -e DJANGO_DEBUG=false -e DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost \
+            -e DJANGO_TRUST_PROXY_HTTPS=true -e DJANGO_STORAGE_BACKEND=local \
+            -e MARONITE_FEED_ENABLED=false \
+            -e DATABASE_URL=postgresql://choralation:ci-only-password@127.0.0.1:5432/choralation_production_smoke \
+            -e PORT=10000 choralation:ci
+          python scripts/production-smoke.py http://127.0.0.1:10000
+          docker restart choralation-smoke
+          python scripts/production-smoke.py http://127.0.0.1:10000
+      - name: Container logs
+        if: always()
+        run: docker logs choralation-smoke
+      - name: Cleanup
+        if: always()
+        run: docker rm -f choralation-smoke || true

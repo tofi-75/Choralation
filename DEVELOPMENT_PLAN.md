@@ -1,8 +1,10 @@
 # Mass Hymn Picker — Development and Delivery Plan
 
+> **October 13, 2026 priority update:** Render + Supabase hosting preparation is the current delivery task; see [deployment guide](docs/hosting.md). All account/login/provider setup and publishing are manual owner steps deferred until later. Physical-phone acceptance moves from M4 to M5. Saved-Mass performance redesign and recommendations are deferred. Historical milestone statements below retain their original dates; hosted completion requires actual URL, persistence and pipeline verification.
+
 **Prepared:** October 5, 2026  
 **Source:** [mass_hymn_picker_codex_spec.md](mass_hymn_picker_codex_spec.md)  
-**Status:** M0–M3 engineering work is complete, including the October 8 M3 review changes. The owner authorized the M3 checkpoint and starting M4 on October 8. M4–M7 are not yet delivered. See [M0 report](docs/m0-report.md), [M1 report](docs/m1-report.md), [M2 report](docs/m2-report.md), and [M3 report](docs/m3-report.md). Coordinator acceptance remains pending.
+**Status:** M0–M3 engineering work is complete, including the October 8 M3 review changes. The owner authorized the M3 checkpoint and starting M4 on October 8. M4 lifecycle/usage/history engineering is implemented and verified, uncommitted; coordinator acceptance remains pending, while physical-phone acceptance moves to M5. Hosting preparation is implemented; live provider setup and acceptance remain owner tasks. Later features remain deferred. See [M0 report](docs/m0-report.md), [M1 report](docs/m1-report.md), [M2 report](docs/m2-report.md), and [M3 report](docs/m3-report.md). Coordinator acceptance remains pending.
 **Current repository:** Documented Django/PostgreSQL and React application with session authentication, role policy, a persistent hymn library, five classifications, seeds, responsive forms/detail/filter screens, and a persistent multi-placement draft planner with recoverable autosave and revision conflicts. Project-local setup and automated checks cover the delivered workflows. Container configuration is supplied but has not been executed on this machine.
 
 ## 1. Delivery objective
@@ -133,7 +135,8 @@ Effort is a preliminary estimate in **total engineering days**, including featur
 | M2 | Useful hymn library | M1 | 7–10 | Add, edit, classify, search, and filter hymns |
 | M3 | Persistent draft planning | M2 | 7–10 | Prepare and save a multi-placement program |
 | M4 | Finalization and trustworthy history | M3 | 5–7 | Complete weekly planning and see usage history |
-| M5 | Explainable assisted selection | M4 | 5–7 | Recency-aware suggestions and soft warnings |
+| Hosting | Render + Supabase deployment | M4 engineering | Reforecast after manual setup | Public HTTPS URL, persistent DB/PDFs and verified automatic deployment |
+| M5 | Physical-phone and coordinator acceptance | Hosted URL | Owner scheduling | Real-device results and coordinator pilot; recommendations deferred |
 | M6 | Self-service category administration | M5 | 3–5 | Maintain all classifications safely |
 | M7 | Dashboard, print, and production readiness | M6 | 6–9 | Complete version 1 and verified release package |
 | **Total** | | | **38–56** | |
@@ -220,7 +223,7 @@ Allow an additional 20% contingency for discoveries and pilot feedback: roughly 
 
 ### M3 — Planning pilot: persistent draft programs
 
-**Engineering status:** Complete through October 8, 2026, including calendar/demo data, random picking, section-scoped scrolling picker, saved view/Edit, visible empty sections, creation Next label, and upcoming/Archived ordering. See [delivery report](docs/m3-report.md) and [latest review](docs/m3-picker-view-review.md). The owner authorized committing M3 and beginning M4. Human walkthrough and physical-phone acceptance remain open and are explicit M4 gate items.
+**Engineering status:** Complete through October 8, 2026, including calendar/demo data, random picking, section-scoped scrolling picker, saved view/Edit, visible empty sections, creation Next label, and upcoming/Archived ordering. See [delivery report](docs/m3-report.md) and [latest review](docs/m3-picker-view-review.md). The owner authorized committing M3 and beginning M4. Human walkthrough remains open; physical-phone acceptance is reassigned to M5 by the October 13 priority update.
 
 **Usable increment:** The coordinator can prepare a real Mass program and return to it later.
 
@@ -228,7 +231,7 @@ Allow an additional 20% contingency for discoveries and pilot feedback: roughly 
 
 - **M3.1 — Domain/API:** Add Mass and MassHymnSelection, draft CRUD/date filters, selection ordering constraints, revision preconditions, and the transactional bulk program endpoint.
 - **M3.2 — Planner:** Create Mass by any valid date, optional title/season/notes; generate the specified default title. October 8 review: default to the nearest Sunday and suggest a Maronite season, retaining manual overrides; see [calendar sources and rules](docs/calendar.md). Render active placements from server configuration in display order.
-- **M3.3 — Selection:** Deliver an All Hymns picker with search/filters; add/remove multiple hymns per placement, move up/down, and edit selection notes. Include explicit placement/season mismatch acknowledgement and duplicate warnings.
+- **M3.3 — Selection:** Deliver an All Hymns picker with search/filters; add/remove multiple hymns per placement, reorder with accessible drag handles, and edit selection notes. Include explicit placement/season mismatch acknowledgement and duplicate warnings.
 - **M3.4 — Saving:** Implement serialized/coalesced autosave for metadata and program changes, retryable failures, unsaved navigation warnings, and stale-revision conflict handling that preserves local edits.
 - **M3.5 — Program view:** Provide draft list/detail views, saved program preview, and a completion indicator counting filled active placements; empty placements are optional.
 - **M3.6 — Random picker (October 8 follow-up):** Fill empty active placements with distinct active hymns matching the selected season or season-neutral classification. Preserve current selections/notes and use the existing autosave queue. Report unmatched placements, cancel obsolete results after date/season changes, and verify retry/reload on desktop and phone widths. See [implementation and checks](docs/random-picker.md).
@@ -244,12 +247,14 @@ Allow an additional 20% contingency for discoveries and pilot feedback: roughly 
 - Intentional duplicate hymns and classification mismatches can be saved after soft warnings.
 - Rapid successive edits do not lose the last change. Simulate slow responses and a failed save; the UI never displays `Saved` until confirmed.
 - Two tabs editing the same revision produce a clear conflict instead of a silent overwrite. The losing tab retains its working copy and can review/reload safely.
-- Mass creation allows non-Sunday dates, and suggested seasons can be overridden manually. Up/down reordering works by keyboard and touch.
+- Mass creation allows non-Sunday dates, and suggested seasons can be overridden manually. Within-placement reordering uses drag handles with mouse/touch and keyboard pickup, arrows, drop and cancellation (October 10 review).
 - Planner and Admin may edit drafts; Viewer reads only. Admin draft deletion is confirmed.
 
-**Bounded deferral:** Finalization is delivered together with trustworthy history in M4. Do not offer a functioning-looking finalize action before its history semantics exist. The Recommended tab appears at M5.
+**Bounded deferral:** Finalization is delivered together with trustworthy history in M4. Do not offer a functioning-looking finalize action before its history semantics exist. The Recommended tab is deferred until the owner reschedules recommendation work.
 
 ### M4 — Weekly workflow MVP: finalize and trust history
+
+**Status:** M4.1–M4.5 engineering implemented and verified October 8; coordinator acceptance remains pending; physical-phone acceptance moves to M5; see [M4 report](docs/m4-report.md). M3 is committed as `daefc9b`. M4 changes are not authorized for commit. Coordinator acceptance remains pending; physical-phone acceptance is now an M5 gate.
 
 **Usable increment:** The team can complete a weekly program and answer what was selected previously.
 
@@ -276,7 +281,20 @@ Allow an additional 20% contingency for discoveries and pilot feedback: roughly 
 
 **MVP gate:** A coordinator can carry out the full manual weekly workflow without developer assistance, except category changes. Recommendations and full Settings remain clearly identified as upcoming capabilities.
 
-### M5 — Assisted planning beta: explainable recommendations
+#
+### October 10 browser review
+
+The Mass list now states when the last result has been reached and shows a return-to-top action once Create Mass starts scrolling above the viewport. Search explicitly describes finding saved titles/notes and belongs to the list, rather than the creation form.
+
+Creation is a separate two-step flow: `/masses/new` confirms date, Maronite season, title and notes; Next creates the draft and opens hymn/order selection. Before creation, a fresh inclusive same-date lookup checks all saved plans regardless of list filters/status. Existing plans require explicit confirmation; cancellation or lookup failure preserves inputs and creates nothing. Multiple services on one date remain permitted. This is a client confirmation at the time of checking, not a transactional uniqueness constraint against concurrent creation.
+
+The hymn step shows confirmed details read-only. Back to Mass details and Next switch the same mounted working copy, preserving hymn order, notes and the revision-guarded autosave queue. Each placement's + toggles a compact inline picker with search and a Filters button, scrollable results and metadata (language, placement, season suitability, genres/tags, key, duration, voices and sheet-music availability). Placement filtering and season/neutral preference remain server-side before pagination; mismatch/duplicate overrides and focus restoration remain explicit.
+
+New selection identity uses a browser-session counter rather than the secure-context-only `crypto.randomUUID`. These keys identify unsaved rows locally and never serve as security tokens or database IDs. Both random and manual additions now work on an HTTP LAN origin.
+
+**Deferred owner request — saved program for use during Mass:** recorded October 10; redesign has not started. Revisit the saved view to make it practical for accessing hymns and performing during the service: compact ordered navigation, quick access to lyrics/sheet-music PDFs/voice parts/audio where available, visible performance notes and straightforward movement between hymns. Agree the detailed layout later with the owner, then validate a complete rehearsal on a real phone with materials reachable during Mass. Keep this separate from the implemented planning review and from the physical-phone M5 gate.
+
+## M5 — Assisted planning beta: explainable recommendations
 
 **Usable increment:** The picker suggests suitable, less-recently-used hymns and explains its choices.
 
@@ -482,4 +500,8 @@ The original phases are preserved in substance: foundation, hymn domain, plannin
 - [ ] README, environment examples, architecture/API docs, release notes, and known limitations are current.
 - [ ] Coordinator acceptance is recorded; no unresolved required-feature or data-integrity blocker remains.
 
-**Next implementation action:** M4 finalization and trustworthy history, following the verified M3 draft planner. Implement guarded finalize/reopen transitions and derived finalized usage together, then expose history and the complete weekly workflow. Recommendations remain M5.
+**Current acceptance action:** Complete the required M4 coordinator and physical-phone acceptance gate for the verified guarded finalize/reopen and finalized-only usage/history increment. M3 is saved at `daefc9b`; M4 remains uncommitted. Recommendations remain M5 and are not yet started.
+
+### October 10 picker refinement
+
+Sortable desktop metadata, compact phone controls/cards, sidebar collapse and drag/keyboard hymn ordering are implemented as owner review follow-ups. Neutral suitability suppresses both picker and program season notices. See [implementation and evidence](docs/picker-review.md). M4's physical-device gate remains pending; this refinement does not advance M5 recommendations or the deferred saved-program performance design.

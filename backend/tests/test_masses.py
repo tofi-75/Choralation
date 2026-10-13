@@ -201,7 +201,9 @@ def test_inactive_season_retained_and_protected_references(planning):
 def test_duplicate_and_suitability_are_advisory(planning):
     api, _, _, placement, hymns, mass = planning
     hymns[0].placements.clear()
-    hymns[0].seasons.clear()
+    hymns[0].seasons.set(
+        [LiturgicalSeason.objects.create(name="Different season", slug="different")]
+    )
     response = put(api, mass, [row(placement, hymns[0]), row(placement, hymns[0], 1)])
     assert response.status_code == 200
     assert {item["code"] for item in response.data["warnings"]} == {
@@ -335,3 +337,19 @@ def test_list_global_order_spans_pages_and_archive_filters(planning, monkeypatch
     archived = api.get("/api/v1/masses/?to=2026-10-07").data["results"]
     assert [row["id"] for row in archived] == [saved["id"], old.pk]
     assert all(row["is_archived"] for row in archived)
+
+
+@pytest.mark.parametrize("neutral, classified", [(True, True), (True, False), (False, False)])
+def test_any_season_or_unspecified_season_has_no_mismatch_notice(planning, neutral, classified):
+    api, _, _, placement, hymns, mass = planning
+    hymn = hymns[0]
+    hymn.is_season_neutral = neutral
+    hymn.save()
+    hymn.seasons.set(
+        [LiturgicalSeason.objects.create(name="Different", slug="different")] if classified else []
+    )
+    saved = put(api, mass, [row(placement, hymn)])
+    assert saved.status_code == 200, saved.data
+    assert not any(item["code"] == "season_mismatch" for item in saved.data["warnings"])
+    detail = api.get(f"/api/v1/masses/{mass['id']}/").data
+    assert not any(item["code"] == "season_mismatch" for item in detail["warnings"])

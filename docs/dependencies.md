@@ -90,3 +90,7 @@ The [bootstrap script](../scripts/bootstrap.ps1) installs exact portable tools i
 | PostgreSQL container | [Official tag metadata](https://hub.docker.com/v2/repositories/library/postgres/tags/18.6); digest `sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722` |
 
 Docker configuration is supplied and pinned but not executed; Docker is unavailable on this machine. Installed Windows runtimes, PostgreSQL tests, frontend build, and browser smoke are verified in [the M1 report](m1-report.md). Update actual runtime/pin decisions here when intentionally upgrading; do not regenerate locks opportunistically to latest.
+
+## Hosting additions — October 13, 2026
+
+WhiteNoise 6.12.0 and django-storages[s3] 1.14.6 were verified against PyPI and installed in the project virtual environment. The existing lock generator resolves their S3 transitive dependencies into the base/dev/production locks. Runtime pins remain Python 3.14.8, Node 24.19.0 and npm 11.21.0. The new production image builds React and serves it with Django; the development backend Dockerfile remains separate. See [hosting report](hosting-report.md) for actual verification status.

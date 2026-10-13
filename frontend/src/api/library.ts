@@ -39,6 +39,8 @@ export const textFields = [
 export type TextField = (typeof textFields)[number][0];
 const optionalText = z.string().nullable();
 export const hymnSchema = z.object({
+  usage_count: z.number().int().nonnegative(),
+  last_used_date: z.string().nullable(),
   id: z.number().int().positive(),
   title: z.string(),
   language: categorySchema,

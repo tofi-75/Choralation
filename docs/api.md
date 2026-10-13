@@ -1,6 +1,6 @@
 # API contract — implementation baseline
 
-**Date:** October 8, 2026. **Status:** M1 sessions, M2 hymn/category endpoints, M3 draft Mass/program endpoints and Maronite calendar suggestions are implemented. Lifecycle/usage (M4), recommendations (M5), and dashboard (M7) remain planned.
+**Date:** October 8, 2026. **Status:** M1 sessions, M2 hymn/category endpoints, M3 draft Mass/program endpoints and Maronite calendar suggestions are implemented. M4 lifecycle, usage and saved history endpoints are implemented and verified; physical-phone acceptance remains pending. Recommendations (M5) and dashboard (M7) remain planned.
 **Owner:** Implementation owner. **Base:** `/api/v1/`.  
 Changes to this contract must update [architecture decisions](architecture.md), frontend types, OpenAPI schemas, and relevant tests together.
 
@@ -29,7 +29,7 @@ App reads require authentication, except CSRF bootstrap, login, and infrastructu
 
 Only `{}` or an empty body is accepted by logout; unknown login/logout fields return 400. Identity reads return `Cache-Control: no-store`. Passwords use Django validation and hashing during provisioning. Superusers resolve to Admin; otherwise group precedence is Admin, Planner, Viewer, then ungrouped Viewer. Django staff status alone never grants application Admin privileges.
 
-Infrastructure endpoints are `GET /health/live/` (process liveness) and `GET /health/ready/` (database connectivity). Readiness returns generic 503 when unavailable; neither exposes credentials or database details. Readiness does not check migration drift; run the separate migration/check commands before starting the app. Django does not serve the frontend.
+Infrastructure endpoints are `GET /health/live/` (process liveness) and `GET /health/ready/` (database connectivity). Readiness returns generic 503 when unavailable; neither exposes credentials or database details. Readiness does not check migration drift; run the separate migration/check commands before starting the app. Development uses Vite; hosted production serves the built frontend and API through Django at one origin. Internal health probes bypass the HTTPS redirect so database failures return 503, not a healthy redirect.
 
 Client sends same-origin credentials and `X-CSRFToken` on unsafe requests. Fetch a fresh CSRF bootstrap after login because Django rotates the token. Use Django's explicit CSRF protection on the anonymous login route, not only DRF SessionAuthentication. Never send passwords in URLs or logs. Invalid credentials return a generic 400 code `invalid_credentials`; missing/invalid CSRF returns 403 code `csrf_failed`.
 
@@ -62,7 +62,7 @@ Unrecognized/malformed revision headers return 400 `validation_error`. Don't exp
 
 ## 4. Hymns — M2 with usage in M4
 
-Implemented: `GET/POST hymns/`, `GET/PATCH/DELETE hymns/{id}/`. PUT is unsupported. `GET hymns/{id}/usage/` arrives in M4; it is not exposed in M2.
+Implemented: `GET/POST hymns/`, `GET/PATCH/DELETE hymns/{id}/`. PUT is unsupported. `GET hymns/{id}/usage/` is implemented in M4, with the same authenticated read policy.
 
 The implemented M1 review adds `is_polyphonic` (default false), ordered `voices` (default `[]`), and an optional private `sheet_music_pdf` attachment. Voice names are trimmed, nonblank, at most 80 characters, and unique ignoring case; at most 32 names are accepted. Enabling polyphony permits adding names without requiring a particular voice arrangement. PATCH replaces the voice list only when supplied. Disabling polyphony with saved voices requires explicitly supplying `voices: []`; omission never silently discards them.
 
@@ -91,7 +91,7 @@ Accept every optional Hymn field listed in source section 8. Required fields are
 
 Text limits: title/alternate title/composer/arranger/source 255 characters; first line 500; hymnal number 100; default key 50; each URL 1000. Notes have no application length limit. Blank optional text normalizes to null; internal notes line breaks are retained. Audio and sheet-music URLs accept HTTP/HTTPS only. Duration is nullable, positive, at most `9999.99`, with up to two decimal places; reads return a decimal string.
 
-Read responses include nested categories, all optional metadata, active/neutral state, audit timestamps, and nullable numeric `created_by`/`updated_by` IDs. Title is deliberately not unique. M4 adds `usage_count` and nullable `last_used_date`. Its planned usage endpoint returns paginated `{mass: {id, date, title, status}, placement, selection_id, position, notes}` finalized occurrences, ordered descending date/Mass ID then placement display order/position/selection ID.
+Read responses include nested categories, all optional metadata, active/neutral state, audit timestamps, and nullable numeric `created_by`/`updated_by` IDs. Title is deliberately not unique. M4 reads include integer `usage_count` and nullable `last_used_date`, derived globally from finalized selection occurrences. The usage endpoint accepts `from`/`to` (inclusive Mass dates), `season`, `q` (Mass title/notes) and pagination; it always excludes drafts, rejects a status parameter, and returns paginated `{mass: {id, date, title, status}, placement, selection_id, position, notes}` finalized occurrences, ordered descending date/Mass ID then placement display order/position/selection ID.
 
 ### Library query contract
 
@@ -107,9 +107,9 @@ Read responses include nested categories, all optional metadata, active/neutral 
 | `preferred_season` | Optional existing positive season ID; season-linked and neutral hymns first, then other results, retaining the selected ordering within both groups. Ordering only; does not broaden literal filters. |
 | `page`, `page_size` | Pagination conventions above |
 
-Unknown IDs within a supplied category filter return 400. Inactive existing IDs can be used to inspect old records. Empty list parameters are errors; omit them instead. Impossible date ranges return 400. Contradictory valid predicates yield zero results, not a silent change to user intent. Usage query parameters are introduced in M4; before then return 400 explaining unavailability.
+Unknown IDs within a supplied category filter return 400. Inactive existing IDs can be used to inspect old records. Empty list parameters are errors; omit them instead. Impossible date ranges return 400. Contradictory valid predicates yield zero results, not a silent change to user intent. Usage query parameters are implemented in M4 with strict date/Boolean validation; unknown or repeated parameters still return 400.
 
-M2 ordering values are `title` (default) and `newest_added`. Newest sorts creation timestamp descending then ID descending. Title sorts case-insensitive database text then ID; no browser-dependent reordering of a paginated result. M4 introduces `recently_used`, `least_recently_used`, `most_used`, and `least_used`; using these in M2 returns 400. The planned recent sorts place never-used last/first respectively; count sorts use zero for never-used and break ties by case-insensitive title then ID. Global usage will include future finalized Masses as documented in ADR-006.
+M2 ordering values are `title` (default) and `newest_added`. The October 10 picker review adds ascending/descending column ordering: `title`, `language`, `seasons`, `genres`, `tags`, `key`, `duration`, `voices`, each accepting a `-` prefix for descending. Duration sorts numerically, voices sort the displayed text rather than JSON-array length, category columns sort the complete alphabetically joined labels through isolated scalar subqueries, and missing nullable values follow populated values in either direction. Equal values break ties by case-insensitive title then ID. Neutral season labels sort as “Any season”. With `preferred_season`, suitability remains the leading group, then the column sorts within that group, all before pagination. Newest sorts creation timestamp descending then ID descending. Title sorts case-insensitive database text then ID; no browser-dependent reordering of a paginated result. M4 also implements `recently_used`, `least_recently_used`, `most_used`, and `least_used`. Recent sorts place never-used last/first respectively; count sorts use zero for never-used and break ties by case-insensitive title then ID. Global usage includes future finalized Masses as documented in ADR-006.
 
 Examples: `?placements=8&seasons=6`, `?placements=8&languages=1,3`, `?q=mary&placements=11`, `?not_used_since=2026-04-01&never_used=false`.
 
@@ -129,7 +129,7 @@ Category DELETE returns 204 for unreferenced rows only; check M2M links, Hymn la
 
 `GET/POST masses/`, `GET/PATCH/DELETE masses/{id}/`.
 
-M3 implements these routes and `PUT masses/{id}/program/`. Mass collection responses are paginated summaries: metadata, nested season, audit fields, revision, and `selection_count`; they omit program rows/warnings. Detail and create/PATCH responses include the entire program with nested hymn/placement records and warnings. PUT returns the program envelope below. Detail/POST/PATCH/PUT success responses include `X-Mass-Revision`. A 412 response includes numeric `current_revision` and the same header. Lifecycle routes remain unavailable until M4; Django admin permits inspection only, so no internal edit/delete bypasses revision checks.
+M3 implements these routes and `PUT masses/{id}/program/`. Mass collection responses are paginated summaries: metadata, nested season, audit fields, revision, and `selection_count`; they omit program rows/warnings. Detail and create/PATCH responses include the entire program with nested hymn/placement records and warnings. PUT returns the program envelope below. Detail/POST/PATCH/PUT success responses include `X-Mass-Revision`. A 412 response includes numeric `current_revision` and the same header. M4 adds lifecycle routes and saved history below. Django admin permits inspection only, so no internal edit/delete form bypasses revision checks.
 
 POST accepts `{date, title?, liturgical_season_id?, notes?}`; status/revision are server-owned. Title defaults to the source's `Sunday Mass — <formatted date>` even when the date is not Sunday; the user can supply a special-Mass title. Do not require Sunday or a season. On update an unchanged inactive season is retainable; a new inactive season is rejected.
 
@@ -156,7 +156,7 @@ Omitted existing rows are removed. IDs, when supplied, belong to this Mass and a
 
 Retained inactive selections are allowed by identity; new inactive hymn/placement links are 400 field errors. Category suitability and repeat use are warnings only, returned as `{code, hymn_id, selection_ids, placement_id?, facts}` objects. Do not reject active manual selections because they lack a season/placement classification.
 
-M3 warning codes are `placement_mismatch`, `season_mismatch`, `duplicate_hymn`, and `inactive_selection`. Duplicate facts include `occurrences`. Retaining an inactive row requires its saved ID and unchanged hymn **and** placement; reordering or note edits are permitted. A position swap retains selection IDs; the PostgreSQL uniqueness constraint is deferred until transaction commit. Each effective metadata/program change advances the Mass revision once; identical representations are no-ops.
+M3 warning codes are `placement_mismatch`, `season_mismatch`, `duplicate_hymn`, and `inactive_selection`. A season notice requires a Mass season and at least one explicit hymn season with no matching link; `is_season_neutral=true` always suppresses it, even when season links are retained. An unspecified legacy classification is not an explicit different season. This advisory rule does not broaden random/recommendation eligibility or literal library filters. Duplicate facts include `occurrences`. Retaining an inactive row requires its saved ID and unchanged hymn **and** placement; reordering or note edits are permitted. A position swap retains selection IDs; the PostgreSQL uniqueness constraint is deferred until transaction commit. Each effective metadata/program change advances the Mass revision once; identical representations are no-ops.
 
 ### Random picks — delivered M3 follow-up
 
@@ -165,6 +165,10 @@ M3 warning codes are `placement_mismatch`, `season_mismatch`, `duplicate_hymn`, 
 This POST is a **read-only suggestion request**, with CSRF protection but no revision precondition or revision advance. The explicit body describes the browser's possibly unsaved season/choices. It returns `{picks: [{placement_id, hymn: <full Hymn>}], unfilled_placement_ids: [...]}`. Candidates come from the whole active library with the requested placement and either the requested season or season-neutral status. Randomized maximum matching avoids duplicates and maximizes placement coverage; assignments are not sampled uniformly over all possible programs. No-match returns 200 with empty picks. No history, usage or ranking is calculated.
 
 The client inserts only into placements still empty in its latest working copy, rechecks duplicates/classifications, and discards responses after date/season/calendar-context changes or unmount. It then saves through the existing revision-guarded program PUT. Existing rows retain identities, notes and order. The endpoint does not reserve choices; later library changes follow the normal active-reference validation and advisory warning behavior. See [implementation notes](random-picker.md).
+
+### Saved Mass history — M4
+
+`GET masses/history/` uses the same `from`/`to`, `status`, `season`, `q` and pagination parameters as the planning list, but sorts newest date then Mass ID first. With no status filter the API includes both states; the React page defaults to `status=finalized` and offers Drafts only/All plans. Each summary includes `is_archived`, `selection_count`, and `preview` (first three ordered selections with ID, compact hymn ID/title, placement, position and notes). A link opens the full saved program. Drafts in this list never contribute to usage.
 
 ### Lifecycle — M4
 
@@ -209,7 +213,7 @@ Read-only `GET /health/live/` confirms the process; `GET /health/ready/` checks 
 
 M2 uses `["hymns", queryString]`, `["hymn", id]`, and an aggregate `["categories"]` key that fetches all five category lists with `is_active=all`. Hymn mutations invalidate library variants, affected details, and category reference data. The router updates URL state synchronously so controlled filter inputs respond immediately; queries provide loading states independently. M3 adds the Mass keys described below. Later milestones introduce `["hymn-usage", id, filters]`, `["recommendations", massId, placementId, filters]`, and `["dashboard"]`. Split category cache keys by kind/filter when M6 needs independent administration queries.
 
-Program mutation refreshes Mass lists/detail. M5/M7 will additionally refresh affected recommendations and dashboard. M4 finalize/reopen will refresh affected hymn details, usage lists, all usage-filtered library variants, and history. Category/hymn edits refresh dependent selectors/cards without losing unsaved form data. Request hooks must include filter/season changes in cache keys or invalidation.
+Program mutation refreshes Mass lists/detail. M5/M7 will additionally refresh affected recommendations and dashboard. M4 finalize/reopen refresh affected hymn details, usage lists, all usage-filtered library variants, and history. Category/hymn edits refresh dependent selectors/cards without losing unsaved form data. Request hooks must include filter/season changes in cache keys or invalidation.
 
 Implemented endpoint shapes and errors are validated by the OpenAPI gate and integration tests; see [M2 evidence](m2-report.md). Future sections describe planned contracts, not available routes. Acceptance cases and exact fictional expectations are in [acceptance.md](acceptance.md).
 
@@ -217,4 +221,8 @@ M3 uses `["masses", queryString]` for list summaries and `["mass", id]` for save
 
 The October 8 picker/view follow-up adds `preferred_season` to the hymn list contract. The section picker sends `placements=<current ID>` by default and includes placement/season/override in its query key. Preference is calculated in PostgreSQL before pagination with a season subquery, avoiding duplicate rows from multi-season links. Unknown, malformed or repeated preference IDs return 400. Literal `seasons` filters retain their earlier behavior.
 
-Frontend `/masses/:id` now displays saved read-only detail; `/masses/:id/edit` hosts the draft editor. Creation opens the editor, while list links open the view. **Save draft** awaits the shared saver drain (including an already-started autosave), then navigates only after React observes `Saved`. Calendar/random lookup must settle before finishing; editor controls stop accepting changes during the save. Failure/conflict keeps the editor and its working copy. The view waits for a fresh mount-time detail read and never changes Mass status or writes a program. Viewer/finalized edit routes redirect to the view. No new save/finalize endpoint or database flag is introduced. See [review notes](m3-picker-view-review.md).
+Frontend `/masses/:id` now displays saved read-only detail; `/masses/:id/edit` hosts the draft editor. Creation opens the editor, while list links open the view. **Save draft** awaits the shared saver drain (including an already-started autosave), then navigates only after React observes `Saved`. Calendar/random lookup must settle before finishing; editor controls stop accepting changes during the save. Failure/conflict keeps the editor and its working copy. The view waits for a fresh mount-time detail read and never changes Mass status or writes a program. Viewer/finalized edit routes redirect to the view. That M3 follow-up introduced no new save endpoint or flag. M4 adds the separate revision-guarded finalize/reopen endpoints above. See [review notes](m3-picker-view-review.md).
+
+## Hosted storage — October 13, 2026
+
+Hymn create/PATCH and authenticated PDF downloads can return HTTP 503 with code `storage_unavailable` and a generic retry message when private S3 storage fails. Provider credentials/details never appear in the response. Upload failure rolls back hymn metadata; no partial library record is committed. Existing PDF APIs, multipart envelope, roles and 10 MB limit are preserved. Missing files remain 404. See [hosting guide](hosting.md).

@@ -1,5 +1,8 @@
 # Architecture decisions — M0 through M3
 
+> **October 13, 2026 priority update:** Render + Supabase hosting preparation is the current delivery task; see [deployment guide](hosting.md). All account/login/provider setup and publishing are manual owner steps deferred until later. Physical-phone acceptance moves from M4 to M5. Saved-Mass performance redesign and recommendations are deferred. Historical milestone statements below retain their original dates; hosted completion requires actual URL, persistence and pipeline verification.
+
+
 **Decision date:** October 6, 2026. **Owner:** Implementation owner (Codex, this project).  
 **Authority:** [Source specification](../mass_hymn_picker_codex_spec.md) and [development plan](../DEVELOPMENT_PLAN.md).  
 **State:** Authentication/runtime foundations, hymn/category library, and draft Mass planning are implemented through M3. Lifecycle/usage, recommendations, and release decisions remain the baseline for M4–M7. See [M1 evidence](m1-report.md), [M2 evidence](m2-report.md), and [M3 evidence](m3-report.md) for current behavior and limits.
@@ -154,3 +157,26 @@ Metadata, classifications, and the PDF reference save through the same locked ag
 Voices are ordered, unique, trimmed names owned entirely by a hymn, stored as a JSON list. They currently have no independent identity, classification, or per-voice audio/PDF attachment. The API validates names and the database prevents a nonpolyphonic hymn retaining voices. Turning polyphony off in the UI asks before clearing them; the API requires explicit clearing when names exist.
 
 Phones are the primary usage surface. Keep search visible, category/tag pickers collapsed until needed, and selected tags summarized. Render at most three saved category chips initially with access to the rest. Collapse optional form metadata, show only provided metadata in detail, and keep touch targets large while reducing padding and whitespace. Numeric duration remains a positive decimal value in minutes. Test phone widths 360/390/430 px, reduced viewport height for keyboard access, and desktop together; physical-device keyboard behavior still needs coordinator review.
+
+## M4 implementation notes — October 8
+
+`transition_mass` uses the same Mass row lock and expected revision as metadata/program writes. Authorization precedes precondition checking; a stale repeated action remains a conflict. Effective transitions advance revision once, set/clear finalization time and preserve selections. Internal Mass/selection admin remains read-only. No new migration is required: M3 already persisted status and finalized_at.
+
+`hymns/usage.py` supplies correlated finalized-occurrence count/max-date annotations independent of outer category joins. Inclusive usage ranges use one Exists subquery so the same occurrence satisfies both bounds. Never-used and not-used-since use finalized occurrences only; future finalized plans remain included with scheduled wording. History selectors prefetch previews or join Mass/placement rows to avoid per-row fetching. Direct finalization captures the displayed saved revision; Admin reopening binds a confirmation snapshot. Both invalidate all Mass/history/library/hymn/usage query variants. Finalization conflicts refresh the saved program and require explicit acknowledgement before another attempt. An editor mounted before another session finalizes remains mounted with its local working copy for explicit review; new finalized edit-route visits redirect to saved view.
+
+Physical-phone acceptance is required in M4; browser emulation remains supporting evidence. See [M4 progress and acceptance log](m4-report.md).
+
+## October 10 picker sorting and reorder invariants
+
+- Metadata column ordering belongs to PostgreSQL, before pagination. Independent scalar category-label subqueries avoid joined-row multiplication and ensure a filter does not truncate the label being sorted. Season preference remains the leading group. No browser sort of a single API page is used.
+- Any-season is the existing `is_season_neutral` flag. It takes precedence over retained season links in both frontend and API notices. Empty legacy links represent unknown classification, not an explicit different season; random eligibility remains stricter.
+- Reorder gestures preview locally and update the existing revision-guarded DraftSaver once on drop. Stable row keys connect preview order to the latest acknowledged IDs and notes. Complete membership checks prevent an old drag from dropping added/deleted rows; placement slot replacement preserves other placements. Pointer cancellation, keyboard Escape and read-only changes discard previews.
+- Desktop metadata table and mobile cards render a single accessible result surface at a time. Desktop sidebar collapse affects layout only; existing permissions, mobile navigation and save guards remain in force.
+
+## ADR-Hosting — Render / Supabase preparation, October 13, 2026
+
+Use one Render Docker service for built React, Django APIs, admin and static assets at the same HTTPS origin. WhiteNoise serves only collected admin assets and Vite's hashed assets; an explicit React-route allow-list serves revalidating HTML. API/admin/health/media/missing file paths cannot fall through to the React shell. Preserve Vite and local PostgreSQL/filesystem development defaults.
+
+Supabase supplies PostgreSQL through the SSL session pooler on 5432 and a private S3-compatible PDF bucket. Django continues to enforce all authentication/roles; disable Supabase's unused Data API. S3 secrets remain server-side. Existing authenticated download URLs remain unchanged. Storage failures use generic 503 responses with bounded SDK waits.
+
+Free Render runs migrations/default provisioning before Gunicorn startup, then a real database readiness probe. GitHub checks use disposable PostgreSQL/local files and gate Render's native automatic deploys. Paid upgrades move migrations to pre-deploy and disable startup migrations. Schema changes must remain compatible with the prior app revision. All accounts, provider setup, Git publishing and hosted persistence checks are manual owner steps, and live completion is pending. [Deployment instructions](hosting.md).

@@ -65,8 +65,7 @@ export function LoginPage() {
         <div className="welcome-copy">
           <p className="eyebrow">For your church music team</p>
           <h1 id="welcome-title">
-            Make room for
-            <br />
+            Make room for <br />
             meaningful music.
           </h1>
           <p>A shared home for the hymns you love and the Masses you prepare together.</p>

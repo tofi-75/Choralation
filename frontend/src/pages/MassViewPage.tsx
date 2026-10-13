@@ -5,6 +5,7 @@ import { Link, useParams } from 'react-router';
 import { fetchMass } from '../api/masses';
 import { fetchMassPlacements } from '../api/library';
 import { useSession } from '../features/auth/SessionProvider';
+import { MassLifecycle } from '../features/masses/MassLifecycle';
 
 export function MassViewPage() {
   const { id } = useParams();
@@ -67,11 +68,14 @@ export function MassViewPage() {
             {mass.program.length === 1 ? 'hymn' : 'hymns'}
           </p>
         </div>
-        {user && user.role !== 'Viewer' && mass.status === 'draft' && (
-          <Link className="button secondary" to={`/masses/${mass.id}/edit`}>
-            Edit
-          </Link>
-        )}
+        <div className="form-actions">
+          {user && user.role !== 'Viewer' && mass.status === 'draft' && (
+            <Link className="button secondary" to={`/masses/${mass.id}/edit`}>
+              Edit
+            </Link>
+          )}
+          <MassLifecycle mass={mass} unavailable={query.isFetching || Boolean(query.error)} />
+        </div>
       </div>
       {(query.error || sections.error) && (
         <p className="notice error" role="alert">

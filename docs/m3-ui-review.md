@@ -1,6 +1,6 @@
 # M3 UI and calendar review — October 8, 2026
 
-**October 8 checkpoint update:** M3 engineering and all requested follow-ups are complete. The owner authorized the M3 commit and starting M4. Statements about uncommitted changes below describe their original verification runs. Human walkthrough/physical-phone acceptance remains pending and is now a required M4 gate; see [acceptance criteria](acceptance.md). The [latest review](m3-picker-view-review.md) records saved view, empty sections and Mass ordering.
+**October 8 checkpoint update:** M3 engineering and all requested follow-ups are complete and committed as `daefc9b`. The owner authorized the M3 commit and starting M4. Statements about uncommitted changes below describe their original verification runs. Human walkthrough/physical-phone acceptance remains pending and is now a required M4 gate; see [acceptance criteria](acceptance.md). The [latest review](m3-picker-view-review.md) records saved view, empty sections and Mass ordering.
 
 **Status:** Implemented and verified; manual coordinator/physical-phone acceptance pending. Changes remain uncommitted.
 

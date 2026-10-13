@@ -1,4 +1,4 @@
-/** Saved metadata and Admin confirmations; no speculative usage/history values. */
+/** Saved metadata, actual finalized usage/history, and Admin confirmations. */
 import * as Dialog from '@radix-ui/react-dialog';
 import { useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
@@ -7,6 +7,8 @@ import { deleteHymn, setHymnActive, textFields } from '../api/library';
 import { useSession } from '../features/auth/SessionProvider';
 import { CategoryChips } from '../features/hymns/HymnSummary';
 import { useHymn, useRefreshLibrary } from '../features/hymns/queries';
+import { UsageSummary } from '../features/hymns/UsageSummary';
+import { HymnUsage } from '../features/hymns/HymnUsage';
 
 export function HymnDetailPage() {
   const { id } = useParams();
@@ -83,6 +85,7 @@ export function HymnDetailPage() {
       {!saved.is_active && (
         <p className="notice">This hymn is inactive. Its saved information is retained.</p>
       )}
+      <UsageSummary hymn={saved} />
       <section className="detail-section" aria-labelledby="classification-title">
         <h2 id="classification-title">Classification</h2>
         <dl className="detail-grid">
@@ -207,6 +210,7 @@ export function HymnDetailPage() {
           </div>
         </dl>
       </section>
+      <HymnUsage key={saved.id} id={saved.id} />
       {user?.role === 'Admin' && (
         <section className="admin-actions" aria-label="Admin actions">
           <h2>Manage this hymn</h2>

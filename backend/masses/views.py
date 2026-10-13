@@ -1,4 +1,4 @@
-"""HTTP adapters for draft planning; lifecycle/recommendations remain later scope."""
+"""HTTP adapters for revision-guarded planning/lifecycle and saved program history."""
 
 from django.db import transaction
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
@@ -8,11 +8,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from accounts.permissions import AdminPermission, PlannerPermission
-from accounts.serializers import ErrorSerializer
+from accounts.serializers import EmptySerializer, ErrorSerializer
 from hymns.selectors import LibraryPagination
 from masses import selectors, services
 from masses.random_picker import random_picks
 from masses.serializers import (
+    MassHistorySerializer,
     MassListSerializer,
     MassReadSerializer,
     MassWriteSerializer,
@@ -57,9 +58,9 @@ class MassViewSet(viewsets.GenericViewSet):
     def get_permissions(self):
         policy = (
             AdminPermission
-            if self.action == "destroy"
+            if self.action in {"destroy", "reopen"}
             else PlannerPermission
-            if self.action in {"create", "partial_update", "program", "random_picks"}
+            if self.action in {"create", "partial_update", "program", "random_picks", "finalize"}
             else IsAuthenticated
         )
         return [policy()]
@@ -67,6 +68,40 @@ class MassViewSet(viewsets.GenericViewSet):
     def list(self, request):
         page = self.paginate_queryset(selectors.mass_list(request.query_params))
         return self.get_paginated_response(MassListSerializer(page, many=True).data)
+
+    @extend_schema(
+        responses={200: MassHistorySerializer(many=True), **ERRORS},
+        parameters=[
+            OpenApiParameter(name, str) for name in ("from", "to", "status", "season", "q")
+        ],
+    )
+    @action(detail=False, methods=["get"])
+    def history(self, request):
+        page = self.paginate_queryset(selectors.mass_history(request.query_params))
+        return self.get_paginated_response(MassHistorySerializer(page, many=True).data)
+
+    @extend_schema(
+        request=EmptySerializer, parameters=REVISION, responses={200: MassReadSerializer, **ERRORS}
+    )
+    @action(detail=True, methods=["post"])
+    def finalize(self, request, pk=None):
+        return self.transition(request, self.get_object().pk, reopen=False)
+
+    @extend_schema(
+        request=EmptySerializer, parameters=REVISION, responses={200: MassReadSerializer, **ERRORS}
+    )
+    @action(detail=True, methods=["post"])
+    def reopen(self, request, pk=None):
+        return self.transition(request, self.get_object().pk, reopen=True)
+
+    @transaction.atomic
+    def transition(self, request, pk, *, reopen):
+        serializer = EmptySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        services.transition_mass(
+            pk, request.user, request.headers.get("X-Expected-Mass-Revision"), reopen=reopen
+        )
+        return self.detail_response(pk)
 
     def detail_response(self, pk, status=200):
         mass = self.get_queryset().get(pk=pk)

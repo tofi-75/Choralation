@@ -1,6 +1,6 @@
 # UX walkthrough and coordinator demo
 
-**Status:** These M0 sketches preserve the original design intent; M1–M3 now have a working application and automated browser evidence. Current M3 behavior is documented in the [README](../README.md) and [review notes](m3-picker-view-review.md). Human usability and physical-phone validation remain pending and are mandatory in M4.  
+**Status:** These M0 sketches preserve the original design intent; M1–M4 now have a working application and automated browser evidence. M4 adds confirmed finalize/reopen, real usage, and saved history; see the [M4 report](m4-report.md). Current M3 behavior is documented in the [README](../README.md) and [review notes](m3-picker-view-review.md). Human usability and physical-phone validation remain pending and are mandatory in M4.
 **Purpose:** Establish what the first implementation should do before investing in components.  
 **Review owner:** Implementation owner; eventual coordinator reviewer is not assigned.
 
@@ -95,7 +95,7 @@ The illustrative section count is based on the eleven seeded placements; compute
 
 **Conflict:** Show `This Mass changed in another session. Your edits have not been saved.` Provide View saved version and Review my changes; preserve the working copy. Reload is an explicit choice after review, never an automatic destructive refresh. No force-overwrite button bypasses revisions.
 
-**Finalization:** M4 adds a compact saved-program review. Warn about repeats/recent use/inactive retained selections/entirely empty program, but allow a deliberate valid choice. Finalized view removes editing controls and shows finalized state/timestamp. Admin sees Reopen with an explanation that history totals will change; Planner/Viewer cannot reopen.
+**Finalization:** The saved page already shows the program and its advisory notes. Finalize Mass submits once beside a small read-only/usage-count notice, without a repeated-program popup. Conflicting revisions require checking the refreshed program before another attempt. Finalized view removes editing controls and shows finalized state/timestamp. Admin sees Reopen with an explanation that history totals will change; Planner/Viewer cannot reopen.
 
 ## 4. Hymn picker — All Hymns M3, Recommended M5
 
@@ -119,7 +119,7 @@ Recommended opens by default only from M5. Scores are not the card headline. No 
 
 All Hymns exposes search/filter/sort over the active library without secretly enforcing the target season/placement. On mismatch, ask `This hymn is not marked for this placement/season. Add anyway?` and accept an explicit override. Recent use and duplication are contextual warnings, not blockers. Inactive hymns are not new choices.
 
-**Mobile:** Full-height dialog with context/search above scrollable cards. Focus is trapped, Escape/Close work, and background scroll is contained. Returning closes or retains the picker according to a consistent interaction decision in M3; focus returns to the relevant Add hymn action.
+**Current mobile behavior (October 10 review):** The placement expands an inline picker. Search and a Filters button sit above compact metadata rows in a bounded scroll area. The page remains scrollable; keyboard and touch can reach every choice. Escape/Close collapse the picker and focus returns to its Add/Change action. Choosing a hymn closes that section picker. Future M5 recommendations should use this same inline surface.
 
 **Failure/empty:** Retry failed suggestions while All Hymns remains usable. No eligible recommendations offers All Hymns; do not silently expand eligibility. An empty library routes to Add hymn when permitted.
 
@@ -164,3 +164,29 @@ Use [the fixture guide](acceptance.md). The static M0 walkthrough can be evaluat
 - Does printed order match the saved program?
 
 Record observed problems and requested changes with the affected milestone/ticket. There are no coordinator answers yet; do not record agreement or a measured planning time until someone actually performs the walkthrough.
+
+## Current planning flow — October 10 review
+
+### October 10 browser review
+
+The Mass list now states when the last result has been reached and shows a return-to-top action once Create Mass starts scrolling above the viewport. Search explicitly describes finding saved titles/notes and belongs to the list, rather than the creation form.
+
+Creation is a separate two-step flow: `/masses/new` confirms date, Maronite season, title and notes; Next creates the draft and opens hymn/order selection. Before creation, a fresh inclusive same-date lookup checks all saved plans regardless of list filters/status. Existing plans require explicit confirmation; cancellation or lookup failure preserves inputs and creates nothing. Multiple services on one date remain permitted. This is a client confirmation at the time of checking, not a transactional uniqueness constraint against concurrent creation.
+
+The hymn step shows confirmed details read-only. Back to Mass details and Next switch the same mounted working copy, preserving hymn order, notes and the revision-guarded autosave queue. Each placement's + toggles a compact inline picker with search and a Filters button, scrollable results and metadata (language, placement, season suitability, genres/tags, key, duration, voices and sheet-music availability). Placement filtering and season/neutral preference remain server-side before pagination; mismatch/duplicate overrides and focus restoration remain explicit.
+
+New selection identity uses a browser-session counter rather than the secure-context-only `crypto.randomUUID`. These keys identify unsaved rows locally and never serve as security tokens or database IDs. Both random and manual additions now work on an HTTP LAN origin.
+
+**Deferred owner request — saved program for use during Mass:** recorded October 10; redesign has not started. Revisit the saved view to make it practical for accessing hymns and performing during the service: compact ordered navigation, quick access to lyrics/sheet-music PDFs/voice parts/audio where available, visible performance notes and straightforward movement between hymns. Agree the detailed layout later with the owner, then validate a complete rehearsal on a real phone with materials reachable during Mass. Keep this separate from the implemented planning review and from the still-pending physical-phone M4 gate.
+
+## October 10 picker review — current implemented design
+
+The compact inline picker now aligns Search and Filters and groups language, genre and sorting in one row. Desktop results are a semantic metadata table with sortable Title, Language, Seasons, Genres, Tags, Key, Minutes and Voices headings. Horizontal scrolling stays inside the table, with the Add column kept reachable. Phones use compact cards and the equivalent sort selector, avoiding a wide table on a narrow screen. Actual season names replace the vague “Other season” label; suitable neutral choices read “Any season”.
+
+The sidebar music mark toggles a narrow navigation rail on desktop. Hymn order uses a drag handle per row, including touch pointer capture and viewport edge scrolling. Keyboard pickup/move/drop and cancellation are described to assistive technology; previews only persist on drop. Review [acceptance A10R](acceptance.md) and the [picker report](picker-review.md). Saved-program performance mode remains deferred.
+
+## Mass list refinement
+
+Mass plans starts with Ready Masses (finalized). Use Pending drafts to continue a saved draft. A compact search and Filters icon replace the large search panel. Clearing search/date/season preserves your selected list; switching lists preserves filters and starts at page one. Past records remain under Archived. The floating arrow returns to Create Mass. See [Mass list review](mass-list-review.md).
+
+Date and season controls share a height; optional title/notes occupy separate rows. Desktop picker columns are tighter and use page scrolling; drag handles appear as plain icons. See [the refinement report](planning-refinement.md).

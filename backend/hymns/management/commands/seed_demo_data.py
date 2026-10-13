@@ -55,14 +55,21 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--username", required=True)
+        parser.add_argument(
+            "--allow-hosted", action="store_true", help="Seed an opted-in hosted testing database."
+        )
 
     @transaction.atomic
     def handle(self, *args, **options):
-        if not settings.DEBUG or settings.DATABASES["default"]["HOST"] not in {
+        local = settings.DEBUG and settings.DATABASES["default"]["HOST"] in {
             "127.0.0.1",
             "localhost",
-        }:
-            raise CommandError("Demo data is restricted to a local development database.")
+        }
+        hosted = options["allow_hosted"] and settings.ALLOW_HOSTED_DEMO_DATA
+        if not local and not hosted:
+            raise CommandError(
+                "Demo data requires local development or --allow-hosted with ALLOW_HOSTED_DEMO_DATA=true."
+            )
         try:
             actor = get_user_model().objects.get(username=options["username"])
         except get_user_model().DoesNotExist as error:

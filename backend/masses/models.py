@@ -1,7 +1,7 @@
 """Mass-owned revisions protect metadata/programs; referenced library rows stay live.
 
 Deleting a draft cascades only its own selections. Hymn, season, and placement
-deletion is protected even for drafts. Finalization behavior arrives in M4.
+deletion is protected even for drafts. Guarded lifecycle services own finalization.
 """
 
 from django.conf import settings

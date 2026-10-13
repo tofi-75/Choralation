@@ -13,6 +13,8 @@ export const category: Category = {
   updated_at: '2026-10-07T00:00:00Z',
 };
 export const hymn: Hymn = {
+  usage_count: 0,
+  last_used_date: null,
   id: 1,
   title: 'First hymn',
   language: category,

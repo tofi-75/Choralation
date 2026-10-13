@@ -74,6 +74,7 @@ def program_warnings(mass: Mass) -> list[dict]:
         if (
             mass.liturgical_season_id
             and not row.hymn.is_season_neutral
+            and bool(row.hymn.seasons.all())
             and mass.liturgical_season_id not in {item.pk for item in row.hymn.seasons.all()}
         ):
             codes.append("season_mismatch")
@@ -100,3 +101,30 @@ def program_warnings(mass: Mass) -> list[dict]:
         if len(ids) > 1
     )
     return warnings
+
+
+def mass_history(params: QueryDict) -> QuerySet[Mass]:
+    """Same literal filters as planning, newest first, with prefetched previews."""
+    return (
+        mass_list(params)
+        .prefetch_related(
+            Prefetch(
+                "selections", queryset=MassHymnSelection.objects.select_related("hymn", "placement")
+            )
+        )
+        .order_by("-date", "-id")
+    )
+
+
+def hymn_usage(pk: int, params: QueryDict) -> QuerySet[MassHymnSelection]:
+    """Finalized occurrences only; date bounds constrain each occurrence's Mass."""
+    validate_query(params, {"from", "to", "season", "q", "page", "page_size"})
+    return (
+        MassHymnSelection.objects.filter(
+            hymn_id=pk, mass__status="finalized", mass_id__in=mass_list(params).values("pk")
+        )
+        .select_related("mass", "placement")
+        .order_by(
+            "-mass__date", "-mass_id", "placement__display_order", "placement_id", "position", "id"
+        )
+    )

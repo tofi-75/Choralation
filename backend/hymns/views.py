@@ -2,6 +2,7 @@
 
 import json
 
+from botocore.exceptions import BotoCoreError, ClientError
 from django.http import FileResponse
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema, extend_schema_view
 from rest_framework import viewsets
@@ -13,6 +14,7 @@ from rest_framework.response import Response
 
 from accounts.permissions import AdminPermission, PlannerPermission
 from accounts.serializers import ErrorSerializer
+from common.storage import StorageUnavailable
 from hymns import selectors, services
 from hymns.serializers import (
     CategoryDetailSerializer,
@@ -24,6 +26,8 @@ from hymns.serializers import (
     HymnWriteSerializer,
     ReorderSerializer,
 )
+from masses.selectors import hymn_usage
+from masses.serializers import HymnUsageSerializer
 
 ERRORS = {400: ErrorSerializer, 403: ErrorSerializer, 404: ErrorSerializer, 409: ErrorSerializer}
 
@@ -40,13 +44,18 @@ ERRORS = {400: ErrorSerializer, 403: ErrorSerializer, 404: ErrorSerializer, 409:
         + [
             OpenApiParameter("q", str, description="Literal substring of metadata or tag names."),
             OpenApiParameter("is_active", str, enum=["true", "false", "all"]),
-            OpenApiParameter("ordering", str, enum=["title", "newest_added"]),
+            OpenApiParameter(
+                "ordering",
+                str,
+                enum=selectors.LIBRARY_ORDERINGS,
+            ),
             OpenApiParameter(
                 "preferred_season",
                 int,
                 description="Season matches and neutral hymns first; preserves other results and the selected secondary ordering.",
             ),
-        ],
+        ]
+        + [OpenApiParameter(name, str) for name in sorted(selectors.USAGE_PARAMS)],
     ),
     retrieve=extend_schema(responses={200: HymnReadSerializer, **ERRORS}),
     create=extend_schema(
@@ -54,14 +63,14 @@ ERRORS = {400: ErrorSerializer, 403: ErrorSerializer, 404: ErrorSerializer, 409:
             "application/json": HymnWriteSerializer,
             "multipart/form-data": HymnMultipartWriteSerializer,
         },
-        responses={201: HymnReadSerializer, **ERRORS},
+        responses={201: HymnReadSerializer, 503: ErrorSerializer, **ERRORS},
     ),
     partial_update=extend_schema(
         request={
             "application/json": HymnWriteSerializer,
             "multipart/form-data": HymnMultipartWriteSerializer,
         },
-        responses={200: HymnReadSerializer, **ERRORS},
+        responses={200: HymnReadSerializer, 503: ErrorSerializer, **ERRORS},
     ),
     destroy=extend_schema(responses={204: None, **ERRORS}),
 )
@@ -91,6 +100,15 @@ class HymnViewSet(viewsets.GenericViewSet):
 
     def retrieve(self, request, pk=None):
         return Response(self.get_serializer(self.get_object()).data)
+
+    @extend_schema(
+        responses={200: HymnUsageSerializer(many=True), **ERRORS},
+        parameters=[OpenApiParameter(name, str) for name in ("from", "to", "season", "q")],
+    )
+    @action(detail=True, methods=["get"])
+    def usage(self, request, pk=None):
+        page = self.paginate_queryset(hymn_usage(self.get_object().pk, request.query_params))
+        return self.get_paginated_response(HymnUsageSerializer(page, many=True).data)
 
     def create(self, request):
         return self.save(request, status=201)
@@ -129,6 +147,7 @@ class HymnViewSet(viewsets.GenericViewSet):
     @extend_schema(
         responses={
             (200, "application/pdf"): OpenApiTypes.BINARY,
+            503: ErrorSerializer,
             403: ErrorSerializer,
             404: ErrorSerializer,
         }
@@ -143,6 +162,8 @@ class HymnViewSet(viewsets.GenericViewSet):
             handle = hymn.sheet_music_pdf.open("rb")
         except FileNotFoundError as error:
             raise NotFound("The sheet music file is unavailable.") from error
+        except (BotoCoreError, ClientError) as error:
+            raise StorageUnavailable() from error
         response = FileResponse(
             handle,
             as_attachment=True,

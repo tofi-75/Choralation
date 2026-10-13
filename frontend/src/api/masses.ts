@@ -118,3 +118,62 @@ export function deleteMass(id: number, revision: number) {
     headers: { 'X-Expected-Mass-Revision': String(revision) },
   });
 }
+
+/** Lifecycle uses the saved-view revision; stale confirmations require review. */
+export function transitionMass(mass: Mass, reopen: boolean) {
+  return request(`/masses/${mass.id}/${reopen ? 'reopen' : 'finalize'}/`, massSchema, {
+    method: 'POST',
+    headers: { 'X-Expected-Mass-Revision': String(mass.revision) },
+    body: '{}',
+  });
+}
+
+export function fetchMassHistory(query: string) {
+  return request(
+    `/masses/history/?${query}`,
+    z.object({
+      count: z.number(),
+      next: z.string().nullable(),
+      previous: z.string().nullable(),
+      results: z.array(
+        summarySchema.extend({
+          is_archived: z.boolean(),
+          preview: z.array(
+            z.object({
+              id: z.number(),
+              placement: categorySchema,
+              hymn: z.object({ id: z.number(), title: z.string() }),
+              position: z.number(),
+              notes: z.string().nullable(),
+            }),
+          ),
+        }),
+      ),
+    }),
+  );
+}
+
+export function fetchHymnUsage(id: number, query: string) {
+  return request(
+    `/hymns/${id}/usage/?${query}`,
+    z.object({
+      count: z.number(),
+      next: z.string().nullable(),
+      previous: z.string().nullable(),
+      results: z.array(
+        z.object({
+          mass: z.object({
+            id: z.number(),
+            title: z.string(),
+            date: z.string(),
+            status: z.literal('finalized'),
+          }),
+          placement: categorySchema,
+          selection_id: z.number(),
+          position: z.number(),
+          notes: z.string().nullable(),
+        }),
+      ),
+    }),
+  );
+}

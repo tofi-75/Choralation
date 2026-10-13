@@ -1,0 +1,40 @@
+/** Global finalized selections include scheduled plans; dates use the team day. */
+import type { Hymn } from '../../api/library';
+
+export function usageDateLabel(day: string, today?: string) {
+  const current =
+    today ??
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Beirut',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+  const difference = Math.round(
+    (Date.parse(`${current}T12:00:00Z`) - Date.parse(`${day}T12:00:00Z`)) / 86400000,
+  );
+  const exact = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeZone: 'UTC' }).format(
+    new Date(`${day}T12:00:00Z`),
+  );
+  if (difference < 0) return `Scheduled for ${exact}`;
+  if (difference === 0) return 'Last selected today';
+  return `Last selected ${difference} ${difference === 1 ? 'day' : 'days'} ago`;
+}
+
+export function UsageSummary({ hymn }: { hymn: Pick<Hymn, 'usage_count' | 'last_used_date'> }) {
+  return (
+    <span className="usage-summary">
+      <span>
+        {hymn.usage_count === 0
+          ? 'Never used'
+          : `${hymn.usage_count} finalized ${hymn.usage_count === 1 ? 'selection' : 'selections'}`}
+      </span>
+      {hymn.last_used_date && (
+        <small className="muted" title={hymn.last_used_date}>
+          <time dateTime={hymn.last_used_date}>{usageDateLabel(hymn.last_used_date)}</time> ·{' '}
+          {hymn.last_used_date}
+        </small>
+      )}
+    </span>
+  );
+}

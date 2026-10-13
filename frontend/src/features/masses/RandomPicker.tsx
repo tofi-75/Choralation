@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Category } from '../../api/library';
 import { fetchRandomPicks } from '../../api/masses';
 import type { RandomPicks } from '../../api/masses';
+import { newRowKey } from './rowKey';
 import type { Draft, DraftSaver } from './DraftSaver';
 
 /** Recheck against the latest draft: a manual choice may arrive during the request. */
@@ -27,7 +28,7 @@ export function insertRandomPicks(
         !hymn.seasons.some((row) => row.id === draft.metadata.liturgical_season_id))
     )
       continue;
-    rows.push({ key: crypto.randomUUID(), placement_id, hymn, notes: '' });
+    rows.push({ key: newRowKey(), placement_id, hymn, notes: '' });
     occupied.add(placement_id);
     used.add(hymn.id);
   }

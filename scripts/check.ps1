@@ -11,8 +11,8 @@ try {
     Invoke-Checked $ProjectPython @('-B', '-m', 'pip', 'check')
     Invoke-Manage @('check')
     Invoke-Manage @('makemigrations', '--check', '--dry-run')
-    Invoke-Checked $ProjectPython @('-B', '-m', 'ruff', 'check', '.', '../scripts')
-    Invoke-Checked $ProjectPython @('-B', '-m', 'ruff', 'format', '--check', '.', '../scripts')
+    Invoke-Checked $ProjectPython @('-B', '-m', 'ruff', 'check', '--config', 'pyproject.toml', '.', '../scripts')
+    Invoke-Checked $ProjectPython @('-B', '-m', 'ruff', 'format', '--config', 'pyproject.toml', '--check', '.', '../scripts')
     Invoke-Checked $ProjectPython @('-B', '-m', 'pytest', '--basetemp', (Join-Path $checkRun 'tmp'), '-o', ('cache_dir=' + (Join-Path $checkRun 'cache')))
     New-Item -ItemType Directory -Force -Path (Join-Path $ProjectRoot '.cache\schema') | Out-Null
     Invoke-Manage @('spectacular', '--validate', '--fail-on-warn', '--file', (Join-Path $ProjectRoot '.cache\schema\openapi.yaml'))

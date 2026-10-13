@@ -1,10 +1,12 @@
 """Versioned API routes and protected schema; no unimplemented domain routes."""
 
+from django.conf import settings
 from django.contrib import admin
-from django.urls import include, path
+from django.urls import include, path, re_path
 from drf_spectacular.views import SpectacularAPIView
 from rest_framework.renderers import JSONRenderer
 
+from common.frontend import frontend_page
 from common.views import health_live, health_ready
 from masses.calendar_views import MaroniteCalendarView
 
@@ -21,3 +23,11 @@ urlpatterns = [
     path("health/ready/", health_ready, name="health-ready"),
 ]
 handler500 = "common.errors.server_error"
+# Named React routes only; API/admin/media/missing files never receive HTML.
+if settings.SERVE_FRONTEND:
+    urlpatterns.append(
+        re_path(
+            r"^(?:|login|dashboard|history|hymns(?:/(?:new|\d+(?:/edit)?))?|masses(?:/(?:new|history|\d+(?:/(?:edit|details))?))?)/?$",
+            frontend_page,
+        )
+    )

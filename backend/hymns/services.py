@@ -5,8 +5,10 @@ delete operations use the same locks, so new links cannot race deactivation.
 Retained inactive links are permitted; author attribution is never ownership.
 """
 
+import logging
 from uuid import uuid4
 
+from botocore.exceptions import BotoCoreError, ClientError
 from django.db import IntegrityError, models, transaction
 from django.db.models.deletion import ProtectedError
 from django.db.models.functions import Lower, Trim
@@ -14,8 +16,11 @@ from django.utils.text import slugify
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
 
 from accounts.permissions import Role, role_for
+from common.storage import StorageUnavailable
 from hymns.models import CATEGORY_TYPES, RELATIONS, Hymn
 from hymns.uploads import pdf_upload_path
+
+logger = logging.getLogger(__name__)
 
 
 class ReferencedRecord(APIException):
@@ -121,9 +126,14 @@ def save_hymn(data: dict, actor, pk: int | None = None) -> Hymn:
     try:
         with transaction.atomic():
             return _save_hymn(data, actor, pk, stored_files)
-    except Exception:
+    except Exception as error:
         for storage, name in stored_files:
-            storage.delete(name)
+            try:
+                storage.delete(name)
+            except (BotoCoreError, ClientError, OSError):
+                logger.error("Unable to remove an uncommitted sheet music upload.")
+        if isinstance(error, (BotoCoreError, ClientError)):
+            raise StorageUnavailable() from error
         raise
 
 

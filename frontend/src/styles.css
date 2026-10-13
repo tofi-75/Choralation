@@ -1256,7 +1256,8 @@ input[aria-invalid='true'] {
   text-decoration: none;
   background: white;
 }
-.mass-card h3 {
+.mass-card h3,
+.mass-card h2 {
   margin: 0.5rem 0;
   overflow-wrap: anywhere;
 }
@@ -1356,14 +1357,24 @@ input[aria-invalid='true'] {
   border-top: 1px solid #eee7dd;
   overflow-wrap: anywhere;
 }
+/* Actions share a compact row at every width, including sections without a grip. */
+.program-row:has(.row-actions) {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
 .program-row:has(.row-reorder) {
-  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
 }
 .row-reorder,
 .row-actions {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 4px;
+}
+.row-actions .button.icon-button {
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  font-size: 1.1rem;
 }
 .row-summary {
   min-width: 0;
@@ -1391,11 +1402,13 @@ input[aria-invalid='true'] {
 .save-status {
   padding: 0.5rem 1rem;
   border-radius: 100px;
-  background: #e8f1e8;
+  background: #6b2334;
+  color: #fffaf2;
   font-weight: 600;
 }
 .save-status.pending {
   background: #fff0d3;
+  color: #262626;
 }
 .picker-results {
   list-style: none;
@@ -1492,11 +1505,459 @@ input[aria-invalid='true'] {
   margin-top: 1rem;
   font-size: 0.875rem;
 }
-@media (min-width: 600px) {
-  .program-row:has(.row-reorder) {
-    grid-template-columns: 44px minmax(0, 1fr) 90px;
-  }
-  .row-actions {
-    flex-direction: row;
-  }
+.usage-summary {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.usage-summary small {
+  font-size: 0.75rem;
+}
+.usage-history {
+  padding-left: 1.25rem;
+}
+.usage-history li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e4d8cb;
+}
+.usage-history p {
+  margin: 0.2rem 0;
+}
+.history-note {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.history-card h2 {
+  font-size: 1.05rem;
+  line-height: 1.4;
+}
+
+/* The two planning steps share a working copy. Compact inline choices keep
+   the surrounding placement visible, with an independently scrollable list. */
+.flow-step {
+  font-size: 0.85rem;
+  font-weight: 650;
+  color: #6e2033;
+}
+.mass-details-summary {
+  border-bottom: 1px solid #e3d9cb;
+  padding-bottom: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+.mass-details-summary p {
+  margin: 0 0 0.35rem;
+}
+.mass-creation {
+  max-width: 760px;
+  margin-inline: auto;
+}
+.list-end {
+  text-align: center;
+  font-size: 0.875rem;
+  color: #596777;
+  border-top: 1px solid #e3d9cb;
+  padding: 1rem 0;
+}
+.scroll-to-top {
+  position: fixed;
+  right: 1rem;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  z-index: 20;
+  box-shadow: 0 3px 12px #0002;
+}
+.inline-hymn-picker {
+  background: #faf7f2;
+  border: 1px solid #e3d9cb;
+  border-radius: 8px;
+  padding: 0.5rem;
+  margin: 0.25rem 0 0.5rem;
+  font-size: 0.8rem;
+}
+.picker-preference {
+  margin: 0 0 0.35rem;
+}
+.picker-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.picker-toolbar .field {
+  flex: 1;
+  min-width: 0;
+}
+.picker-toolbar input,
+.picker-filters select {
+  min-height: 44px;
+  padding: 0.4rem 0.5rem;
+  font-size: 16px;
+}
+.picker-toolbar .button {
+  padding: 0.4rem 0.6rem;
+  min-height: 44px;
+}
+.picker-filters {
+  margin-top: 0.5rem;
+}
+.inline-hymn-picker .picker-results {
+  max-height: min(18rem, 45dvh);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y pinch-zoom;
+  margin: 0.4rem 0;
+}
+.inline-hymn-picker .picker-results li {
+  flex-wrap: nowrap;
+  gap: 0.25rem;
+  padding: 0.35rem 0;
+}
+.inline-hymn-picker .picker-results li > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.inline-hymn-picker .picker-results p {
+  margin: 0.15rem 0 0;
+  font-size: 0.73rem;
+  line-height: 1.35;
+}
+.inline-hymn-picker .form-actions {
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+  align-items: center;
+}
+.inline-hymn-picker .form-actions .button {
+  padding: 0.4rem 0.5rem;
+  min-height: 44px;
+  font-size: 0.8rem;
+}
+.inline-hymn-picker .notice {
+  padding: 0.6rem;
+}
+
+/* Review: compact picker controls, accessible burgundy focus and desktop columns. */
+.picker-toolbar .field {
+  margin: 0;
+}
+.picker-toolbar input,
+.picker-toolbar .button {
+  height: 44px;
+}
+.picker-toolbar input:focus-visible {
+  outline: none;
+  border-color: #6b2334;
+  box-shadow: inset 0 0 0 1px #6b2334;
+}
+.picker-filters .form-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+.picker-filters .field {
+  min-width: 0;
+  margin: 0;
+  gap: 0.2rem;
+  font-size: 0.73rem;
+}
+.picker-filters select {
+  width: 100%;
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+.picker-filters .checkbox-choice {
+  margin-bottom: 0.1rem;
+  font-size: 0.8rem;
+}
+.picker-table-scroll {
+  /* Keep focused columns clear of the frozen title and Add cells. */
+  scroll-padding-inline: 180px 48px;
+  /* Dense rows grow with this page; desktop choices need only horizontal scrolling. */
+  max-height: none;
+  overflow: auto;
+  overscroll-behavior: contain;
+  margin: 0.4rem 0;
+  border: 1px solid #e3d9cb;
+  border-radius: 6px;
+}
+.picker-table {
+  table-layout: fixed;
+  width: 100%;
+  min-width: 728px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+.picker-table th,
+.picker-table td {
+  text-align: left;
+  padding: 0.25rem 0.3rem;
+  border-bottom: 1px solid #e3d9cb;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+.picker-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f3ede4;
+  white-space: nowrap;
+}
+.picker-table th button {
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  color: #6b2334;
+  background: transparent;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+.picker-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: #faf7f2;
+  width: 180px;
+  min-width: 180px;
+  max-width: 180px;
+  overflow-wrap: anywhere;
+}
+.picker-table th:first-child {
+  width: 180px;
+  left: 0;
+  z-index: 3;
+}
+.picker-table td:last-child,
+.picker-table th:last-child {
+  width: 48px;
+  position: sticky;
+  right: 0;
+  background: #faf7f2;
+}
+.picker-table td:last-child {
+  z-index: 1;
+}
+.picker-table p {
+  margin: 0.15rem 0 0;
+  font-size: 0.7rem;
+}
+.drag-handle {
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+  font-size: 1.4rem;
+}
+.drag-handle[aria-pressed='true'] {
+  cursor: grabbing;
+  background: #f1e5e5;
+}
+.program-row.is-dragging {
+  background: #f1e5e5;
+  box-shadow: inset 3px 0 #6b2334;
+}
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.sidebar-toggle {
+  flex-shrink: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: 1.5rem;
+  color: #6b2334;
+  background: transparent;
+}
+.sidebar-brand-name {
+  font-size: 0.95rem;
+}
+.sidebar-nav-icon {
+  display: none;
+}
+.sidebar-collapsed .sidebar {
+  width: 72px;
+  padding-inline: 0.7rem;
+}
+.sidebar-collapsed .sidebar-brand-name,
+.sidebar-collapsed .sidebar-nav-label,
+.sidebar-collapsed .sidebar-footer {
+  display: none;
+}
+.sidebar-collapsed .sidebar-nav-icon {
+  display: inline;
+  font-size: 1.3rem;
+}
+.sidebar-collapsed .nav-item {
+  padding: 0.7rem 0;
+  min-height: 44px;
+  text-align: center;
+}
+
+/* Compact Mass controls keep lifecycle selection independent of date filters. */
+.mass-list-controls {
+  margin-bottom: 1rem;
+}
+.mass-search-toolbar {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+.mass-search-toolbar .field {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+.mass-search-toolbar input {
+  height: 44px;
+  min-height: 44px;
+  padding: 0.5rem 0.65rem;
+  font-size: 1rem;
+}
+.mass-filter-toggle {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+.mass-filter-toggle[aria-expanded='true'] {
+  background: #efe5e6;
+  border-color: #722337;
+}
+.mass-list-toggle {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.6rem;
+}
+.mass-list-toggle .button {
+  min-height: 44px;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.875rem;
+}
+.mass-list-toggle [aria-pressed='true'] {
+  background: #722337;
+  color: #fff;
+  border-color: #722337;
+}
+.mass-list-description {
+  margin: 0.35rem 0;
+}
+.mass-list-filter-panel {
+  padding: 0.65rem 0;
+}
+.mass-list-filter-panel .form-grid {
+  gap: 0.6rem;
+}
+.mass-list-filter-panel .field {
+  margin: 0;
+}
+.scroll-to-top {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  padding: 0;
+  font-size: 1.2rem;
+}
+
+/* Shared creation/edit details: equal controls and full-width optional copy. */
+.field .mass-date-control {
+  height: 44px;
+  min-height: 44px;
+  padding: 0.5rem 0.65rem;
+  font-size: 1rem;
+}
+.mass-notes-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+/* The native control keeps keyboard/touch semantics while presenting only a grip. */
+.drag-handle {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #596777;
+}
+.drag-handle:hover {
+  color: #6b2334;
+}
+.drag-handle:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.mass-lifecycle-inline {
+  max-width: 21rem;
+}
+.mass-lifecycle-inline > p {
+  margin: 0 0 0.35rem;
+}
+.mass-lifecycle-inline > .notice {
+  margin: 0.5rem 0;
+}
+.mass-lifecycle-inline .text-button {
+  margin-top: 0.35rem;
+}
+/* Fixed compact widths, full text in the DOM and native hover text for overflow. */
+.picker-column-title {
+  width: 180px;
+}
+.picker-column-language {
+  width: 72px;
+}
+.picker-column-seasons {
+  width: 88px;
+}
+.picker-column-genres {
+  width: 80px;
+}
+.picker-column-tags {
+  width: 72px;
+}
+.picker-column-key {
+  width: 40px;
+}
+.picker-column-duration {
+  width: 62px;
+}
+.picker-column-voices {
+  width: 86px;
+}
+.picker-column-add {
+  width: 48px;
+}
+.picker-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.picker-table td:first-child {
+  white-space: normal;
+}
+.picker-table td:first-child strong {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.picker-table td:first-child p {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+.picker-table th button {
+  font-size: 0.7rem;
+}
+.picker-table td:last-child .button {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+}
+
+.picker-table td:last-child {
+  padding-inline: 0.125rem;
 }

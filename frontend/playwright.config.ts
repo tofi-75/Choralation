@@ -1,6 +1,12 @@
 /** Real-backend smoke gate; browser profiles and artifacts stay in the project. */
 import { defineConfig } from '@playwright/test';
 
+const windows = process.platform === 'win32';
+const python = windows ? '"..\\.venv\\Scripts\\python.exe"' : 'python';
+const vite = windows
+  ? '"..\\.local\\node\\node.exe" node_modules\\vite\\bin\\vite.js'
+  : 'node node_modules/vite/bin/vite.js';
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: false,
@@ -40,16 +46,14 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command:
-        '"..\\.venv\\Scripts\\python.exe" -B ..\\backend\\manage.py runserver 127.0.0.1:8001 --noreload',
+      command: `${python} -B ../backend/manage.py runserver 127.0.0.1:8001 --noreload`,
       url: 'http://127.0.0.1:8001/health/ready/',
       env: { CSRF_TRUSTED_ORIGINS: 'http://127.0.0.1:5174', MARONITE_FEED_ENABLED: 'false' },
       reuseExistingServer: false,
       timeout: 30_000,
     },
     {
-      command:
-        '"..\\.local\\node\\node.exe" node_modules\\vite\\bin\\vite.js --host 127.0.0.1 --port 5174',
+      command: `${vite} --host 127.0.0.1 --port 5174`,
       url: 'http://127.0.0.1:5174',
       env: { BACKEND_ORIGIN: 'http://127.0.0.1:8001' },
       reuseExistingServer: false,

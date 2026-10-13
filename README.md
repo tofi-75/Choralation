@@ -1,8 +1,10 @@
 # Mass Hymn Picker
 
+> **October 13, 2026 priority update:** Render + Supabase hosting preparation is the current delivery task; see [deployment guide](docs/hosting.md). All account/login/provider setup and publishing are manual owner steps deferred until later. Physical-phone acceptance moves from M4 to M5. Saved-Mass performance redesign and recommendations are deferred. Historical milestone statements below retain their original dates; hosted completion requires actual URL, persistence and pipeline verification.
+
 A shared application for a church music team to maintain hymns and prepare Mass programs.
 
-**Delivered: M3 persistent draft planning, including October 8 reviews. M4 is next and authorized to start.** Your team can maintain the hymn library and prepare saved Mass programs with multiple hymns, ordering, notes, recoverable autosave, and revision conflict review. Viewer access is read-only; Admins can confirm draft deletion. See the [development plan](DEVELOPMENT_PLAN.md) and [M3 report](docs/m3-report.md) for scope and verification evidence. Coordinator walkthrough and physical-phone acceptance remain pending and are required by the M4 gate.
+**Delivered checkpoint: M3 (`daefc9b`), including October 8 reviews. M4 lifecycle and history are implemented and verified, uncommitted; coordinator acceptance remains pending; physical-phone acceptance is deferred to M5.** Your team can maintain the hymn library and prepare saved Mass programs with multiple hymns, ordering, notes, recoverable autosave, and revision conflict review. Viewer access is read-only; Admins can confirm draft deletion. See the [development plan](DEVELOPMENT_PLAN.md) and [M3 report](docs/m3-report.md) for scope and verification evidence. Coordinator walkthrough remains pending. Physical-phone acceptance moves to M5, and hosting/live acceptance is tracked in the deployment guide.
 
 The [M1 review](docs/m1-review.md) adds private PDF sheet music, polyphony with named voices, numeric duration, and a more compact interface designed primarily for phones.
 
@@ -38,6 +40,8 @@ Open [the app](http://127.0.0.1:5173) and sign in. Django admin is at [the backe
 
 Ports are PostgreSQL **55432**, Django **8000**, and Vite **5173**, bound locally. Vite proxies `/api` to Django. PostgreSQL data lives in `.local/pgdata`; keep it to retain users/sessions between restarts. Setup and migration can be rerun without resetting the database or replacing `.env`.
 
+For same-Wi-Fi physical-phone testing, use the separate [phone launch and acceptance checklist](docs/phone-testing.md). It builds optimized assets for phone loading and enables frontend LAN access with process-only host/CSRF settings; backend and database remain local. Real-device results remain pending until recorded.
+
 ## Use the hymn library
 
 If upgrading from M1, leave PostgreSQL running, run `migrate` then `seed`, and restart the backend to load the new routes (the launcher disables automatic reload). This project's development database already has the M2 migration and category defaults.
@@ -50,7 +54,7 @@ Tap a classification summary to search/select choices; tags stay compact even wi
 
 Use **Sheet music PDF** to attach a PDF up to 10 MB, and download the saved attachment from hymn detail. Admins/Planners can replace or remove it; Viewers can download it. Native uploads live in ignored `.local/media`; `DJANGO_MEDIA_ROOT` can override this private storage path. Docker storage is described below. Downloads require authentication. Back up upload storage alongside PostgreSQL to retain sheet music; PDFs are not stored in Git or inside the database. The existing sheet-music URL remains available.
 
-Search and combine classification filters. Filters persist in the URL for refresh, sharing, and browser history. Seasons match saved season links literally: an Easter filter does not include a neutral-only hymn. Library sorting currently supports title and newest added. Admin actions on hymn detail require confirmation; inactive hymns remain searchable using the active-status filter.
+Search and combine classification filters. Filters persist in the URL for refresh, sharing, and browser history. Seasons match saved season links literally: an Easter filter does not include a neutral-only hymn. Library sorting supports title, newest added, recently/least recently used, and most/least used. Usage counts finalized selection occurrences; duplicates count separately. Never-used hymns show **Never used**. Future finalized dates show **Scheduled for** with the exact date. Expand filters for inclusive used-after/before dates, not-used-since, and never-used choices; combined used-after/before bounds must match the same occurrence. Admin actions on hymn detail require confirmation; inactive hymns remain searchable using the active-status filter.
 
 `seed` creates **45 defaults**: 7 genres, 14 seasons (original choices plus seven Maronite additions), 11 placements, 4 languages, and 9 tags. It creates no hymns or passwords and preserves existing labels, order, and active state. Deactivate unwanted defaults instead of deleting them: explicitly rerunning the seed recreates deleted defaults. Categories are maintained through the secured API or Django admin now; the full React Settings interface arrives in M6. Django admin additionally requires staff status and model permissions; an application Admin group alone does not grant that access.
 
@@ -61,21 +65,31 @@ An optional development-only command adds **36 fictional demo hymns** covering a
 Invoke-Manage @('seed_demo_data', '--username', 'your-existing-editor')
 ```
 
-The named account must be an existing Admin or Planner. Existing matching demo hymns and user data are preserved on replay. The October 8 review requested this data in the local development database. Finalization and usage arrive in M4.
+The named account must be an existing Admin or Planner. Existing matching demo hymns and user data are preserved on replay. The October 8 review requested this data in the local development database. M4 now derives usage from finalized Mass selections; demo seeding still creates no usage history.
 
 ## Prepare draft Mass programs
 
-When upgrading, run `migrate` with PostgreSQL running, then restart the backend. Open **Mass plans**, choose **Create Mass**, enter the date/details, then choose **Next** to open the editor. The default date is the nearest Sunday in Beirut; changing the date suggests its Maronite season. You can override or clear the season. Existing saved plans keep their season until you change the date or select another season. [Calendar notes](docs/calendar.md) explain the public Evangelizo API, local fallback and future Settings editor. Expand **Title and notes (optional)** to customize the title or add notes; a blank title generates a date-based title. On the saved planner, these fields are under **Title and Mass notes**. Search plans directly, or expand **Filter by date or season**; **Clear filters** restores the full list.
+When upgrading, run `migrate` with PostgreSQL running, then restart the backend. Open **Mass plans**, choose **Create Mass** to open the separate details page, enter the date/details, then choose **Next** to open the hymn/order step. If another Mass already exists on that date, confirm before creating another. The default date is the nearest Sunday in Beirut; changing the date suggests its Maronite season. You can override or clear the season. Existing saved plans keep their season until you change the date or select another season. [Calendar notes](docs/calendar.md) explain the public Evangelizo API, local fallback and future Settings editor. Expand **Title and notes (optional)** to customize the title or add notes; a blank title generates a date-based title. The hymn step shows confirmed details read-only; **Back to Mass details** lets you change them without losing selections. Title/notes are under **Title and Mass notes**. Each placement’s **+** opens a compact inline hymn picker with search, filters and metadata. The Mass list opens on **Ready Masses** (finalized programs); choose **Pending drafts** for saved drafts awaiting finalization. Use the compact title/notes search and adjacent **Filters** icon for dates or season. **Clear filters** keeps the selected list.
 
 The list shows **Today and upcoming** Masses nearest date first, followed by **Archived** past Masses, most recent first. The team timezone determines today. Archived is a date-based grouping: past drafts still open normally and remain editable by planners. Ordering applies across all pages and filters.
 
 Choose **+** beside a placement to see its active hymns. Hymns for the selected season and season-neutral hymns appear first, followed by other-season choices. This preference applies before pagination and keeps title/newest ordering within each group. The picker scrolls independently on phones. Expand **Filters and sort** for language/genre filters, secondary ordering, or an explicit **Search all placements** override. If a hymn is repeated or differently classified, **Add anyway** acknowledges the focused warning; **Cancel choice** returns to search. Left-hand arrows reorder hymns within their placement. The pencil opens selection notes and **Change hymn** (preserving notes/order); **Edit library details** edits the shared hymn. The bin removes that selection from the Mass, preserving the hymn in the library. Empty placements remain optional. Changes autosave after a short pause. Failed saves retain the working copy and offer retry. Inactive saved selections remain visible and can retain notes/order, but cannot be newly added.
 
-When finished planning, choose **Save draft**. It waits for pending autosave and opens a compact read-only program. Mass list links open this view too; **Edit** returns to the draft editor. Selection notes and Mass notes remain visible. Empty active sections stay visible in their configured order and show **Hymn not selected**. Viewers have no Edit action. Saving retains draft status; finalization/history remains M4. [Picker and saved-view notes](docs/m3-picker-view-review.md) explain behavior and verification.
+When finished planning, choose **Save draft**. It waits for pending autosave and opens a compact read-only program. Mass list links open this view too; **Edit** returns to the draft editor. Selection notes and Mass notes remain visible. Empty active sections stay visible in their configured order and show **Hymn not selected**. Viewers have no Edit action. Saving retains draft status. Finalization is a separate saved-view action described below. [Picker and saved-view notes](docs/m3-picker-view-review.md) explain behavior and verification.
 
-If another planner saves first, **Review saved version** shows the server program while preserving yours. Explicitly discard/reload to resume from the latest revision; there is no silent overwrite or automatic merge. Edits are held in memory until saved, so this is not offline storage. Navigation and sign-out warn about unconfirmed changes. Admins can confirm deletion of a saved draft. Django admin permits read-only Mass/selection inspection. Finalization/history remain M4; recommendations remain M5.
+If another planner saves first, **Review saved version** shows the server program while preserving yours. Explicitly discard/reload to resume from the latest revision; there is no silent overwrite or automatic merge. Edits are held in memory until saved, so this is not offline storage. Navigation and sign-out warn about unconfirmed changes. Admins can confirm deletion of a saved draft. Django admin permits read-only Mass/selection inspection. M4 finalization/history is described below; recommendations remain M5.
 
 On a draft Mass, **Random hymns** fills empty active placements with one active hymn each, matching the selected season or season-neutral classification. It preserves existing choices and notes, avoids repeats, and reports any placements without an unused match. Select a season first; manual additions remain available with **+**. Random choices use the same autosave/retry/conflict handling as manual choices. Remove a choice and pick again to try another eligible hymn. See [picker implementation and checks](docs/random-picker.md).
+
+## Finalize and review history — M4
+
+Finish editing with **Save draft**, then review the saved program on its page. The small notice beside **Finalize Mass** explains that one click makes the program read-only and adds each selection to hymn usage counts. No finalization popup repeats the program. Empty placements/programs remain allowed; advisory program notes stay on the page. Edits in another tab produce a conflict: check the refreshed program and acknowledge it before another attempt. Failed requests allow retry. See [the details and finalization refinement](docs/planning-refinement.md).
+
+Admins can choose **Reopen draft** and confirm. Reopening removes the program from hymn usage until it is finalized again, preserving all selection IDs, order and notes. Planners cannot reopen; Viewers cannot finalize or reopen. Current-state repeats are no-ops; stale revision requests still conflict.
+
+**Mass history** lists finalized programs newest first, with date/season/status and title/notes filters, selection totals and a short program preview. Status filters can include drafts, which never count toward hymn usage. Hymn detail shows each finalized occurrence with its Mass, placement, order and notes, including inactive retained sections. Repeated hymn selections appear separately. Lifecycle changes refresh library/detail/history caches without requiring a full reload.
+
+M3 was committed as `daefc9b`. M4 changes remain uncommitted. The [M4 report](docs/m4-report.md) records engineering evidence and the **required physical-phone acceptance gate**. Real-device acceptance is still pending; automated viewport tests do not replace it.
 
 ## Provision team access
 
@@ -145,7 +159,7 @@ Compose stores private PDFs in the `backend-media` named volume mounted at `/app
 | [Original specification](mass_hymn_picker_codex_spec.md) | Authoritative requirements, preserved unchanged |
 | [Development plan](DEVELOPMENT_PLAN.md) | Gradual milestones and acceptance gates |
 | [Architecture](docs/architecture.md) | Permissions, session security, domain decisions |
-| [API contract](docs/api.md) | Implemented auth/library/draft Mass contracts and planned lifecycle/usage interfaces |
+| [API contract](docs/api.md) | Implemented auth/library/planning/lifecycle/usage interfaces; future ranking contracts |
 | [Dependencies](docs/dependencies.md) | Actual runtimes, resolved pins, limitations |
 | [Backlog](docs/backlog.md) | Delivered and upcoming packages |
 | [Code documentation](docs/code-documentation.md) | Contracts and comments to maintain |
@@ -154,7 +168,8 @@ Compose stores private PDFs in the `backend-media` named volume mounted at `/app
 | [M0 report](docs/m0-report.md) | Engineering preparation evidence |
 | [M1 report](docs/m1-report.md) | Implementation, checks, limits |
 | [M2 report](docs/m2-report.md) | Library delivery, acceptance evidence, remaining scope |
-| [M3 report](docs/m3-report.md) | Draft planning, autosave/concurrency evidence, remaining scope |
+| [M3 report](docs/m3-report.md) | Completed M3 checkpoint, draft planning and review evidence |
+| [M4 report](docs/m4-report.md) | Lifecycle/usage/history progress and required real-phone acceptance |
 | [M3 UI review](docs/m3-ui-review.md) | Compact planner, icon actions, Maronite calendar and 36 demo hymns |
 | [Calendar](docs/calendar.md) | Public API, fallback boundaries, manual overrides and future Settings |
 
@@ -174,3 +189,9 @@ git log --oneline -5
 ```
 
 Commit locks and migrations. Keep secrets, databases, runtimes, and generated files ignored. Author configuration affects future commits; amend an existing commit only deliberately after reviewing its sharing status.
+
+## October 10 picker improvements
+
+Desktop hymn suggestions have sortable metadata columns; phones retain compact cards with a compact language/genre/sort row. The music mark collapses the desktop sidebar. Drag a hymn's left handle to reorder within its placement; keyboard users can press Space, use the arrows, then Space to drop or Escape to cancel. Any-season hymns do not produce season notices. See [review and verification](docs/picker-review.md). M4 remains uncommitted and physical-phone acceptance is pending.
+
+Mass plans now opens on **Ready Masses**; switch to **Pending drafts** to find saved programs awaiting finalization. The list has compact search and an adjacent Filters icon. See [Mass list review and test evidence](docs/mass-list-review.md).

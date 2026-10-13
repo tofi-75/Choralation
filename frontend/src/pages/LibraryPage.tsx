@@ -9,6 +9,7 @@ import { CategorySelect } from '../features/hymns/CategorySelect';
 import { CategoryChips } from '../features/hymns/HymnSummary';
 import { useCategories } from '../features/hymns/queries';
 import { useSession } from '../features/auth/SessionProvider';
+import { UsageSummary } from '../features/hymns/UsageSummary';
 
 const filterNames = {
   genres: 'genres',
@@ -72,6 +73,33 @@ export function LibraryPage() {
           <option value="all">All hymns</option>
         </select>
       </label>
+      {(['used_after', 'used_before', 'not_used_since'] as const).map((key) => (
+        <label className="field" key={key}>
+          {
+            {
+              used_after: 'Used on or after',
+              used_before: 'Used on or before',
+              not_used_since: 'Not used since',
+            }[key]
+          }
+          <input
+            type="date"
+            value={params.get(key) ?? ''}
+            onChange={(event) => change(key, event.target.value)}
+          />
+        </label>
+      ))}
+      <label className="field">
+        Usage
+        <select
+          value={params.get('never_used') ?? ''}
+          onChange={(event) => change('never_used', event.target.value)}
+        >
+          <option value="">Any usage</option>
+          <option value="true">Never used</option>
+          <option value="false">Previously selected</option>
+        </select>
+      </label>
     </div>
   );
   return (
@@ -110,6 +138,10 @@ export function LibraryPage() {
             >
               <option value="title">Title</option>
               <option value="newest_added">Newest added</option>
+              <option value="recently_used">Recently used</option>
+              <option value="least_recently_used">Least recently used</option>
+              <option value="most_used">Most used</option>
+              <option value="least_used">Least used</option>
             </select>
           </label>
           <Dialog.Root>
@@ -232,6 +264,7 @@ export function LibraryPage() {
                     <tr>
                       <th>Title</th>
                       <th>Language</th>
+                      <th>Usage</th>
                       <th>Genres</th>
                       <th>Placements</th>
                       <th>Seasons</th>
@@ -247,6 +280,9 @@ export function LibraryPage() {
                           {!hymn.is_active && <small className="inactive-label">Inactive</small>}
                         </th>
                         <td dir="auto">{hymn.language.name}</td>
+                        <td>
+                          <UsageSummary hymn={hymn} />
+                        </td>
                         <td>
                           <CategoryChips categories={hymn.genres} />
                         </td>
@@ -275,6 +311,9 @@ export function LibraryPage() {
                       {!hymn.is_active && ' · Inactive'}
                     </p>
                     <CategoryChips categories={hymn.genres} />
+                    <p className="tiny">
+                      <UsageSummary hymn={hymn} />
+                    </p>
                     <p className="tiny">Placements</p>
                     <CategoryChips categories={hymn.placements} />
                     <p className="tiny">Seasons</p>

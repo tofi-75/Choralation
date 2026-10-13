@@ -1,6 +1,8 @@
 # Delivery backlog and accountability
 
-**Baseline:** October 8, 2026. M0–M3 engineering work and requested M3 follow-ups are complete. The owner authorized the M3 commit and beginning M4. M4–M7 are not yet delivered. Container execution and coordinator review remain pending; physical-phone acceptance is an explicit M4 gate.
+> **October 13, 2026 priority update:** Render + Supabase hosting preparation is the current delivery task; see [deployment guide](hosting.md). All account/login/provider setup and publishing are manual owner steps deferred until later. Physical-phone acceptance moves from M4 to M5. Saved-Mass performance redesign and recommendations are deferred. Historical milestone statements below retain their original dates; hosted completion requires actual URL, persistence and pipeline verification.
+
+**Baseline:** October 8, 2026. M0–M3 engineering work and requested M3 follow-ups are complete. The owner authorized the M3 commit and beginning M4. M4.1–M4.5 engineering is implemented and verified; M4.6 acceptance is pending. M5–M7 have not started. Container execution and coordinator review remain pending; physical-phone acceptance is an explicit M4 gate.
 **Accountable implementation owner for every milestone:** Codex, working in this project/chat. Backend, frontend, and quality roles below are responsibility areas for that owner, not invented staffing assignments. Implementation was not delegated; the owner requested one read-only subagent review of M2 changes.
 **Product reviewer:** Church music coordinator, not yet assigned; human acceptance remains pending.
 
@@ -50,7 +52,7 @@ Usage fields/filters wait until M4 and must not be presented as real data earlie
 
 ## M3 — Draft planning pilot
 
-**Status:** Complete through October 8, including all requested reviews; approved for the M3 checkpoint by the owner. See [delivery report](m3-report.md) and [latest review](m3-picker-view-review.md). M2 is recorded at `aada303`. Coordinator walkthrough and physical-phone acceptance carry into the M4 gate.
+**Status:** Complete through October 8, including all requested reviews; approved for the M3 checkpoint by the owner. See [delivery report](m3-report.md) and [latest review](m3-picker-view-review.md). M2 is recorded at `aada303`; M3 is committed as `daefc9b`. Coordinator walkthrough and physical-phone acceptance carry into the M4 gate.
 
 **Depends on:** M2. **Acceptance scenarios:** A05–A07. **Pilot evidence:** Saved two-hymn Communion section, order/notes persisted, no data loss during rapid edits/failure/conflict.
 
@@ -70,7 +72,9 @@ Finalization appears only with history in M4; recommendations only in M5.
 
 ## M4 — Weekly workflow MVP
 
-**Depends on:** M3. **Acceptance scenarios:** A08–A10. **Pilot evidence:** Full manual journey and derived usage under finalize/reopen/re-finalize and concurrency.
+**Status:** M4.1–M4.5 implemented and verified, uncommitted; see [M4 report](m4-report.md). M3 checkpoint: `daefc9b`. M4.6 human/physical-phone acceptance remains pending.
+
+**Depends on:** M3. **Acceptance scenarios:** A08–A10 and required physical-phone A10P. **Pilot evidence:** Full manual journey and derived usage under finalize/reopen/re-finalize and concurrency.
 
 | Ticket | Responsibility | Depends on | Deliverable/check |
 | --- | --- | --- | --- |
@@ -81,7 +85,23 @@ Finalization appears only with history in M4; recommendations only in M5.
 | M4.5 Cache correctness | Frontend/quality | M4.3–M4.4 | Immediate usage refresh; real-browser full-flow test |
 | M4.6 Physical-phone acceptance | Product/quality | M4.1–M4.5 | Required real-device create/picker/touch reorder/keyboard/save/edit/finalize/history journey; connection retry; record device/browser/results. iOS Safari and Android Chrome where available; unavailable coverage remains pending. Emulation does not close the gate. |
 
-## M5 — Assisted planning beta
+### October 10 browser review
+
+The Mass list now states when the last result has been reached and shows a return-to-top action once Create Mass starts scrolling above the viewport. Search explicitly describes finding saved titles/notes and belongs to the list, rather than the creation form.
+
+Creation is a separate two-step flow: `/masses/new` confirms date, Maronite season, title and notes; Next creates the draft and opens hymn/order selection. Before creation, a fresh inclusive same-date lookup checks all saved plans regardless of list filters/status. Existing plans require explicit confirmation; cancellation or lookup failure preserves inputs and creates nothing. Multiple services on one date remain permitted. This is a client confirmation at the time of checking, not a transactional uniqueness constraint against concurrent creation.
+
+The hymn step shows confirmed details read-only. Back to Mass details and Next switch the same mounted working copy, preserving hymn order, notes and the revision-guarded autosave queue. Each placement's + toggles a compact inline picker with search and a Filters button, scrollable results and metadata (language, placement, season suitability, genres/tags, key, duration, voices and sheet-music availability). Placement filtering and season/neutral preference remain server-side before pagination; mismatch/duplicate overrides and focus restoration remain explicit.
+
+New selection identity uses a browser-session counter rather than the secure-context-only `crypto.randomUUID`. These keys identify unsaved rows locally and never serve as security tokens or database IDs. Both random and manual additions now work on an HTTP LAN origin.
+
+**Deferred owner request — saved program for use during Mass:** recorded October 10; redesign has not started. Revisit the saved view to make it practical for accessing hymns and performing during the service: compact ordered navigation, quick access to lyrics/sheet-music PDFs/voice parts/audio where available, visible performance notes and straightforward movement between hymns. Agree the detailed layout later with the owner, then validate a complete rehearsal on a real phone with materials reachable during Mass. Keep this separate from the implemented planning review and from the physical-phone M5 gate.
+
+## Hosting and M5 acceptance — current priority
+
+Hosting configuration and the manual/pipeline guide are prepared; actual provider setup and H2/H3 hosted acceptance are manual owner tasks deferred until later. See [hosting guide](hosting.md) and [verification](hosting-report.md). M5 now covers physical-phone/coordinator acceptance on the hosted URL (A10P); the recommendation tickets below are deferred, not the next implementation task.
+
+## Deferred recommendations — formerly M5 assisted planning beta
 
 **Depends on:** M4. **Acceptance scenarios:** A11–A13. **Pilot evidence:** Exact scores/reasons, recency boundary table, next-Sunday ranking, manual override.
 
@@ -141,3 +161,13 @@ Finalization appears only with history in M4; recommendations only in M5.
 - [ ] Assign a coordinator and gather product walkthrough feedback; this remains external review, not a claimed completed acceptance test.
 
 No approved deployment target, timeline commitment, or human staffing assignment is implied by this backlog.
+
+## October 10 picker review — delivered, uncommitted
+
+- Aligned search and Filters; replaced gold search focus with a burgundy inset indicator. Language/genre/sort stay on one compact row at phone widths.
+- The sidebar music mark collapses/restores desktop navigation; collapsed links retain accessible names.
+- Desktop suggestions use sortable metadata columns; phones retain compact cards and a sort selector. Whole-result ordering preserves season/neutral preference before pagination.
+- Any-season choices bypass season notices in both selection and program warnings. Explicit other-season metadata remains visible and advisory; existing hymn classifications were not changed.
+- Mouse/touch drag handles replace hymn reorder arrows. Keyboard pickup/move/drop/cancel remains available. Drop commits once using the latest working copy, preserving selection IDs, notes and other placement order; cancellation preserves saved order.
+
+See [picker review](picker-review.md) for contracts and verification. Saved-program performance redesign remains deferred, and real-phone acceptance is scheduled for M5.

@@ -1,5 +1,8 @@
 # Code documentation and review standard
 
+> **October 13, 2026 priority update:** Render + Supabase hosting preparation is the current delivery task; see [deployment guide](hosting.md). All account/login/provider setup and publishing are manual owner steps deferred until later. Physical-phone acceptance moves from M4 to M5. Saved-Mass performance redesign and recommendations are deferred. Historical milestone statements below retain their original dates; hosted completion requires actual URL, persistence and pipeline verification.
+
+
 **Applies from M1 onward**, and to the M0 verification helper. This document implements the user's request for well-documented code.
 
 ## What must be documented
@@ -42,3 +45,15 @@ Update architecture/API documentation in the same change when behavior changes. 
 ## Project-only tooling
 
 Future virtual environments, dependency caches, test output, Playwright browsers, and generated OpenAPI artifacts must stay under the project folder. Helpers must validate their target paths before writes/deletes. Avoid global installations, user-profile configuration edits, and background services during preparation. See [architecture.md](architecture.md) for the current scope boundary.
+
+## Picker review maintenance
+
+`seasonSuitability.ts` documents advisory season mismatch and actual label formatting; preserve Any-season precedence separately from eligibility rules. `SortableProgram.tsx` documents local preview, pointer capture/scrolling, keyboard operation, cancellation and latest-draft placement-only commits. Keep `HymnPicker` column names, backend ordering allow-list/OpenAPI, and both sort controls synchronized. Tests cover global ordering, relation filtering, classification notices and stable saved identities.
+
+The [details/table/finalization refinement](planning-refinement.md) documents compact field/table styles and native grip semantics. MassLifecycle captures the displayed revision for a direct finalization write, suppresses duplicate submissions and requires explicit review acknowledgement after a conflict.
+
+## Hosting code contracts — October 13, 2026
+
+`config/hosting.py` validates TLS, bounded connection waits and private S3 settings. `common/frontend.py` serves immutable Vite assets and revalidating HTML; keep the URLconf's explicit page routes synchronized with React routes. Never add a blanket SPA fallback over API/admin/health or uploads. `config/deployment.py` provisions only schema, role groups and defaults, stops on failure and replaces itself with Gunicorn; it never seeds accounts or fictional hymns automatically.
+
+`hosted-admin.py` is an owner-run tool: read only the ignored project-local hosted environment file, display the target host without secrets and confirm before any command. Local `.env` and parent environment stay unchanged. Hosted demo seeding requires both the flag and opt-in setting; keep local fixture protections. `ci-browser.py` owns randomized local CI accounts; `production-smoke.py` checks the built image without hosted credentials. See the [hosting report](hosting-report.md) and [guide](hosting.md).

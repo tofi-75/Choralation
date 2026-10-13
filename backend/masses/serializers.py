@@ -106,3 +106,40 @@ class ProgramReadSerializer(serializers.Serializer):
     revision = serializers.IntegerField()
     selections = SelectionReadSerializer(many=True)
     warnings = WarningSerializer(many=True)
+
+
+class HistoryHymnSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    title = serializers.CharField()
+
+
+class HistorySelectionSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    placement = CategoryReadSerializer()
+    hymn = HistoryHymnSerializer()
+    position = serializers.IntegerField()
+    notes = serializers.CharField(allow_null=True)
+
+
+class MassHistorySerializer(MassListSerializer):
+    # Bounded three-row preview; the full saved view remains available by ID.
+    preview = serializers.SerializerMethodField()
+
+    @extend_schema_field(HistorySelectionSerializer(many=True))
+    def get_preview(self, instance):
+        return HistorySelectionSerializer(list(instance.selections.all())[:3], many=True).data
+
+
+class UsageMassSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    date = serializers.DateField()
+    title = serializers.CharField()
+    status = serializers.CharField()
+
+
+class HymnUsageSerializer(serializers.Serializer):
+    mass = UsageMassSerializer()
+    placement = CategoryReadSerializer()
+    selection_id = serializers.IntegerField(source="pk")
+    position = serializers.IntegerField()
+    notes = serializers.CharField(allow_null=True)

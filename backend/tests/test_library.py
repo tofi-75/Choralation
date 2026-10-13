@@ -10,13 +10,14 @@ from django.test import Client, override_settings
 from django.test.utils import CaptureQueriesContext
 from rest_framework.test import APIClient
 
+from hymns import selectors
 from hymns.admin import HymnForm
 from hymns.models import CATEGORY_TYPES, Genre, Hymn, Language, LiturgicalSeason, MassPlacement, Tag
 
 pytestmark = pytest.mark.django_db
 
 
-@pytest.mark.parametrize("ordering", ["title", "newest_added"])
+@pytest.mark.parametrize("ordering", [*selectors.COLUMN_ORDERINGS, "newest_added"])
 def test_picker_season_preference_before_pagination_and_with_section_filter(library, ordering):
     api, _, categories, payload = library
     season = categories["liturgical-seasons"]
@@ -116,7 +117,7 @@ def test_complete_metadata_unicode_duplicate_titles_and_attribution(library):
     assert first["alternate_title"] == "ܩܠܐ"
     assert first["estimated_duration_minutes"] == "3.50"
     assert first["placements"][0]["id"] == categories["mass-placements"].pk
-    assert "usage_count" not in first and "last_used_date" not in first
+    assert first["usage_count"] == 0 and first["last_used_date"] is None
     read = api.get(f"/api/v1/hymns/{first['id']}/").data
     for field in payload:
         if not field.endswith(("_id", "_ids")):
@@ -266,8 +267,8 @@ def test_literal_filters_or_languages_search_without_join_duplicates(library):
         "page=last",
         "page_size=10",
         "is_active=maybe",
-        "ordering=most_used",
-        "not_used_since=2026-04-01",
+        "ordering=invalid_usage_order",
+        "not_used_since=not-a-date",
         "q=a&q=b",
         "misspelled=1",
     ],
@@ -448,3 +449,99 @@ def test_django_admin_creates_valid_library_records_and_protects_referenced_cate
     )
     assert forbidden.status_code == 403
     assert Genre.objects.filter(pk=categories["genres"].pk).exists()
+
+
+@pytest.mark.parametrize(
+    "column", ["language", "seasons", "genres", "tags", "key", "duration", "voices"]
+)
+@pytest.mark.parametrize("descending", [False, True])
+def test_picker_metadata_column_sort_is_global_and_stable(library, column, descending):
+    api, _, categories, _ = library
+    lower = Hymn.objects.create(
+        title="ZZ lower",
+        language=categories["languages"],
+        default_key="A",
+        estimated_duration_minutes="2",
+        voices=["Alto"],
+        is_polyphonic=True,
+    )
+    upper_language = Language.objects.create(name="ZZ upper language", slug="zz-upper")
+    upper = Hymn.objects.create(
+        title="AA upper",
+        language=upper_language,
+        default_key="D",
+        estimated_duration_minutes="10",
+        voices=["Tenor"],
+        is_polyphonic=True,
+    )
+    for name in ("seasons", "genres", "tags"):
+        model = Hymn._meta.get_field(name).remote_field.model
+        getattr(lower, name).add(model.objects.create(name="AA lower", slug="aa-lower"))
+        getattr(upper, name).add(model.objects.create(name="ZZ upper", slug="zz-upper"))
+    missing = Hymn.objects.create(title="Missing", language=upper_language)
+    ordering = ("-" if descending else "") + column
+    response = api.get(f"/api/v1/hymns/?ordering={ordering}")
+    assert response.status_code == 200, response.data
+    ordered = [
+        item["id"] for item in response.data["results"] if item["id"] in (lower.pk, upper.pk)
+    ]
+    assert ordered == ([upper.pk, lower.pk] if descending else [lower.pk, upper.pk])
+    if column in ("seasons", "genres", "tags", "duration"):
+        assert response.data["results"][-1]["id"] == missing.pk
+
+
+def test_picker_sort_aggregates_all_labels_without_duplicate_rows_or_filter_truncation(library):
+    api, _, categories, _ = library
+    common = Tag.objects.create(name="Zulu", slug="zulu")
+    first = Hymn.objects.create(title="ZZ first", language=categories["languages"])
+    first.tags.add(common, Tag.objects.create(name="Alpha", slug="alpha"))
+    second = Hymn.objects.create(title="AA second", language=categories["languages"])
+    second.tags.add(common, Tag.objects.create(name="Beta", slug="beta"))
+    for item in (first, second):
+        item.genres.add(
+            categories["genres"],
+            Genre.objects.create(name=f"Genre {item.pk}", slug=f"genre-{item.pk}"),
+        )
+    response = api.get(
+        f"/api/v1/hymns/?tags={common.pk}&genres={categories['genres'].pk}&ordering=tags"
+    )
+    assert response.status_code == 200, response.data
+    assert response.data["count"] == 2
+    assert [item["id"] for item in response.data["results"]] == [first.pk, second.pk]
+
+
+def test_picker_numeric_duration_order_is_applied_before_pagination(library):
+    api, _, categories, _ = library
+    for minutes in range(28, 0, -1):
+        Hymn.objects.create(
+            title=f"Reverse {29 - minutes:02}",
+            language=categories["languages"],
+            estimated_duration_minutes=minutes,
+        )
+    first = api.get("/api/v1/hymns/?ordering=duration").data
+    second = api.get("/api/v1/hymns/?ordering=duration&page=2").data
+    assert [float(item["estimated_duration_minutes"]) for item in first["results"]] == list(
+        range(1, 26)
+    )
+    assert [float(item["estimated_duration_minutes"]) for item in second["results"]] == [26, 27, 28]
+
+
+def test_picker_voice_sort_uses_displayed_text_not_json_array_length(library):
+    api, _, categories, _ = library
+    solo = Hymn.objects.create(
+        title="AA solo", language=categories["languages"], is_polyphonic=True, voices=["Tenor"]
+    )
+    choir = Hymn.objects.create(
+        title="ZZ choir",
+        language=categories["languages"],
+        is_polyphonic=True,
+        voices=["Alto", "Bass", "Tenor"],
+    )
+    missing = Hymn.objects.create(title="Missing voices", language=categories["languages"])
+    for ordering, expected in [
+        ("voices", [choir.pk, solo.pk, missing.pk]),
+        ("-voices", [solo.pk, choir.pk, missing.pk]),
+    ]:
+        response = api.get(f"/api/v1/hymns/?ordering={ordering}")
+        assert response.status_code == 200, response.data
+        assert [item["id"] for item in response.data["results"]] == expected

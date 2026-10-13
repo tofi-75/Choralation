@@ -13,6 +13,7 @@ vi.mock('../../api/masses', async (original) => ({
   fetchRandomPicks: vi.fn(),
 }));
 afterEach(() => {
+  vi.unstubAllGlobals();
   vi.clearAllMocks();
   vi.clearAllTimers();
   vi.useRealTimers();
@@ -135,4 +136,15 @@ it('requires a season and waits for the calendar lookup before enabling random p
   expect(screen.getByRole('button', { name: 'Random hymns' })).toBeDisabled();
   expect(screen.getByText('Select a liturgical season to pick random hymns.')).toBeVisible();
   expect(fetchRandomPicks).not.toHaveBeenCalled();
+});
+
+it('inserts distinct rows on HTTP browsers that do not expose crypto.randomUUID', () => {
+  vi.stubGlobal('crypto', undefined);
+  const saver = saverWithSeason();
+  const next = insertRandomPicks(saver.state.draft, picks, placements);
+  expect(next.rows).toHaveLength(2);
+  expect(new Set(next.rows.map((row) => row.key)).size).toBe(2);
+  expect(insertRandomPicks(saver.state.draft, picks, placements).rows[0].key).not.toBe(
+    next.rows[0].key,
+  );
 });

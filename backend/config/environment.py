@@ -12,10 +12,11 @@ from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
 
 
-def load_environment(file: Path) -> None:
-    """Read an optional project-owned .env, preserving existing process settings."""
+def read_environment(file: Path) -> dict[str, str]:
+    """Parse an optional file without changing environment variables."""
+    values = {}
     if not file.exists():
-        return
+        return values
     for number, raw in enumerate(file.read_text(encoding="utf-8-sig").splitlines(), 1):
         line = raw.strip()
         if not line or line.startswith("#"):
@@ -28,6 +29,13 @@ def load_environment(file: Path) -> None:
             if len(value) < 2 or value[-1] != value[0]:
                 raise ImproperlyConfigured(f"Unclosed environment value on line {number}.")
             value = value[1:-1]
+        values.setdefault(name, value)
+    return values
+
+
+def load_environment(file: Path) -> None:
+    """Read an optional project-owned .env, preserving existing process settings."""
+    for name, value in read_environment(file).items():
         os.environ.setdefault(name, value)
 
 

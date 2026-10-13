@@ -73,6 +73,7 @@ export function MassDateFields({
         Date
         <input
           type="date"
+          className="mass-date-control"
           name="date"
           required
           value={pendingDate ?? date}
@@ -91,6 +92,7 @@ export function MassDateFields({
       <label className="field">
         Liturgical season
         <select
+          className="mass-date-control"
           name="season"
           value={season ?? ''}
           onChange={(event) => {

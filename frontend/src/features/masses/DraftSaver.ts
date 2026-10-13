@@ -2,6 +2,7 @@
  * New-row acknowledgements attach IDs by local identity, never replace newer edits.
  * Failures stop automatic writes until retry; conflicts require explicit reload/review.
  */
+import { hasSeasonMismatch } from './seasonSuitability';
 import type { Category, Hymn } from '../../api/library';
 import { saveMass, saveProgram } from '../../api/masses';
 import type { Mass, MassMetadata, Program, SelectionInput } from '../../api/masses';
@@ -150,12 +151,7 @@ export class DraftSaver {
       const codes = [];
       if (!row.hymn.placements.some((placement) => placement.id === row.placement_id))
         codes.push('placement_mismatch');
-      if (
-        metadata.liturgical_season_id &&
-        !row.hymn.is_season_neutral &&
-        !row.hymn.seasons.some((season) => season.id === metadata.liturgical_season_id)
-      )
-        codes.push('season_mismatch');
+      if (hasSeasonMismatch(row.hymn, metadata.liturgical_season_id)) codes.push('season_mismatch');
       if (!row.hymn.is_active || this.placements.get(row.placement_id)?.is_active === false)
         codes.push('inactive_selection');
       warnings.push(
