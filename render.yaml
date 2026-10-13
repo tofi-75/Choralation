@@ -11,8 +11,9 @@ services:
     autoDeployTrigger: checksPass
     healthCheckPath: /health/ready/
     envVars:
+      # Render generateValue produces 44 chars; Django requires at least 50.
       - key: DJANGO_SECRET_KEY
-        generateValue: true
+        sync: false
       - key: DJANGO_DEBUG
         value: "false"
       - key: DJANGO_STORAGE_BACKEND

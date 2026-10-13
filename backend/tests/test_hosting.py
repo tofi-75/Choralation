@@ -376,3 +376,30 @@ def test_internal_readiness_does_not_mistake_redirect_for_health(settings, monke
     assert response.json() == {"status": "unavailable"}
     assert "sensitive" not in response.content.decode()
     assert Client().get("/login").status_code == 301
+
+
+@pytest.mark.parametrize("length, allowed", [(0, False), (44, False), (87, True)])
+def test_runtime_secret_validation_before_migrations(length, allowed):
+    import os
+    import secrets
+    import sys
+
+    environment = os.environ.copy()
+    environment.update(
+        {
+            "DJANGO_SECRET_KEY": secrets.token_urlsafe(80)[:length],
+            "DJANGO_DEBUG": "false",
+            "DJANGO_STORAGE_BACKEND": "local",
+            "DATABASE_URL": "postgresql://build:build@127.0.0.1/build",
+        }
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", "from config import settings; print('settings loaded')"],
+        cwd=Path(__file__).resolve().parents[1],
+        env=environment,
+        capture_output=True,
+        text=True,
+    )
+    assert (result.returncode == 0) is allowed
+    if not allowed:
+        assert "at least 50 characters" in result.stderr

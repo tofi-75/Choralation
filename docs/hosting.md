@@ -58,7 +58,7 @@ Both modes use the same Dockerfile, database and settings. You do not need two R
 1. Ensure the committed repository contains `.github/workflows/ci.yml`, `Dockerfile` and `render.yaml`.
 2. In Render, connect GitHub and select **New → Blueprint**. Choose the private repository and branch **main**, using the root `render.yaml`.
 3. Confirm **one free web service**, Frankfurt, and **no Render database or disk**. PostgreSQL and files belong to Supabase.
-4. Supply the secret settings when prompted. Render generates `DJANGO_SECRET_KEY`; keep it stable on subsequent deployments. The Blueprint supplies other fixed settings.
+4. Supply the secret settings when prompted. Supply your own `DJANGO_SECRET_KEY` of at least 50 characters using the generation command below; keep it stable on subsequent deployments. Render's automatic generator produces 44 characters and does not satisfy this app's validation. The Blueprint supplies other fixed settings.
 5. Confirm service settings show **Auto-Deploy: After CI Checks Pass**. The Blueprint uses `autoDeployTrigger: checksPass`. Native integration requires a connected GitHub account; using only a public repository URL is insufficient.
 6. Watch GitHub **Actions → Application checks**. It runs backend tests, migration/schema/lint checks, frontend checks/build, all browser projects, and a Linux Docker build/production smoke check. Its databases and file storage are disposable, not Supabase. No hosted secret or deployment hook is needed in GitHub Actions.
 7. The initial Blueprint creation can deploy immediately; require the checks to pass before accepting the hosted app. Subsequent pushes/merges to `main` deploy only after checks pass. A failed check blocks auto-deploy; zero detected checks also blocks it. [Render deployment behavior](https://render.com/docs/deploys)
@@ -90,7 +90,13 @@ Internal health endpoints bypass Django's HTTPS redirect so readiness actually c
 
 Render assigns `RENDER_EXTERNAL_HOSTNAME`; the code adds that exact host to allowed hosts and its HTTPS URL to trusted CSRF origins. The Dockerfile enables built-frontend serving and uses Render's `PORT`. Never set `DJANGO_DEBUG=true` to fix deployment errors. Custom domains require explicit `DJANGO_ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS` additions.
 
-For a manually created service, Generate a secret with a password manager or project Python (`secrets.token_urlsafe(64)`) and enter it in Render. Database/S3 secrets never belong in frontend environment variables or GitHub Actions.
+For either deployment mode, generate the Django secret privately on your computer:
+
+```powershell
+.\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(64))"
+```
+
+Copy the output into Render's **Environment → DJANGO_SECRET_KEY** value, without additional quotes, and your ignored `.env.hosted` file. Keep it stable. Do not use Render's Generate button for this variable: its 44-character value is shorter than the required 50 characters. Do not paste the generated value into chat or Git. Database/S3 secrets never belong in frontend environment variables or GitHub Actions.
 
 ## 5. Provision hosted accounts and fictional hymns (manual owner steps)
 
@@ -133,6 +139,7 @@ Record actual results rather than assuming a passing local test is a hosted test
 ## Troubleshooting, upgrades and portability
 
 - **Build failure:** inspect the first failing step in Render logs. Locked runtime/dependency pins must actually be available; CI checks a Linux image. Local Windows checks alone do not establish this.
+- **Secret-key startup failure:** `Set DJANGO_SECRET_KEY ... at least 50 characters` means the runtime value is missing or too short. In Render Environment, add/correct the exact `DJANGO_SECRET_KEY` name using the command above, then save and redeploy. A Docker build-only placeholder is not a runtime secret. Existing Blueprint services need the dashboard correction; changing `sync: false` does not replace an existing value.
 - **Database/startup failure:** confirm Session pooler/5432, password encoding, SSL and that the Supabase Free project is active. Failed migrations abort startup before Gunicorn. Do not reset the database or enable debug as a workaround.
 - **Redirect loops/CSRF:** check the exact assigned hostname, proxy HTTPS setting and HTTPS origin; the frontend and API must use the same public origin.
 - **PDF failure:** check the private bucket name and S3 credentials/endpoint. Storage outages return generic retryable errors; do not expose the bucket publicly.

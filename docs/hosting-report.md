@@ -27,3 +27,7 @@ Artifacts are project-local: `.cache/hosting-full-checks` (schema/Blueprint evid
 ## Live acceptance
 
 Public URL: pending. Supabase DB/PDF persistence: pending. Failed-check blocking and subsequent successful automatic deployment: pending. Physical-phone acceptance: M5. All pending manual steps are listed in the deployment guide.
+
+## Render startup follow-up — secret length
+
+The owner's pasted Render log fails before migration execution because the runtime Django secret is missing or shorter than 50 characters. The original Blueprint used Render's generated secret, which is a base64-encoded 256-bit value (44 characters), incompatible with this project's minimum length. The Blueprint now prompts for an owner-generated value (`sync: false`), and both deployment modes use `secrets.token_urlsafe(64)` in the guide. Existing services require a manual Environment value correction and redeploy; the template cannot replace an existing secret. Regression coverage checks missing/44-character rejection and a sufficiently long value before any database connection. No credential value was read or changed on Render.
