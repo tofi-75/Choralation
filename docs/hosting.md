@@ -1,5 +1,7 @@
 # Deploy Choralation: Render + Supabase
 
+**October 18, 2026 deployment result:** [Choralation is live](https://choralation.onrender.com). Commit `8f6a2b4` built and deployed successfully; public HTTPS readiness, application routes/assets, and anonymous-access checks passed. Private PDF storage configuration and authenticated persistence acceptance remain pending. See the [deployment verification report](render-deployment-verification-2026-10-18.md).
+
 **October 18, 2026 deployment investigation:** The existing [Choralation service](https://dashboard.render.com/web/srv-db78nlbbc2fs73e83qi0) has two failed startup attempts. The latest log rejected `DATABASE_URL`; the current saved value now has a PostgreSQL scheme, but has not been verified in a new deploy. Private S3 settings are also missing from the service environment. See the [analysis, repair plan, work log, and verification report](render-repair-report-2026-10-18.md). The October 13 preparation notes below retain their original context; live acceptance remains pending.
 
 **Prepared October 13, 2026.** Code preparation is separate from deployment acceptance. Accounts, provider login, credentials, GitHub publishing and live verification are owner tasks to complete manually later. No cloud resources or public URL have been created by this preparation. See [hosting verification](hosting-report.md).

@@ -1,8 +1,10 @@
 # Choralation Render deployment analysis and repair plan
 
+**Subsequent deployment succeeded:** Commit `8f6a2b4` was pushed and deployment `dep-dbaiqnom7kps739128lg` reached Live on October 18. Public HTTPS readiness and production smoke checks passed. See the [deployment verification report](render-deployment-verification-2026-10-18.md). The analysis-phase observations below are preserved as the record before that deployment; private-storage and acceptance follow-ups remain.
+
 **Date:** October 18, 2026 (Asia/Beirut).
 
-**Result:** Analysis and local verification complete. The live deployment remains failed; no cloud configuration change or new deploy was made during this investigation.
+**Analysis-phase result (before the subsequent deployment):** Analysis and local verification complete. The live deployment remained failed at that point; no cloud configuration change or new deploy was made during the analysis phase.
 
 ## Finding
 
