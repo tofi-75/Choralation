@@ -3,13 +3,12 @@
 import pytest
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
-from rest_framework.exceptions import PermissionDenied
 from test_masses import planning as planning_fixture
 from test_masses import put, row
 
 from hymns.models import Genre, Hymn, Tag
 from masses.models import Mass, MassHymnSelection
-from masses.services import MassFinalized, delete_mass, save_mass, save_program, transition_mass
+from masses.services import MassFinalized, save_mass, save_program
 
 planning = planning_fixture
 pytestmark = pytest.mark.django_db
@@ -46,10 +45,6 @@ def test_lifecycle_repeat_reopen_and_occurrence_identity(planning):
     assert repeated.data["revision"] == 3
     assert repeated.data["finalized_at"] == finalized.data["finalized_at"]
     assert action(api, mass, "finalize", 2).status_code == 412
-    assert action(api, mass, "reopen", 3).status_code == 403
-    with pytest.raises(PermissionDenied):
-        transition_mass(mass["id"], users["Planner"], "3", reopen=True)
-    api.force_authenticate(users["Admin"])
     reopened = action(api, mass, "reopen", 3)
     assert reopened.data["revision"] == 4 and reopened.data["finalized_at"] is None
     assert detail()["usage_count"] == 0
@@ -83,15 +78,9 @@ def test_finalized_write_guards_permissions_and_empty_program(planning):
         == 409
     )
     assert action(api, mass, "finalize", 1)["X-Mass-Revision"] == "2"
-    api.force_authenticate(users["Admin"])
-    assert (
-        api.delete(f"/api/v1/masses/{mass['id']}/", HTTP_X_EXPECTED_MASS_REVISION="2").status_code
-        == 409
-    )
     for call in (
         lambda: save_mass({"title": "No"}, users["Admin"], mass["id"], "2"),
         lambda: save_program(mass["id"], [], users["Admin"], "2"),
-        lambda: delete_mass(mass["id"], users["Admin"], "2"),
     ):
         with pytest.raises(MassFinalized):
             call()
@@ -217,3 +206,41 @@ def test_hymn_history_retains_inactive_rows_and_mass_history_preview(usage):
     ]
     assert len(masses.data["results"][-1]["preview"]) == 2
     assert api.get("/api/v1/masses/history/?status=draft&q=Usage").data["count"] == 1
+
+
+@pytest.mark.parametrize("role", ["Planner", "Admin", "Viewer"])
+def test_finalized_edit_and_deletion_role_guards_and_usage(planning, role):
+    api, users, _, placement, hymns, mass = planning
+    saved = put(api, mass, [row(placement, hymns[0])]).data
+    finalized = action(api, mass, "finalize", saved["revision"]).data
+    api.force_authenticate(users[role])
+    if role == "Viewer":
+        assert action(api, mass, "reopen", finalized["revision"]).status_code == 403
+    else:
+        reopened = action(api, mass, "reopen", finalized["revision"])
+        assert reopened.status_code == 200 and reopened.data["status"] == "draft"
+        assert api.get(f"/api/v1/hymns/{hymns[0].pk}/").data["usage_count"] == 0
+        finalized = action(api, mass, "finalize", reopened.data["revision"]).data
+    deleted = api.delete(
+        f"/api/v1/masses/{mass['id']}/", HTTP_X_EXPECTED_MASS_REVISION=str(finalized["revision"])
+    )
+    assert deleted.status_code == (204 if role == "Admin" else 403)
+    if role == "Admin":
+        assert not Mass.objects.filter(pk=mass["id"]).exists()
+        assert Hymn.objects.filter(pk=hymns[0].pk).exists()
+        assert api.get(f"/api/v1/hymns/{hymns[0].pk}/").data["usage_count"] == 0
+
+
+def test_finalized_deletion_checks_revision_before_removal(planning):
+    api, users, _, placement, hymns, mass = planning
+    saved = put(api, mass, [row(placement, hymns[0])]).data
+    finalized = action(api, mass, "finalize", saved["revision"]).data
+    api.force_authenticate(users["Admin"])
+    assert (
+        api.delete(
+            f"/api/v1/masses/{mass['id']}/",
+            HTTP_X_EXPECTED_MASS_REVISION=str(finalized["revision"] - 1),
+        ).status_code
+        == 412
+    )
+    assert MassHymnSelection.objects.filter(mass_id=mass["id"]).count() == 1

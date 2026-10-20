@@ -11,9 +11,7 @@ async function signIn(page: Page, role = 'Planner') {
   await page.getByLabel('Username').fill(`e2e-${suffix}-${role.toLowerCase()}`);
   await page.getByLabel('Password').fill(password!);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(
-    page.getByRole('heading', { name: new RegExp(`Welcome, e2e-${suffix}`) }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Masses', exact: true })).toBeVisible();
 }
 async function csrf(page: Page) {
   return {
@@ -21,11 +19,26 @@ async function csrf(page: Page) {
       .csrf_token as string,
   };
 }
+async function startFinalize(page: Page) {
+  await page.getByRole('button', { name: 'Finalize Mass', exact: true }).click();
+  if (await page.evaluate(() => matchMedia('(max-width: 760px), (hover: none)').matches))
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Confirm finalization', exact: true })
+      .click();
+}
 async function confirm(page: Page, name: string) {
-  await page.getByRole('button', { name, exact: true }).click();
   if (name === 'Finalize Mass') {
+    await startFinalize(page);
     await expect(page.getByText('Finalized Mass program', { exact: true })).toBeVisible();
-  } else await page.getByRole('dialog').getByRole('button', { name, exact: true }).click();
+  } else {
+    await page.getByRole('button', { name: 'Edit Mass', exact: true }).click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Confirm edit', exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/edit$/);
+  }
   await expect(page.getByRole('dialog')).toHaveCount(0);
 }
 
@@ -42,14 +55,18 @@ test('Weekly workflow: create hymn, draft, finalize, usage/history, reopen and r
   const placements = page.getByRole('group', { name: 'Suitable placements', exact: true });
   await placements.getByRole('button', { name: /^Choose / }).click();
   await placements.getByRole('checkbox', { name: 'Communion', exact: true }).check();
-  await page.getByLabel('Suitable regardless of season').check();
+  const seasons = page.getByRole('group', { name: 'Suitable seasons', exact: true });
+  await seasons.getByRole('button', { name: /^Choose / }).click();
+  await seasons.getByRole('checkbox', { name: 'Ordinary Time', exact: true }).check();
   await page.getByRole('button', { name: 'Save hymn', exact: true }).click();
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
   const hymnId = Number(page.url().split('/').pop());
   await expect(page.getByText('Never used', { exact: true })).toBeVisible();
   page.on('dialog', (dialog) => void dialog.accept());
   await page.goto('/masses');
-  await page.getByRole('link', { name: 'Create Mass', exact: true }).click();
+  await page.getByRole('link', { name: 'New Mass', exact: true }).click();
+  await page.getByLabel('Date', { exact: true }).fill('2099-10-11');
+  await expect(page.getByRole('button', { name: 'Next', exact: true })).toBeEnabled();
   await page
     .locator('#create-mass')
     .getByText('Title and notes (optional)', { exact: true })
@@ -76,12 +93,13 @@ test('Weekly workflow: create hymn, draft, finalize, usage/history, reopen and r
     });
     await page.unroute(`**/masses/${massId}/finalize/`);
   });
-  await page.getByRole('button', { name: 'Finalize Mass', exact: true }).click();
+  await startFinalize(page);
   await expect(page.getByRole('alert')).toHaveText('Temporary failure');
-  await expect(page.getByRole('dialog')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Finalize Mass', exact: true }).click();
+  if (await page.getByRole('dialog').count())
+    await page.getByRole('dialog').getByRole('button', { name: 'Cancel' }).click();
+  await startFinalize(page);
   await expect(page.getByText('Finalized Mass program', { exact: true })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Edit', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Edit Mass', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Reopen draft', exact: true })).toHaveCount(0);
   await page.goto(`/hymns/${hymnId}`);
   await expect(page.getByText('2 finalized selections', { exact: true })).toBeVisible();
@@ -114,12 +132,11 @@ test('Weekly workflow: create hymn, draft, finalize, usage/history, reopen and r
     .filter({ visible: true })
     .click();
   await page.getByLabel('Search Mass plans').fill(plan);
-  await page.locator('.mass-card').filter({ hasText: plan }).click();
-  await confirm(page, 'Reopen draft');
-  await expect(page.getByRole('link', { name: 'Edit', exact: true })).toBeVisible();
-  await page.goBack();
-  await page.goBack();
-  await expect(page).toHaveURL(/never_used=true/);
+  await page.locator('.mass-card').filter({ hasText: plan }).getByRole('link').first().click();
+  await confirm(page, 'Edit Mass');
+  await page.goto(`/masses/${massId}`);
+  await expect(page.getByRole('link', { name: 'Edit Mass', exact: true })).toBeVisible();
+  await page.goto(`/hymns?q=${encodeURIComponent(title)}&never_used=true`);
   await expect(
     page.getByRole('link', { name: title, exact: true }).filter({ visible: true }),
   ).toHaveCount(1);
@@ -155,7 +172,7 @@ test('Stale finalization notice and background finalization preserve editor work
     headers: { ...(await csrf(page)), 'X-Expected-Mass-Revision': String(mass.revision) },
     data: { notes: 'Another planner saved' },
   });
-  await page.getByRole('button', { name: 'Finalize Mass', exact: true }).click();
+  await startFinalize(page);
   await expect(page.getByRole('alert')).toContainText('This Mass changed.');
   await expect(page.getByRole('button', { name: 'Finalize Mass', exact: true })).toBeDisabled();
   await expect(page.getByRole('dialog')).toHaveCount(0);

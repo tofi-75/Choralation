@@ -11,9 +11,7 @@ test('Picker review: columns, compact controls, sidebar and drag keep identities
   await page.getByLabel('Username').fill(`e2e-${suffix}-planner`);
   await page.getByLabel('Password').fill(password!);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(
-    page.getByRole('heading', { name: `Welcome, e2e-${suffix}-planner.` }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Masses', exact: true })).toBeVisible();
   if (info.project.name === 'desktop') {
     const width = await page.locator('.page-content').evaluate((node) => node.clientWidth);
     await page.getByRole('button', { name: 'Collapse sidebar' }).click();

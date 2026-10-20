@@ -101,3 +101,14 @@ The latest refinement passed 198 backend tests, 62 frontend tests and 28 browser
 Drag grips now appear only for sections with multiple hymns; Edit/Remove are smaller (40 px), side by side at every width, and singleton rows use the space vacated by the grip. Saved status is burgundy. The fresh full check passed **198 backend and 62 frontend tests** plus schema/migration/type/lint/format/build gates. **44 browser cases passed without failures** across the completed isolated sequence, covering every spec at desktop/390 px plus focused picker/creation/list cases at 360/430 px. See [the refinement report](planning-refinement.md) for exact run artifacts and coverage.
 
 Disposable browser databases/accounts were cleaned up; manual app services remain running. Changes are uncommitted. Real-device acceptance and the deferred saved-program performance redesign remain pending; Cloudflare remains removed and firewall/clock settings are unchanged.
+
+
+## October 19 home and saved-program update
+
+This update supersedes the earlier inline-notice/Admin-only-reopen UI rules: see [current acceptance](acceptance.md#october-19-2026--home-and-saved-mass-review). Home now prioritizes upcoming Masses and recent hymns; saved/draft/archive navigation is separate. Planner/Admin may confirm editing a finalized program, while only Admin may confirm deletion. Direct finalized program/metadata writes remain forbidden and every action retains its revision precondition. Ordinary Time is universally suitable. Practice remains a Coming soon placeholder; physical-phone acceptance stays in M5.
+
+Implementation and current test evidence: [home and saved Mass review](home-saved-masses-review.md).
+
+## October 20 performance reading extension
+
+The owner brought the saved-Mass performance surface forward: centered, prominent hymn titles and read-only focus mode now use PDF/lyrics/title priority, swipe/keyboard navigation and a visible-document screen wake lock. Hymn detail/form refinements include compact metadata and optional Latin name, lyrics and tempo, with local migration `hymns.0004_performance_materials`. This supersedes earlier notes that the performance redesign had not started. Remaining reader refinements, the complete Arabic UI/language-settings feature, and actual physical-phone acceptance are planned separately. See [implementation and ordered UI plan](ui-performance-review.md).

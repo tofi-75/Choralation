@@ -17,12 +17,10 @@ for (const role of ['Admin', 'Planner', 'Viewer'] as const) {
     await expect(page.getByLabel('Username')).toHaveValue(username);
     await page.getByLabel('Password').fill(password);
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await expect(page.getByRole('heading', { name: `Welcome, ${username}.` })).toBeVisible();
-    await expect(
-      page.getByRole('region', { name: 'Your workspace access' }).getByText(role, { exact: true }),
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Masses', exact: true })).toBeVisible();
+    await expect(page.locator('.account-name')).toBeVisible();
     await page.reload();
-    await expect(page.getByRole('heading', { name: `Welcome, ${username}.` })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Masses', exact: true })).toBeVisible();
     if (process.env.E2E_CAPTURE_PREVIEW === 'true' && role === 'Viewer') {
       await page.screenshot({
         path: `test-results/${testInfo.project.name}-workspace.png`,

@@ -2,6 +2,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router';
 import { afterEach, expect, it, vi } from 'vitest';
 import { clearCsrfToken } from '../../api/client';
 import { SessionProvider } from '../auth/SessionProvider';
@@ -38,12 +39,14 @@ function mount(conflict = false, role = 'Planner', finalized = false, held?: Pro
   const invalidate = vi.spyOn(client, 'invalidateQueries');
   render(
     <QueryClientProvider client={client}>
-      <SessionProvider>
-        <MassLifecycle
-          mass={{ ...mass, status: finalized ? 'finalized' : 'draft' }}
-          unavailable={false}
-        />
-      </SessionProvider>
+      <MemoryRouter>
+        <SessionProvider>
+          <MassLifecycle
+            mass={{ ...mass, status: finalized ? 'finalized' : 'draft' }}
+            unavailable={false}
+          />
+        </SessionProvider>
+      </MemoryRouter>
     </QueryClientProvider>,
   );
   return { writes, invalidate };
@@ -94,8 +97,37 @@ it('prevents repeated submission while finalization is pending', async () => {
     expect(screen.queryByRole('button', { name: 'Working…' })).not.toBeInTheDocument(),
   );
 });
-it('offers reopening only to an Admin with an explicit impact confirmation', async () => {
+it('requires confirmation before an Admin edits a finalized Mass', async () => {
   mount(false, 'Admin', true);
-  await userEvent.setup().click(await screen.findByRole('button', { name: 'Reopen draft' }));
-  expect(screen.getByRole('dialog')).toHaveTextContent('removes this program from hymn usage');
+  await userEvent.setup().click(await screen.findByRole('button', { name: 'Edit Mass' }));
+  expect(screen.getByRole('dialog')).toHaveTextContent('removes its selections from usage counts');
+});
+
+it('requires confirmation on a phone before finalizing', async () => {
+  vi.stubGlobal('matchMedia', () => ({ matches: true }));
+  const { writes } = mount();
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole('button', { name: 'Finalize Mass' }));
+  expect(writes).toHaveLength(0);
+  expect(screen.getByRole('dialog')).toHaveTextContent('usage counts');
+  await user.click(screen.getByRole('button', { name: 'Confirm finalization' }));
+  await waitFor(() => expect(writes).toHaveLength(1));
+});
+it('lets planners confirm editing a finalized Mass but hides deletion', async () => {
+  const { writes } = mount(false, 'Planner', true);
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole('button', { name: 'Edit Mass' }));
+  expect(screen.queryByRole('button', { name: 'Delete Mass' })).not.toBeInTheDocument();
+  expect(writes).toHaveLength(0);
+  await user.click(screen.getByRole('button', { name: 'Confirm edit' }));
+  await waitFor(() => expect(writes).toHaveLength(1));
+  expect(new Headers(writes[0].headers).get('X-Expected-Mass-Revision')).toBe('1');
+});
+it('does not delete a finalized Mass when an Admin cancels confirmation', async () => {
+  const { writes } = mount(false, 'Admin', true);
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole('button', { name: 'Delete Mass' }));
+  expect(screen.getByRole('dialog')).toHaveTextContent('permanently deletes');
+  await user.click(screen.getByRole('button', { name: 'Cancel' }));
+  expect(writes).toHaveLength(0);
 });

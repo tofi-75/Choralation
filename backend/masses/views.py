@@ -33,7 +33,8 @@ REVISION = [
     list=extend_schema(
         responses={200: MassListSerializer(many=True), **ERRORS},
         parameters=[
-            OpenApiParameter(name, str) for name in ("from", "to", "status", "season", "q")
+            OpenApiParameter(name, str)
+            for name in ("from", "to", "status", "season", "q", "archived")
         ],
     ),
     retrieve=extend_schema(responses={200: MassReadSerializer, **ERRORS}),
@@ -58,9 +59,10 @@ class MassViewSet(viewsets.GenericViewSet):
     def get_permissions(self):
         policy = (
             AdminPermission
-            if self.action in {"destroy", "reopen"}
+            if self.action == "destroy"
             else PlannerPermission
-            if self.action in {"create", "partial_update", "program", "random_picks", "finalize"}
+            if self.action
+            in {"create", "partial_update", "program", "random_picks", "finalize", "reopen"}
             else IsAuthenticated
         )
         return [policy()]
@@ -72,7 +74,8 @@ class MassViewSet(viewsets.GenericViewSet):
     @extend_schema(
         responses={200: MassHistorySerializer(many=True), **ERRORS},
         parameters=[
-            OpenApiParameter(name, str) for name in ("from", "to", "status", "season", "q")
+            OpenApiParameter(name, str)
+            for name in ("from", "to", "status", "season", "q", "archived")
         ],
     )
     @action(detail=False, methods=["get"])

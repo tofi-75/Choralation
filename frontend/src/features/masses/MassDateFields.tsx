@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { Category } from '../../api/library';
 import { fetchCalendar } from './calendar';
+import { PlannerIcon } from './PlannerIcon';
 
 export function MassDateFields({
   date,
@@ -69,25 +70,30 @@ export function MassDateFields({
   );
   return (
     <>
-      <label className="field">
+      <label className="field mass-date-field">
         Date
-        <input
-          type="date"
-          className="mass-date-control"
-          name="date"
-          required
-          value={pendingDate ?? date}
-          onChange={(event) => {
-            if (event.target.value) void suggest(event.target.value);
-            else {
-              sequence.current += 1;
-              setPendingDate(null);
-              onPending(false);
-              onChange('', null);
-              setNotice('');
-            }
-          }}
-        />
+        <span className="date-input-wrap">
+          <input
+            type="date"
+            className="mass-date-control"
+            name="date"
+            required
+            value={pendingDate ?? date}
+            onChange={(event) => {
+              if (event.target.value) void suggest(event.target.value);
+              else {
+                sequence.current += 1;
+                setPendingDate(null);
+                onPending(false);
+                onChange('', null);
+                setNotice('');
+              }
+            }}
+          />
+          <span className="date-calendar-icon">
+            <PlannerIcon name="calendar" />
+          </span>
+        </span>
       </label>
       <label className="field">
         Liturgical season

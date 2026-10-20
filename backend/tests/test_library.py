@@ -97,6 +97,9 @@ def test_complete_metadata_unicode_duplicate_titles_and_attribution(library):
     api, users, categories, payload = library
     payload.update(
         {
+            "latin_title": "Tarnimet al qiyama",
+            "lyrics": "يا رب\nيا نور",
+            "tempo": "Andante · 80 BPM",
             "alternate_title": "ܩܠܐ",
             "first_line": "Test first line",
             "composer": "Composer",
@@ -545,3 +548,26 @@ def test_picker_voice_sort_uses_displayed_text_not_json_array_length(library):
         response = api.get(f"/api/v1/hymns/?ordering={ordering}")
         assert response.status_code == 200, response.data
         assert [item["id"] for item in response.data["results"]] == expected
+
+
+def test_latin_name_search_preserves_native_title_and_optional_materials(library):
+    api, _, _, payload = library
+    saved = create(
+        api,
+        {**payload, "latin_title": "Qamat Maryam", "lyrics": "سطر أول\nسطر ثان", "tempo": "80 BPM"},
+    )
+    for query in ("qamat", "ترنيمة"):
+        response = api.get("/api/v1/hymns/", {"q": query})
+        assert response.status_code == 200
+        assert [row["id"] for row in response.data["results"]] == [saved["id"]]
+    updated = api.patch(
+        f"/api/v1/hymns/{saved['id']}/", {"tempo": " ", "latin_title": ""}, format="json"
+    )
+    assert updated.status_code == 200
+    assert updated.data["latin_title"] is None and updated.data["tempo"] is None
+    assert updated.data["lyrics"] == saved["lyrics"]
+    for field, value in (("latin_title", "a" * 256), ("tempo", "a" * 51)):
+        assert (
+            api.patch(f"/api/v1/hymns/{saved['id']}/", {field: value}, format="json").status_code
+            == 400
+        )

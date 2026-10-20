@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 
 import { fetchMasses } from '../api/masses';
+import { ArchivedHymns } from '../features/masses/ArchivedHymns';
 import { useSession } from '../features/auth/SessionProvider';
 import { useCategories } from '../features/hymns/queries';
 
@@ -12,8 +13,11 @@ export function MassesPage() {
   // Save draft keeps the lifecycle at draft. Only explicit finalization makes
   // a program ready; never infer readiness from hymn count or archive date.
   const status = params.get('status') === 'draft' ? 'draft' : 'finalized';
+  const archived = status !== 'draft' && params.get('archived') === 'true';
   const requestParams = new URLSearchParams(params);
   requestParams.set('status', status);
+  if (status === 'finalized') requestParams.set('archived', String(archived));
+  else requestParams.delete('archived');
   const queryString = requestParams.toString();
   const query = useQuery({
     queryKey: ['masses', queryString],
@@ -53,14 +57,38 @@ export function MassesPage() {
       <div className="page-heading">
         <div>
           <p className="eyebrow">Weekly planning</p>
-          <h1 className="page-title">Mass plans</h1>
-          <p className="muted">Access ready programs or continue planning your drafts.</p>
+          <h1 className="page-title">
+            {status === 'draft' ? 'Draft Masses' : archived ? 'Archived Masses' : 'Saved Masses'}
+          </h1>
+          <p className="muted">
+            {status === 'draft'
+              ? 'Continue preparing your saved drafts.'
+              : archived
+                ? 'Past Masses and the hymns prepared for them.'
+                : 'Today and upcoming Masses, in date order.'}
+          </p>
         </div>
-        {user?.role !== 'Viewer' && (
-          <Link ref={createButton} className="button primary" to="/masses/new">
-            Create Mass
+        <div className="form-actions mass-page-actions">
+          <Link
+            className="button secondary"
+            to={status === 'draft' || archived ? '/masses' : '/masses?status=draft'}
+          >
+            {status === 'draft' || archived ? 'Saved Masses' : 'Drafts'}
           </Link>
-        )}
+          {status !== 'draft' && (
+            <Link
+              className="button secondary"
+              to={archived ? '/masses?status=draft' : '/masses?archived=true'}
+            >
+              {archived ? 'Drafts' : 'Archived Masses'}
+            </Link>
+          )}
+          {user?.role !== 'Viewer' && (
+            <Link ref={createButton} className="button primary" to="/masses/new">
+              New Mass
+            </Link>
+          )}
+        </div>
       </div>
       <section className="mass-list-controls" aria-label="Mass filters">
         <div className="mass-search-toolbar">
@@ -96,27 +124,6 @@ export function MassesPage() {
         </div>
         <p id="mass-search-help" className="sr-only">
           Search titles or notes in the selected list. Open Filters for dates or season.
-        </p>
-        <div className="mass-list-toggle" role="group" aria-label="Mass list">
-          <button
-            className="button secondary"
-            aria-pressed={status === 'finalized'}
-            onClick={() => filter('status', '')}
-          >
-            Ready Masses
-          </button>
-          <button
-            className="button secondary"
-            aria-pressed={status === 'draft'}
-            onClick={() => filter('status', 'draft')}
-          >
-            Pending drafts
-          </button>
-        </div>
-        <p className="tiny mass-list-description">
-          {status === 'draft'
-            ? 'Saved drafts awaiting finalization.'
-            : 'Finalized programs ready to use.'}
         </p>
         <div id="mass-list-filters" className="mass-list-filter-panel" hidden={!filtersOpen}>
           <div className="form-grid">
@@ -157,7 +164,10 @@ export function MassesPage() {
           <button
             className="text-button"
             onClick={() =>
-              setParams(status === 'draft' ? { status: 'draft' } : {}, { replace: true })
+              setParams(
+                status === 'draft' ? { status: 'draft' } : archived ? { archived: 'true' } : {},
+                { replace: true },
+              )
             }
           >
             Clear filters
@@ -176,7 +186,8 @@ export function MassesPage() {
       {query.data && (
         <>
           <p className="muted">
-            {query.data.count} {status === 'draft' ? 'pending drafts' : 'ready Masses'}
+            {query.data.count}{' '}
+            {status === 'draft' ? 'pending drafts' : archived ? 'archived Masses' : 'saved Masses'}
           </p>
           {[
             { label: 'Today and upcoming', archived: false },
@@ -191,16 +202,21 @@ export function MassesPage() {
                 <h2 className="mass-group-heading">{group.label}</h2>
                 <div className="mass-list">
                   {masses.map((mass) => (
-                    <Link className="mass-card" to={`/masses/${mass.id}`} key={mass.id}>
+                    <article className="mass-card" key={mass.id}>
                       <span className="eyebrow">
                         {mass.date} · {mass.status}
                       </span>
-                      <h3 dir="auto">{mass.title}</h3>
+                      <h3>
+                        <Link to={`/masses/${mass.id}`} dir="auto">
+                          {mass.title}
+                        </Link>
+                      </h3>
                       <p>
                         {mass.liturgical_season?.name ?? 'No season selected'} ·{' '}
                         {mass.selection_count} hymns
                       </p>
-                    </Link>
+                      {archived && <ArchivedHymns id={mass.id} count={mass.selection_count} />}
+                    </article>
                   ))}
                 </div>
               </section>
@@ -212,7 +228,9 @@ export function MassesPage() {
                 ? 'No Mass plans match these filters. Try another search or clear the filters.'
                 : status === 'draft'
                   ? 'No pending drafts. New drafts appear here while you prepare them.'
-                  : 'No ready Masses yet. Finalize a saved draft to make it ready.'}
+                  : archived
+                    ? 'No archived Masses yet.'
+                    : 'No upcoming saved Masses. Finalize a saved draft to make it ready.'}
             </p>
           )}
           {!query.data.next && query.data.count > 0 && (

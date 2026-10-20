@@ -16,18 +16,22 @@
     "lint": "eslint . --max-warnings 0",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "predev": "node scripts/copy-pdf-assets.mjs",
+    "prebuild": "node scripts/copy-pdf-assets.mjs",
+    "pretest:e2e": "node scripts/copy-pdf-assets.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "1.1.23",
+    "@tailwindcss/vite": "4.3.3",
     "@tanstack/react-query": "5.104.1",
+    "pdfjs-dist": "6.4.299",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-hook-form": "7.89.0",
     "react-router": "8.4.0",
-    "zod": "4.6.5",
     "tailwindcss": "4.3.3",
-    "@tailwindcss/vite": "4.3.3"
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

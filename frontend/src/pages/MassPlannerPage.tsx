@@ -363,16 +363,6 @@ function Planner({
       )}
       {!detailsStep && (
         <section className="planner-sections" aria-label="Hymn program">
-          {!readOnly && (
-            <RandomPicker
-              key={`${draft.metadata.date}-${draft.metadata.liturgical_season_id}-${calendarPending}-${activePlacements.map((row) => row.id).join(',')}`}
-              massId={initial.id}
-              saver={saver}
-              placements={activePlacements}
-              calendarPending={calendarPending}
-              onPending={setRandomPending}
-            />
-          )}
           {placements.map((placement) => {
             const rows = draft.rows.filter((row) => row.placement_id === placement.id);
             return (
@@ -532,6 +522,16 @@ function Planner({
               </section>
             );
           })}
+          {!readOnly && (
+            <RandomPicker
+              key={`${draft.metadata.date}-${draft.metadata.liturgical_season_id}-${calendarPending}-${activePlacements.map((row) => row.id).join(',')}`}
+              massId={initial.id}
+              saver={saver}
+              placements={activePlacements}
+              calendarPending={calendarPending}
+              onPending={setRandomPending}
+            />
+          )}
         </section>
       )}
       {programWarnings.length > 0 && (

@@ -31,7 +31,7 @@ def random_picks(season_id: int, placement_ids: list[int], excluded_hymn_ids: li
 
     eligible = (
         Hymn.objects.filter(is_active=True, placements__in=placement_ids)
-        .filter(Q(is_season_neutral=True) | Q(seasons=season_id))
+        .filter(Q(is_season_neutral=True) | Q(seasons=season_id) | Q(seasons__slug="ordinary-time"))
         .exclude(pk__in=excluded_hymn_ids)
         .values_list("pk", "placements__pk")
         .distinct()

@@ -57,6 +57,9 @@ class Tag(Category):
 
 class Hymn(models.Model):
     title = models.CharField(max_length=255)
+    latin_title = models.CharField(max_length=255, null=True, blank=True)
+    lyrics = models.TextField(null=True, blank=True)
+    tempo = models.CharField(max_length=50, null=True, blank=True)
     alternate_title = models.CharField(max_length=255, null=True, blank=True)
     first_line = models.CharField(max_length=500, null=True, blank=True)
     composer = models.CharField(max_length=255, null=True, blank=True)

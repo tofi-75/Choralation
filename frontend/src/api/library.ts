@@ -25,6 +25,9 @@ export type CategoryKind = (typeof categoryKinds)[number][0];
 export type Categories = Record<CategoryKind, Category[]>;
 
 export const textFields = [
+  ['latin_title', 'Latin Characters Name'],
+  ['lyrics', 'Lyrics'],
+  ['tempo', 'Tempo'],
   ['alternate_title', 'Alternate title'],
   ['first_line', 'First line'],
   ['composer', 'Composer'],
@@ -48,6 +51,9 @@ export const hymnSchema = z.object({
   seasons: z.array(categorySchema),
   placements: z.array(categorySchema),
   tags: z.array(categorySchema),
+  latin_title: optionalText.optional(),
+  lyrics: optionalText.optional(),
+  tempo: optionalText.optional(),
   alternate_title: optionalText,
   first_line: optionalText,
   composer: optionalText,

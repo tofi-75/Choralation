@@ -21,19 +21,38 @@ export function usageDateLabel(day: string, today?: string) {
   return `Last selected ${difference} ${difference === 1 ? 'day' : 'days'} ago`;
 }
 
-export function UsageSummary({ hymn }: { hymn: Pick<Hymn, 'usage_count' | 'last_used_date'> }) {
+export function UsageSummary({
+  hymn,
+  dateFirst = false,
+}: {
+  hymn: Pick<Hymn, 'usage_count' | 'last_used_date'>;
+  dateFirst?: boolean;
+}) {
+  const count = (
+    <span>
+      {hymn.usage_count === 0
+        ? 'Never used'
+        : `${hymn.usage_count} finalized ${hymn.usage_count === 1 ? 'selection' : 'selections'}`}
+    </span>
+  );
+  const date = hymn.last_used_date && (
+    <small className="muted" title={hymn.last_used_date}>
+      <time dateTime={hymn.last_used_date}>{usageDateLabel(hymn.last_used_date)}</time> ·{' '}
+      {hymn.last_used_date}
+    </small>
+  );
   return (
     <span className="usage-summary">
-      <span>
-        {hymn.usage_count === 0
-          ? 'Never used'
-          : `${hymn.usage_count} finalized ${hymn.usage_count === 1 ? 'selection' : 'selections'}`}
-      </span>
-      {hymn.last_used_date && (
-        <small className="muted" title={hymn.last_used_date}>
-          <time dateTime={hymn.last_used_date}>{usageDateLabel(hymn.last_used_date)}</time> ·{' '}
-          {hymn.last_used_date}
-        </small>
+      {dateFirst ? (
+        <>
+          {date}
+          {count}
+        </>
+      ) : (
+        <>
+          {count}
+          {date}
+        </>
       )}
     </span>
   );

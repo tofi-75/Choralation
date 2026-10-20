@@ -34,7 +34,7 @@ async function signIn(page: import('@playwright/test').Page, role: string) {
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(
     page.getByRole('heading', {
-      name: `Welcome, e2e-${suffix}-${role.toLowerCase()}.`,
+      name: 'Masses',
       exact: true,
     }),
   ).toBeVisible();
@@ -127,7 +127,7 @@ test('Planner: create Unicode hymn, save recovery, URL filters, refresh, and edi
   await page.getByRole('button', { name: 'Show 6 more', exact: true }).click();
   await expect(page.getByText('Repentance', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Show fewer', exact: true }).click();
-  const pdfLink = page.getByRole('link', { name: /Download PDF/ });
+  const pdfLink = page.getByRole('link', { name: 'Download PDF', exact: true });
   const pdfResponse = await page.request.get((await pdfLink.getAttribute('href'))!);
   expect(pdfResponse.status()).toBe(200);
   expect((await pdfResponse.body()).subarray(0, 5).toString()).toBe('%PDF-');
@@ -219,7 +219,7 @@ test('Admin: confirmation cancel, deactivate/reactivate, and safe delete', async
   await page.getByRole('textbox', { name: /^Title/ }).fill(title);
   await page.getByRole('combobox', { name: /^Language/ }).selectOption({ label: 'English' });
   await choose(page, 'Suitable placements', ['Communion']);
-  await page.getByRole('checkbox', { name: 'Suitable regardless of season', exact: true }).check();
+  await choose(page, 'Suitable seasons', ['Ordinary Time']);
   await page.getByRole('button', { name: 'Save hymn', exact: true }).click();
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
   const detailUrl = page.url();

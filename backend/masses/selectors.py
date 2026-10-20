@@ -27,7 +27,7 @@ def mass_queryset() -> QuerySet[Mass]:
 
 def mass_list(params: QueryDict) -> QuerySet[Mass]:
     """Inclusive date bounds, literal season/status, search, deterministic pagination."""
-    validate_query(params, {"from", "to", "status", "season", "q", "page", "page_size"})
+    validate_query(params, {"from", "to", "status", "season", "q", "archived", "page", "page_size"})
     rows = Mass.objects.select_related("liturgical_season").annotate(
         selection_count=Count("selections")
     )
@@ -54,6 +54,14 @@ def mass_list(params: QueryDict) -> QuerySet[Mass]:
     # Evaluate one team-local day for the whole request. Archive is a date-based
     # list grouping, never a persisted lifecycle state or a write to old drafts.
     today = timezone.localdate()
+    if "archived" in params:
+        if params["archived"] not in {"true", "false"}:
+            raise ValidationError({"archived": ["Use true or false."]})
+        rows = (
+            rows.filter(date__lt=today)
+            if params["archived"] == "true"
+            else rows.filter(date__gte=today)
+        )
     return rows.annotate(
         is_archived=Case(
             When(date__lt=today, then=True), default=False, output_field=BooleanField()
@@ -74,6 +82,7 @@ def program_warnings(mass: Mass) -> list[dict]:
         if (
             mass.liturgical_season_id
             and not row.hymn.is_season_neutral
+            and not any(item.slug == "ordinary-time" for item in row.hymn.seasons.all())
             and bool(row.hymn.seasons.all())
             and mass.liturgical_season_id not in {item.pk for item in row.hymn.seasons.all()}
         ):

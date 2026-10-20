@@ -39,45 +39,31 @@ function mount(url = '/masses') {
     </QueryClientProvider>,
   );
 }
-it('defaults to finalized programs and opens compact filters on demand', async () => {
+it('shows upcoming saved programs by default with separate drafts and archives links', async () => {
   mount();
-  await waitFor(() => expect(fetchMasses).toHaveBeenCalledWith('status=finalized'));
-  expect(screen.getByRole('button', { name: 'Ready Masses' })).toHaveAttribute(
-    'aria-pressed',
-    'true',
+  await waitFor(() => expect(fetchMasses).toHaveBeenCalledWith('status=finalized&archived=false'));
+  expect(screen.getByRole('link', { name: 'Drafts' })).toHaveAttribute(
+    'href',
+    '/masses?status=draft',
+  );
+  expect(screen.getByRole('link', { name: 'Archived Masses' })).toHaveAttribute(
+    'href',
+    '/masses?archived=true',
   );
   expect(screen.getByLabelText('From date')).not.toBeVisible();
   fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
   expect(screen.getByLabelText('From date')).toBeVisible();
-  expect(screen.getByRole('button', { name: 'Filters' })).toHaveAttribute('aria-expanded', 'true');
-  fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
-  expect(screen.getByLabelText('From date')).not.toBeVisible();
 });
-it('switches lifecycle with retained search/date filters and resets pagination', async () => {
-  mount('/masses?q=Choir&from=2026-10-01&page=3');
-  fireEvent.click(screen.getByRole('button', { name: 'Pending drafts' }));
-  await waitFor(() =>
-    expect(fetchMasses).toHaveBeenLastCalledWith('q=Choir&from=2026-10-01&status=draft'),
-  );
-  expect(screen.getByRole('button', { name: 'Pending drafts' })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
+it('restores a draft deep link and retains that list when clearing search filters', async () => {
+  mount('/masses?status=draft&q=Choir');
+  await waitFor(() => expect(fetchMasses).toHaveBeenCalledWith('status=draft&q=Choir'));
   fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
   await waitFor(() => expect(fetchMasses).toHaveBeenLastCalledWith('status=draft'));
   expect(screen.getByLabelText('URL')).toHaveTextContent('?status=draft');
-  expect(screen.getByLabelText('Search Mass plans')).toHaveValue('');
-  fireEvent.click(screen.getByRole('button', { name: 'Ready Masses' }));
-  await waitFor(() => expect(fetchMasses).toHaveBeenLastCalledWith('status=finalized'));
-  expect(screen.getByLabelText('URL')).toBeEmptyDOMElement();
+  expect(screen.getByRole('link', { name: 'Saved Masses' })).toHaveAttribute('href', '/masses');
 });
-it('restores a draft deep link and does not treat lifecycle choice as a search filter', async () => {
-  mount('/masses?status=draft');
-  await waitFor(() => expect(fetchMasses).toHaveBeenCalledWith('status=draft'));
-  expect(await screen.findByText('No pending drafts.', { exact: false })).toBeVisible();
-  expect(screen.queryByRole('button', { name: 'Clear filters' })).not.toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Pending drafts' })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
+it('requests only past saved programs for the archive', async () => {
+  mount('/masses?archived=true');
+  await waitFor(() => expect(fetchMasses).toHaveBeenCalledWith('archived=true&status=finalized'));
+  expect(screen.getByRole('heading', { name: 'Archived Masses' })).toBeVisible();
 });

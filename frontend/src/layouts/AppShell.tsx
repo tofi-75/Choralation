@@ -50,7 +50,7 @@ export function AppShell() {
         </div>
         <nav id="desktop-navigation" aria-label="Main">
           {[
-            ['/dashboard', 'Your workspace', '⌂'],
+            ['/dashboard', 'Home', '⌂'],
             ['/hymns', 'Hymn library', '♫'],
             ['/masses', 'Mass plans', '▤'],
             ['/history', 'Mass history', '◷'],
@@ -102,7 +102,7 @@ export function AppShell() {
                     </Dialog.Close>
                     <Dialog.Close asChild>
                       <Link className="nav-item" to="/dashboard">
-                        Your workspace
+                        Home
                       </Link>
                     </Dialog.Close>
                   </nav>

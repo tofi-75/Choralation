@@ -171,3 +171,9 @@ No approved deployment target, timeline commitment, or human staffing assignment
 - Mouse/touch drag handles replace hymn reorder arrows. Keyboard pickup/move/drop/cancel remains available. Drop commits once using the latest working copy, preserving selection IDs, notes and other placement order; cancellation preserves saved order.
 
 See [picker review](picker-review.md) for contracts and verification. Saved-program performance redesign remains deferred, and real-phone acceptance is scheduled for M5.
+
+## October 20 performance UI and deferred language settings
+
+The saved-program reading surface has now been brought forward by the owner: focus-mode PDF/lyrics/title reading, swipe/keyboard navigation and screen-awake lifecycle are implemented locally. This supersedes the earlier "redesign has not started" note; further reader refinements and physical-device acceptance remain pending. See [delivery and ordered UI improvement plan](ui-performance-review.md).
+
+**F2 — Language settings and full Arabic translation (deferred).** Add an English/Arabic preference, persist the signed-in user's choice with a pre-login fallback, translate all UI and validation/accessibility strings, localize date/count formatting, and support RTL throughout. Preserve hymn text as authored and native/Latin-title search. Complete only after mixed-script, keyboard, screen-reader, PDF and real-phone coverage in both languages. No account/settings migration is introduced until this feature is scheduled.

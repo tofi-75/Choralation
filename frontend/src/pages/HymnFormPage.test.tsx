@@ -7,6 +7,7 @@ import { beforeEach, expect, it, vi } from 'vitest';
 
 import { clearCsrfToken } from '../api/client';
 import { textFields } from '../api/library';
+import type { Category } from '../api/library';
 import { SessionProvider } from '../features/auth/SessionProvider';
 import { HymnFormPage } from './HymnFormPage';
 
@@ -23,7 +24,10 @@ const category = (id: number, name: string, active = true) => ({
 });
 const choices = {
   genres: [category(1, 'Traditional')],
-  'liturgical-seasons': [category(2, 'Easter')],
+  'liturgical-seasons': [
+    category(2, 'Easter'),
+    { ...category(7, 'Ordinary Time'), slug: 'ordinary-time' },
+  ],
   'mass-placements': [category(3, 'Communion')],
   languages: [category(4, 'Arabic'), category(5, 'Inactive language', false)],
   tags: [category(6, 'Mary')],
@@ -35,21 +39,26 @@ function mount(
   failure = false,
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } }),
   edit = false,
+  seasonOptions: { available?: Category[]; saved?: Category[] } = {},
 ) {
+  const formChoices = {
+    ...choices,
+    'liturgical-seasons': seasonOptions.available ?? choices['liturgical-seasons'],
+  };
   const writes: Record<string, unknown>[] = [];
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string, options?: RequestInit) => {
       if (url.endsWith('/me/')) return Response.json({ id: 1, username: 'editor', role });
       if (url.includes('/csrf/')) return Response.json({ csrf_token: 'masked' });
-      if (url.endsWith('/hymns/1/'))
+      if (url.endsWith('/hymns/1/') && (!options?.method || options.method === 'GET'))
         return Response.json({
           ...Object.fromEntries(textFields.map(([name]) => [name, null])),
           id: 1,
           title: 'Saved hymn',
           language: choices.languages[0],
           genres: [],
-          seasons: [],
+          seasons: seasonOptions.saved ?? [],
           placements: choices['mass-placements'],
           tags: [],
           sheet_music_pdf: null,
@@ -65,7 +74,7 @@ function mount(
           created_by: 1,
           updated_by: 1,
         });
-      if (options?.method === 'POST') {
+      if (options?.method === 'POST' || options?.method === 'PATCH') {
         writes.push(
           JSON.parse(
             String(options.body instanceof FormData ? options.body.get('data') : options.body),
@@ -83,7 +92,7 @@ function mount(
         throw new Error('No successful response needed in this scenario.');
       }
       const kind = url.split('/')[3] as keyof typeof choices;
-      return Response.json(choices[kind]);
+      return Response.json(formChoices[kind]);
     }),
   );
   render(
@@ -109,6 +118,13 @@ it.each([
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   mount('Planner', false, client, edit);
   await screen.findByRole('heading', { name: edit ? 'Edit hymn' : 'Add hymn' });
+  expect(
+    screen.queryByRole('checkbox', { name: 'Suitable regardless of season' }),
+  ).not.toBeInTheDocument();
+  if (edit)
+    expect(screen.getByRole('group', { name: 'Suitable seasons' })).toHaveTextContent(
+      'Ordinary Time',
+    );
   const title = screen.getByRole('textbox', { name: /^Title/ });
   await userEvent.clear(title);
   await userEvent.type(title, 'Unsaved title');
@@ -160,7 +176,7 @@ it('requires placements and seasons, while excluding new inactive language choic
   ).not.toBeInTheDocument();
   await userEvent.click(screen.getByRole('button', { name: 'Save hymn' }));
   expect(await screen.findByText('Choose at least one placement.')).toBeVisible();
-  expect(screen.getByText('Choose a season or mark this hymn season-neutral.')).toBeVisible();
+  expect(screen.getByText('Choose at least one season.')).toBeVisible();
   expect(writes).toHaveLength(0);
 });
 
@@ -169,6 +185,10 @@ it('searches classifications and retains values plus field errors after a failed
   await screen.findByRole('heading', { name: 'Add hymn' });
   await userEvent.type(screen.getByRole('textbox', { name: /^Title/ }), 'ترنيمة محفوظة');
   await userEvent.selectOptions(screen.getByRole('combobox', { name: /^Language/ }), '4');
+  await userEvent.type(screen.getByRole('textbox', { name: 'Latin Characters Name' }), 'Tarnima');
+  await userEvent.type(screen.getByRole('textbox', { name: 'Lyrics' }), 'First line\nSecond line');
+  await userEvent.type(screen.getByRole('textbox', { name: 'Default key' }), 'D minor');
+  await userEvent.type(screen.getByRole('textbox', { name: 'Tempo' }), '80 BPM');
   const placements = screen.getByRole('group', { name: 'Suitable placements' });
   await userEvent.click(
     within(placements).getByRole('button', { name: /^Choose suitable placements/ }),
@@ -191,6 +211,10 @@ it('searches classifications and retains values plus field errors after a failed
     placement_ids: [3],
     season_ids: [2],
     notes: 'Kept after failure',
+    latin_title: 'Tarnima',
+    lyrics: 'First line\nSecond line',
+    default_key: 'D minor',
+    tempo: '80 BPM',
   });
 });
 
@@ -201,7 +225,8 @@ it('keeps polyphony voices, numeric duration, and PDF values on a failed save', 
   await userEvent.selectOptions(screen.getByRole('combobox', { name: /^Language/ }), '4');
   await userEvent.click(screen.getByRole('button', { name: /^Choose suitable placements/ }));
   await userEvent.click(screen.getByRole('checkbox', { name: 'Communion' }));
-  await userEvent.click(screen.getByRole('checkbox', { name: 'Suitable regardless of season' }));
+  await userEvent.click(screen.getByRole('button', { name: /^Choose suitable seasons/ }));
+  await userEvent.click(screen.getByRole('checkbox', { name: 'Ordinary Time' }));
   await userEvent.type(screen.getByRole('spinbutton', { name: 'Duration (minutes)' }), '3.5');
   await userEvent.click(screen.getByRole('checkbox', { name: 'Polyphony (multiple voices)' }));
   await userEvent.click(screen.getByRole('button', { name: 'Add voice' }));
@@ -221,6 +246,8 @@ it('keeps polyphony voices, numeric duration, and PDF values on a failed save', 
   expect(screen.getByRole('spinbutton', { name: 'Duration (minutes)' })).toHaveValue(3.5);
   expect(screen.getByRole('textbox', { name: 'Voice 1' })).toHaveValue('Soprano');
   expect(writes[0]).toMatchObject({
+    season_ids: [7],
+    is_season_neutral: false,
     is_polyphonic: true,
     voices: ['Soprano', 'Alto'],
     estimated_duration_minutes: '3.5',
@@ -230,3 +257,60 @@ it('keeps polyphony voices, numeric duration, and PDF values on a failed save', 
     expect.objectContaining({ length: 1 }),
   );
 });
+
+it.each([
+  {
+    name: 'inactive Ordinary Time cannot be newly linked',
+    available: [
+      choices['liturgical-seasons'][0],
+      { ...choices['liturgical-seasons'][1], is_active: false },
+    ],
+    saved: [],
+    expected: [],
+    neutral: true,
+  },
+  {
+    name: 'missing Ordinary Time preserves neutral and explicit classifications',
+    available: [choices['liturgical-seasons'][0]],
+    saved: [choices['liturgical-seasons'][0]],
+    expected: [2],
+    neutral: true,
+  },
+  {
+    name: 'active Ordinary Time supports conversion',
+    available: choices['liturgical-seasons'],
+    saved: [],
+    expected: [7],
+    neutral: false,
+  },
+  {
+    name: 'existing inactive Ordinary Time can be retained',
+    available: [
+      choices['liturgical-seasons'][0],
+      { ...choices['liturgical-seasons'][1], is_active: false },
+    ],
+    saved: [choices['liturgical-seasons'][1]],
+    expected: [7],
+    neutral: false,
+  },
+])(
+  'saves unrelated neutral-hymn edits when $name',
+  async ({ available, saved, expected, neutral }) => {
+    const writes = mount('Planner', true, undefined, true, { available, saved });
+    await screen.findByRole('heading', { name: 'Edit hymn' });
+    await userEvent.type(screen.getByRole('textbox', { name: 'Lyrics' }), 'Updated lyrics');
+    await userEvent.click(screen.getByRole('button', { name: 'Save hymn' }));
+    // Reach the server with an eligible payload, rather than blocking on a hidden season.
+    expect(await screen.findByRole('alert')).toHaveTextContent('Your input has been kept');
+    expect(writes).toHaveLength(1);
+    expect(writes[0]).toMatchObject({
+      lyrics: 'Updated lyrics',
+      season_ids: expected,
+      is_season_neutral: neutral,
+    });
+    if (neutral) {
+      expect(screen.getByText(/remains suitable for any season/)).toBeVisible();
+      expect(screen.queryByText('Choose at least one season.')).not.toBeInTheDocument();
+    }
+  },
+);

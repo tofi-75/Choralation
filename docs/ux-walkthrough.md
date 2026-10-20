@@ -48,7 +48,6 @@ Basic information
 Classification
   Genres                 [Traditional ×] [Choose            ▾]
   Suitable placements*   [Communion ×] [Thanksgiving ×] [+    ]
-  Season-neutral         [ ] Suitable regardless of season
   Suitable seasons       [Easter ×] [Choose                 ▾]
   Tags                   [Choose                           ▾]
 Musical/reference information
@@ -59,7 +58,7 @@ Musical/reference information
                          [Save hymn]
 ```
 
-Require season when not neutral. Allow neutral plus explicit seasons; explain this as a hymn usable generally but also classified for particular seasons. Genres/tags remain optional. Each searchable select supports keyboard input, navigation, removal, and a clearly labeled close button. Show retained inactive values with `Inactive` text while excluding them from new choices.
+Require at least one season. Select Ordinary Time for a hymn suitable in every season; there is no separate season-neutral checkbox. Existing season-neutral hymns open with Ordinary Time selected, and saving uses that classification. Genres/tags remain optional. Each searchable select supports keyboard input, navigation, removal, and a clearly labeled close button. Show retained inactive values with `Inactive` text while excluding them from new choices.
 
 **Mobile:** One column, real labels above each input, no tabs hiding errors. Sticky save area must not obscure the last field or focused control.
 
@@ -95,7 +94,7 @@ The illustrative section count is based on the eleven seeded placements; compute
 
 **Conflict:** Show `This Mass changed in another session. Your edits have not been saved.` Provide View saved version and Review my changes; preserve the working copy. Reload is an explicit choice after review, never an automatic destructive refresh. No force-overwrite button bypasses revisions.
 
-**Finalization:** The saved page already shows the program and its advisory notes. Finalize Mass submits once beside a small read-only/usage-count notice, without a repeated-program popup. Conflicting revisions require checking the refreshed program before another attempt. Finalized view removes editing controls and shows finalized state/timestamp. Admin sees Reopen with an explanation that history totals will change; Planner/Viewer cannot reopen.
+**Finalization (October 19):** The saved page already shows the program and its advisory notes. Finalize and the Edit pen sit at top right. Desktop hover/focus explains read-only state and usage before a direct finalization; narrow/touch screens require a short confirmation. Conflicting revisions require checking the refreshed program before another attempt. Finalized programs show a confirmed Edit pen for Planner/Admin, returning to draft before editing. Only Admin sees confirmed Delete; hymn records remain. Viewers have no mutation controls.
 
 ## 4. Hymn picker — All Hymns M3, Recommended M5
 
@@ -190,3 +189,9 @@ The sidebar music mark toggles a narrow navigation rail on desktop. Hymn order u
 Mass plans starts with Ready Masses (finalized). Use Pending drafts to continue a saved draft. A compact search and Filters icon replace the large search panel. Clearing search/date/season preserves your selected list; switching lists preserves filters and starts at page one. Past records remain under Archived. The floating arrow returns to Create Mass. See [Mass list review](mass-list-review.md).
 
 Date and season controls share a height; optional title/notes occupy separate rows. Desktop picker columns are tighter and use page scrolling; drag handles appear as plain icons. See [the refinement report](planning-refinement.md).
+
+## October 20 reading update
+
+Hymn detail now leads with key/tempo/voice count, PDF then lyrics; classification is concise and usage/date move into metadata. Edit is a labeled pen icon. The form uses burgundy required stars and optional Latin Characters Name for non-Latin titles, with lyrics/key/tempo beside sheet music.
+
+Saved programs center and emphasize hymn titles. Focus mode opens a stable snapshot of selected hymns in program order: uploaded PDF, otherwise lyrics, otherwise title. Swipe or use previous/next/keyboard arrows; Exit/Escape releases the screen wake lock and returns to the saved program. Browser/system support determines whether the screen-awake request is granted. See [performance UI review](ui-performance-review.md) for verification and follow-up work; full Arabic translation and language settings remain deferred.

@@ -244,9 +244,6 @@ textarea {
 .full-width {
   grid-column: 1 / -1;
 }
-.neutral-choice {
-  padding: 0 0 1rem;
-}
 .form-actions {
   display: flex;
   gap: 0.8rem;
@@ -976,12 +973,6 @@ input[aria-invalid='true'] {
   align-items: center;
   min-height: 44px;
   padding: 0.25rem 0;
-}
-.neutral-choice {
-  padding: 0;
-  min-height: 44px;
-  align-items: center;
-  margin-bottom: 0.5rem;
 }
 .voice-editor {
   border-top: 1px solid #e3d9cb;
@@ -1889,18 +1880,6 @@ input[aria-invalid='true'] {
   opacity: 0.45;
   cursor: default;
 }
-.mass-lifecycle-inline {
-  max-width: 21rem;
-}
-.mass-lifecycle-inline > p {
-  margin: 0 0 0.35rem;
-}
-.mass-lifecycle-inline > .notice {
-  margin: 0.5rem 0;
-}
-.mass-lifecycle-inline .text-button {
-  margin-top: 0.35rem;
-}
 /* Fixed compact widths, full text in the DOM and native hover text for overflow. */
 .picker-column-title {
   width: 180px;
@@ -1960,4 +1939,550 @@ input[aria-invalid='true'] {
 
 .picker-table td:last-child {
   padding-inline: 0.125rem;
+}
+
+/* Home emphasizes the next service; the remaining programs stay compact. */
+.home-section {
+  margin: 0 0 2rem;
+}
+.home-section > h2,
+.home-section .section-heading h2 {
+  font-size: 1.2rem;
+  margin: 0 0 0.7rem;
+}
+.home-heading .form-actions,
+.mass-page-actions {
+  justify-content: flex-end;
+}
+.upcoming-masses {
+  gap: 0.65rem;
+}
+.upcoming-masses .mass-card {
+  padding: 0.85rem 1rem;
+}
+.next-mass {
+  grid-column: 1 / -1;
+  border-inline-start: 4px solid #6b2334;
+  background: #f8eeef;
+}
+.next-mass h3 {
+  font-size: 1.35rem;
+}
+.upcoming-masses time {
+  color: #6b2334;
+  font-weight: 600;
+}
+.recent-hymns {
+  list-style: none;
+  padding: 0;
+  border: 1px solid #e3d9cb;
+  border-radius: 12px;
+  background: white;
+}
+.recent-hymns li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  overflow-wrap: anywhere;
+}
+.recent-hymns li + li {
+  border-top: 1px solid #eee7dd;
+}
+.practice-placeholder {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+}
+.coming-soon {
+  color: #6b2334;
+  background: #f1e5e5;
+  border-radius: 20px;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.85rem;
+}
+.archive-hymns {
+  font-size: 0.85rem;
+  margin: 0.7rem 0 0;
+  padding-inline-start: 1rem;
+}
+.mass-card h3 a {
+  color: inherit;
+}
+.mass-page-actions {
+  flex-wrap: wrap;
+}
+/* Native date inputs have intrinsic widths in Safari; constrain the whole wrapper. */
+.date-input-wrap {
+  position: relative;
+  display: block;
+  min-width: 0;
+  width: 100%;
+  max-width: 13rem;
+}
+.date-input-wrap .mass-date-control {
+  display: block;
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  padding-inline-end: 2.25rem;
+}
+.date-calendar-icon {
+  position: absolute;
+  inset-inline-end: 0.65rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.date-input-wrap input::-webkit-calendar-picker-indicator {
+  position: absolute;
+  right: 0.5rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  opacity: 0;
+  cursor: pointer;
+}
+.random-picker {
+  border-bottom: 0;
+  border-top: 1px solid #e3d9cb;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+.random-picker > .tiny {
+  flex: 1;
+  min-width: 10rem;
+  margin: 0;
+}
+.random-picker > [role] {
+  flex-basis: 100%;
+}
+.saved-mass-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.saved-mass-heading > div:first-child {
+  order: 1;
+  min-width: 0;
+}
+.saved-mass-actions {
+  align-self: flex-end;
+  max-width: 100%;
+}
+.saved-mass-buttons {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.4rem;
+}
+.saved-mass-buttons .icon-button {
+  width: 40px;
+  min-height: 40px;
+  height: 40px;
+  padding: 0.45rem;
+}
+.finalize-control {
+  position: relative;
+}
+.finalize-tooltip {
+  position: absolute;
+  z-index: 5;
+  inset-inline-end: 0;
+  top: calc(100% + 0.4rem);
+  width: min(19rem, 80vw);
+  padding: 0.7rem;
+  background: #6b2334;
+  color: white;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 400;
+  visibility: hidden;
+}
+.finalize-control:hover .finalize-tooltip,
+.finalize-control:focus-within .finalize-tooltip {
+  visibility: visible;
+}
+.lifecycle-error {
+  max-width: min(24rem, 80vw);
+}
+@media (max-width: 760px) {
+  .home-heading {
+    flex-wrap: wrap;
+  }
+  .home-heading .form-actions {
+    margin-inline-start: auto;
+  }
+  .home-section .section-heading {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .mass-page-actions {
+    gap: 0.4rem;
+  }
+  .mass-list-controls {
+    margin-top: 0.75rem;
+  }
+  .finalize-tooltip {
+    display: none;
+  }
+  .mass-view .saved-mass-heading {
+    flex-direction: column;
+  }
+}
+
+.archived-program {
+  margin-top: 0.65rem;
+}
+.archived-program summary {
+  cursor: pointer;
+  color: #6b2334;
+  font-size: 0.85rem;
+  padding-block: 0.4rem;
+}
+
+.recent-hymns li > a {
+  flex: 1;
+  min-width: 0;
+}
+.recent-hymns li > span {
+  flex: 0 0 auto;
+  max-width: 30%;
+}
+
+/* Performance review: calm, aligned controls and material-led reading surfaces. */
+.home-section .section-heading {
+  align-items: center;
+  margin-bottom: 0.8rem;
+}
+.home-section .section-heading h2,
+.home-section .section-heading .form-actions {
+  margin: 0;
+}
+.home-section .section-heading .form-actions {
+  align-items: center;
+}
+.mass-page-actions {
+  flex-wrap: nowrap;
+  max-width: 100%;
+  overflow-x: auto;
+  align-items: center;
+}
+.mass-page-actions .button {
+  white-space: nowrap;
+  padding: 0.65rem 0.7rem;
+}
+.saved-program {
+  text-align: center;
+}
+.saved-placement {
+  padding-block: 1.1rem;
+}
+.saved-placement h2 {
+  font-size: 0.8rem;
+  color: #6b2334;
+  letter-spacing: 0.025em;
+}
+.saved-placement ol {
+  list-style: none;
+  padding: 0;
+}
+.saved-placement li > a {
+  display: inline-block;
+  font-size: clamp(1.15rem, 3vw, 1.5rem);
+  font-weight: 650;
+  line-height: 1.5;
+}
+.saved-placement li > .tiny {
+  display: block;
+}
+.saved-mass-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+}
+.required-mark {
+  color: #7c2038;
+  font-weight: 750;
+}
+.hymn-musical-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  margin-top: 0.7rem;
+  font-size: 0.85rem;
+  color: #625a53;
+}
+.hymn-musical-summary strong {
+  color: #3a282b;
+  font-weight: 600;
+}
+.compact-classification {
+  padding: 1rem;
+}
+.compact-classification h2 {
+  font-size: 1rem;
+  margin: 0 0 0.65rem;
+}
+.compact-classification dl {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+}
+.compact-classification dl > div {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0.6rem;
+}
+.compact-classification dt {
+  font-size: 0.8rem;
+  color: #71655c;
+}
+.compact-classification dd {
+  margin: 0;
+}
+.compact-classification .chip {
+  padding: 0.15rem 0.4rem;
+  font-size: 0.8rem;
+}
+.hymn-usage-metadata {
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid #e3d9cb;
+}
+.hymn-material {
+  margin-bottom: 1.25rem;
+  min-width: 0;
+}
+.hymn-lyrics {
+  font-size: clamp(1.15rem, 2.6vw, 1.5rem);
+  line-height: 1.85;
+  max-width: 48rem;
+  margin-inline: auto;
+  padding: 1.5rem;
+  background: white;
+  border: 1px solid #e3d9cb;
+  border-radius: 12px;
+  overflow-wrap: anywhere;
+}
+.pdf-sheet {
+  min-width: 0;
+  width: 100%;
+}
+.pdf-sheet canvas {
+  display: block;
+  max-width: 100%;
+  margin-inline: auto;
+  background: white;
+  border-radius: 4px;
+}
+.pdf-toolbar,
+.pdf-pages {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+.pdf-toolbar {
+  padding-block: 0.5rem;
+  font-size: 0.8rem;
+  min-height: 44px;
+  flex-wrap: wrap;
+}
+.pdf-pages .button {
+  min-height: 36px;
+  padding: 0.25rem 0.65rem;
+}
+.external-score {
+  display: inline-block;
+  margin-block: 0.65rem;
+}
+.material-error {
+  padding: 0.75rem;
+  background: #f7e9e9;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+.mass-focus {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  background: #faf7f2;
+  color: #282321;
+  height: 100dvh;
+  width: 100%;
+  outline: none;
+}
+.focus-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: max(0.75rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) 0.75rem
+    max(1rem, env(safe-area-inset-left));
+  background: #fffdf9;
+  border-bottom: 1px solid #e3d9cb;
+}
+.focus-header h2 {
+  margin: 0;
+  font-family: inherit;
+  font-size: 1rem;
+}
+.focus-header p {
+  margin: 0.2rem 0 0;
+  color: #776b61;
+  font-size: 0.8rem;
+}
+.focus-close {
+  flex-shrink: 0;
+  padding: 0.5rem 0.8rem;
+  min-height: 44px;
+}
+.focus-reading {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y pinch-zoom;
+  padding: 1rem max(1rem, env(safe-area-inset-right)) 2rem max(1rem, env(safe-area-inset-left));
+}
+.focus-reading > h2 {
+  font-size: clamp(1.3rem, 4vw, 2rem);
+  text-align: center;
+  margin: 0.3rem 0 1rem;
+}
+.focus-placement {
+  text-align: center;
+  color: #6b2334;
+  font-size: 0.8rem;
+  font-weight: 650;
+  margin: 0;
+}
+.focus-notes {
+  text-align: center;
+  font-size: 0.9rem;
+}
+.focus-material {
+  max-width: 64rem;
+  margin-inline: auto;
+}
+.focus-material .hymn-lyrics {
+  font-size: clamp(1.3rem, 3vw, 1.75rem);
+}
+.focus-title-only {
+  min-height: 35vh;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  font-size: clamp(2rem, 7vw, 4rem);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.focus-footer {
+  border-top: 1px solid #e3d9cb;
+  background: #fffdf9;
+  padding: 0.65rem 1rem max(0.65rem, env(safe-area-inset-bottom));
+}
+.focus-footer nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+}
+.focus-footer nav > span {
+  min-width: 7rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9rem;
+}
+.focus-footer nav .button {
+  min-width: 48px;
+  min-height: 44px;
+  padding: 0.45rem 0.9rem;
+}
+.awake-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-size: 0.7rem;
+  color: #776b61;
+  margin-top: 0.4rem;
+}
+@media (max-width: 760px) {
+  .mass-page-actions {
+    width: 100%;
+    justify-content: flex-start;
+    margin: 0;
+    gap: 0.35rem;
+  }
+  .mass-page-actions .button {
+    font-size: clamp(0.7rem, 2.6vw, 0.875rem);
+    padding-inline: 0.55rem;
+    min-height: 44px;
+  }
+  .page-heading:has(> .mass-page-actions) {
+    flex-wrap: wrap;
+  }
+  .hymn-lyrics {
+    padding: 1rem;
+  }
+  .focus-header p {
+    max-width: 15rem;
+  }
+}
+
+.pdf-sheet + .hymn-lyrics {
+  margin-top: 1rem;
+}
+
+/* Expand the same private PDF without leaving the library or active Mass. */
+.pdf-preview {
+  display: block;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+.pdf-preview:focus-visible {
+  outline: 2px solid #6b2334;
+  outline-offset: 3px;
+}
+.pdf-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  width: 100%;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: #faf7f2;
+  color: #282321;
+  outline: none;
+}
+.pdf-fullscreen::backdrop {
+  background: #faf7f2;
+}
+.pdf-fullscreen .focus-header h2 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.pdf-fullscreen-reading {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y pinch-zoom;
+  box-sizing: border-box;
+  padding: 0 max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom))
+    max(1rem, env(safe-area-inset-left));
 }

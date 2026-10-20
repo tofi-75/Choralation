@@ -17,9 +17,7 @@ test('Browser review: duplicate date, compact inline picker, HTTP random selecti
   await page.getByLabel('Username').fill(`e2e-${suffix}-planner`);
   await page.getByLabel('Password').fill(password!);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(
-    page.getByRole('heading', { name: `Welcome, e2e-${suffix}-planner.` }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Masses', exact: true })).toBeVisible();
   const headers = {
     'X-CSRFToken': (await (await page.request.get('/api/v1/auth/csrf/')).json())
       .csrf_token as string,
@@ -44,7 +42,7 @@ test('Browser review: duplicate date, compact inline picker, HTTP random selecti
     }[]
   ).find((row) => row.name === 'Communion')!;
   await page.goto('/masses');
-  await page.getByRole('link', { name: 'Create Mass', exact: true }).click();
+  await page.getByRole('link', { name: 'New Mass', exact: true }).click();
   await expect(page).toHaveURL(/\/masses\/new$/);
   await expect(page.getByLabel('Search Mass plans')).toHaveCount(0);
   await page.getByLabel('Date', { exact: true }).fill('2026-10-11');
@@ -158,6 +156,6 @@ test('Browser review: duplicate date, compact inline picker, HTTP random selecti
   await page.setViewportSize({ width: page.viewportSize()!.width, height: 520 });
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   await page.getByRole('button', { name: 'Scroll to top', exact: true }).click();
-  await expect(page.getByRole('link', { name: 'Create Mass', exact: true })).toBeInViewport();
+  await expect(page.getByRole('link', { name: 'New Mass', exact: true })).toBeInViewport();
   await expect(page.getByRole('button', { name: 'Scroll to top', exact: true })).toHaveCount(0);
 });

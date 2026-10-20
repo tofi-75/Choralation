@@ -17,7 +17,6 @@ type Values = Record<TextField, string> & {
   season_ids: number[];
   placement_ids: number[];
   tag_ids: number[];
-  is_season_neutral: boolean;
   estimated_duration_minutes: string;
   is_polyphonic: boolean;
   voices: { name: string }[];
@@ -29,6 +28,8 @@ const multiFields = [
   ['tag_ids', 'tags', 'tags', 'Tags'],
 ] as const;
 const lengths: Partial<Record<TextField, number>> = {
+  latin_title: 255,
+  tempo: 50,
   alternate_title: 255,
   first_line: 500,
   composer: 255,
@@ -93,6 +94,13 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
   const [pdf, setPdf] = useState<File | null>(null);
   const [removePdf, setRemovePdf] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const ordinaryTime = categories['liturgical-seasons'].find(
+    (row) =>
+      row.slug === 'ordinary-time' &&
+      (row.is_active || hymn?.seasons.some((season) => season.id === row.id)),
+  );
+  // An inactive category may be retained, but must never be added automatically.
+  const preserveSeasonNeutral = Boolean(hymn?.is_season_neutral && !ordinaryTime);
   const form = useForm<Values>({
     defaultValues: {
       ...(Object.fromEntries(textFields.map(([name]) => [name, hymn?.[name] ?? ''])) as Record<
@@ -102,10 +110,14 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
       title: hymn?.title ?? '',
       language_id: hymn ? String(hymn.language.id) : '',
       genre_ids: hymn?.genres.map((row) => row.id) ?? [],
-      season_ids: hymn?.seasons.map((row) => row.id) ?? [],
+      season_ids: [
+        ...new Set([
+          ...(hymn?.seasons.map((row) => row.id) ?? []),
+          ...(hymn?.is_season_neutral && ordinaryTime ? [ordinaryTime.id] : []),
+        ]),
+      ],
       placement_ids: hymn?.placements.map((row) => row.id) ?? [],
       tag_ids: hymn?.tags.map((row) => row.id) ?? [],
-      is_season_neutral: hymn?.is_season_neutral ?? false,
       estimated_duration_minutes: hymn?.estimated_duration_minutes ?? '',
       is_polyphonic: hymn?.is_polyphonic ?? false,
       voices: hymn?.voices.map((name) => ({ name })) ?? [],
@@ -119,6 +131,13 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
   } = form;
   const voiceFields = useFieldArray({ control, name: 'voices' });
   const polyphonic = form.watch('is_polyphonic');
+  const title = form.watch('title');
+  const language = categories.languages.find((row) => String(row.id) === form.watch('language_id'));
+  const showLatinTitle =
+    ['arabic', 'syriac'].includes(language?.slug ?? '') ||
+    [...title].some((letter) => /\p{Letter}/u.test(letter) && !/\p{Script=Latin}/u.test(letter)) ||
+    Boolean(form.watch('latin_title'));
+
   const dirty = isDirty || Boolean(pdf) || removePdf;
   useBeforeUnload((event) => {
     if (dirty) {
@@ -138,8 +157,8 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
     if (!values.title.trim()) reject('title', 'Enter a hymn title.');
     if (!values.language_id) reject('language_id', 'Choose a language.');
     if (!values.placement_ids.length) reject('placement_ids', 'Choose at least one placement.');
-    if (!values.is_season_neutral && !values.season_ids.length)
-      reject('season_ids', 'Choose a season or mark this hymn season-neutral.');
+    if (!preserveSeasonNeutral && !values.season_ids.length)
+      reject('season_ids', 'Choose at least one season.');
     const voices = values.voices.map((voice) => voice.name.trim());
     if (new Set(voices.map((voice) => voice.toLocaleLowerCase())).size !== voices.length)
       reject('voices', 'Each voice needs a distinct name.');
@@ -174,7 +193,7 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
       season_ids: values.season_ids,
       placement_ids: values.placement_ids,
       tag_ids: values.tag_ids,
-      is_season_neutral: values.is_season_neutral,
+      is_season_neutral: preserveSeasonNeutral,
       estimated_duration_minutes: duration || null,
       is_polyphonic: values.is_polyphonic,
       voices,
@@ -207,9 +226,12 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
   }
   function metadataField(name: TextField, label: string) {
     return (
-      <label className={`field ${name === 'notes' ? 'full-width' : ''}`} key={name}>
+      <label
+        className={`field ${name === 'notes' || name === 'lyrics' ? 'full-width' : ''}`}
+        key={name}
+      >
         {label}
-        {name === 'notes' ? (
+        {name === 'notes' || name === 'lyrics' ? (
           <textarea
             dir="auto"
             rows={5}
@@ -248,12 +270,18 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
           <legend>Basic information</legend>
           <div className="form-grid">
             <label className="field full-width">
-              Title <span className="tiny">(required)</span>
+              <span>
+                Title{' '}
+                <span className="required-mark" aria-hidden="true">
+                  *
+                </span>
+              </span>
               <input
                 dir="auto"
                 maxLength={255}
                 aria-invalid={Boolean(errors.title)}
                 aria-describedby={errors.title ? 'title-error' : undefined}
+                aria-required="true"
                 {...register('title', { required: 'Enter a hymn title.' })}
               />
               {errors.title && (
@@ -263,8 +291,14 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
               )}
             </label>
             <label className="field">
-              Language <span className="tiny">(required)</span>
+              <span>
+                Language{' '}
+                <span className="required-mark" aria-hidden="true">
+                  *
+                </span>
+              </span>
               <select
+                aria-required="true"
                 {...register('language_id', { required: 'Choose a language.' })}
                 aria-invalid={Boolean(errors.language_id)}
                 aria-describedby={errors.language_id ? 'language-error' : undefined}
@@ -285,6 +319,7 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
                 </span>
               )}
             </label>
+            {showLatinTitle && metadataField('latin_title', 'Latin Characters Name')}
             <label className="field">
               Duration (minutes)
               <input
@@ -334,10 +369,16 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
               {voiceFields.fields.map((voice, index) => (
                 <div className="voice-row" key={voice.id}>
                   <label className="field">
-                    <span className="sr-only">Voice {index + 1}</span>
+                    <span className="tiny">
+                      Voice {index + 1}{' '}
+                      <span className="required-mark" aria-hidden="true">
+                        *
+                      </span>
+                    </span>
                     <input
                       dir="auto"
                       placeholder="Voice name"
+                      aria-required="true"
                       maxLength={80}
                       aria-invalid={Boolean(errors.voices?.[index]?.name)}
                       aria-describedby={
@@ -379,10 +420,11 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
         </fieldset>
         <fieldset className="form-section" disabled={isSubmitting}>
           <legend>Classification</legend>
-          <label className="checkbox-choice neutral-choice">
-            <input type="checkbox" {...register('is_season_neutral')} />
-            Suitable regardless of season
-          </label>
+          {preserveSeasonNeutral && (
+            <p className="tiny muted">
+              This hymn remains suitable for any season while Ordinary Time is unavailable.
+            </p>
+          )}
           <div className="classification-grid">
             {multiFields.map(([field, kind, relation, label]) => (
               <Controller
@@ -392,6 +434,10 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
                 render={({ field: controller }) => (
                   <CategorySelect
                     label={label}
+                    required={
+                      field === 'placement_ids' ||
+                      (field === 'season_ids' && !preserveSeasonNeutral)
+                    }
                     choices={categories[kind]}
                     value={controller.value}
                     onChange={controller.onChange}
@@ -404,7 +450,7 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
           </div>
         </fieldset>
         <fieldset className="form-section" disabled={isSubmitting}>
-          <legend>Sheet music</legend>
+          <legend>Sheet music and lyrics</legend>
           {hymn?.sheet_music_pdf && !removePdf && !pdf && (
             <div className="attachment-info">
               <a className="text-button" href={hymn.sheet_music_pdf.url}>
@@ -446,11 +492,22 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
             </p>
           )}
           {metadataField('sheet_music_url', 'Sheet music URL')}
+          {metadataField('lyrics', 'Lyrics')}
+          <div className="form-grid">
+            {metadataField('default_key', 'Default key')}
+            {metadataField('tempo', 'Tempo')}
+          </div>
         </fieldset>
         <details
           className="form-section optional-details"
           open={
-            textFields.some(([name]) => errors[name] && name !== 'sheet_music_url')
+            textFields.some(
+              ([name]) =>
+                errors[name] &&
+                !['sheet_music_url', 'lyrics', 'default_key', 'tempo', 'latin_title'].includes(
+                  name,
+                ),
+            )
               ? true
               : undefined
           }
@@ -462,7 +519,12 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
             <legend className="sr-only">Optional hymn metadata</legend>
             <div className="form-grid">
               {textFields
-                .filter(([name]) => name !== 'sheet_music_url')
+                .filter(
+                  ([name]) =>
+                    !['sheet_music_url', 'lyrics', 'default_key', 'tempo', 'latin_title'].includes(
+                      name,
+                    ),
+                )
                 .map(([name, label]) => metadataField(name, label))}
             </div>
           </fieldset>

@@ -5,6 +5,8 @@ import type { Category } from '../../api/library';
 import { fetchRandomPicks } from '../../api/masses';
 import type { RandomPicks } from '../../api/masses';
 import { newRowKey } from './rowKey';
+import { isSeasonUniversal } from './seasonSuitability';
+import { PlannerIcon } from './PlannerIcon';
 import type { Draft, DraftSaver } from './DraftSaver';
 
 /** Recheck against the latest draft: a manual choice may arrive during the request. */
@@ -24,7 +26,7 @@ export function insertRandomPicks(
       !active.has(placement_id) ||
       !hymn.is_active ||
       !hymn.placements.some((row) => row.id === placement_id) ||
-      (!hymn.is_season_neutral &&
+      (!isSeasonUniversal(hymn) &&
         !hymn.seasons.some((row) => row.id === draft.metadata.liturgical_season_id))
     )
       continue;
@@ -118,17 +120,19 @@ export function RandomPicker({
   return (
     <div className="random-picker">
       <button
-        className="button secondary"
+        className="button secondary icon-button shuffle-button"
+        aria-label={busy ? 'Picking hymns…' : 'Random hymns'}
+        title="Fill empty sections with random hymns"
         disabled={
           busy || calendarPending || !season || empty.length === 0 || Boolean(saver.state.error)
         }
         onClick={() => void pick()}
       >
-        {busy ? 'Picking hymns…' : 'Random hymns'}
+        <PlannerIcon name="shuffle" />
       </button>
       <p className="tiny muted">
         {season
-          ? 'Fill empty placements for this season, including season-neutral hymns. Keeps your choices; avoids repeats.'
+          ? 'Fill empty placements with hymns for this season, Ordinary Time or any season. Keeps your choices; avoids repeats.'
           : 'Select a liturgical season to pick random hymns.'}
       </p>
       {message && <p role="status">{message}</p>}

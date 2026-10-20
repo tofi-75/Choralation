@@ -49,3 +49,6 @@ backups/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Generated PDF.js font and decoder assets
+/frontend/public/assets/pdfjs/

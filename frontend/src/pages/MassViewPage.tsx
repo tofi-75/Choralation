@@ -4,12 +4,11 @@ import { Link, useParams } from 'react-router';
 
 import { fetchMass } from '../api/masses';
 import { fetchMassPlacements } from '../api/library';
-import { useSession } from '../features/auth/SessionProvider';
+import { MassFocusMode } from '../features/masses/MassFocusMode';
 import { MassLifecycle } from '../features/masses/MassLifecycle';
 
 export function MassViewPage() {
   const { id } = useParams();
-  const { user } = useSession();
   const query = useQuery({ queryKey: ['mass', id], queryFn: () => fetchMass(id!) });
   const sections = useQuery({
     queryKey: ['categories', 'mass-placements'],
@@ -54,7 +53,7 @@ export function MassViewPage() {
       <Link className="text-button" to="/masses">
         ← Mass plans
       </Link>
-      <div className="page-heading">
+      <div className="page-heading saved-mass-heading">
         <div>
           <p className="eyebrow">
             {mass.status === 'draft' ? 'Saved draft' : 'Finalized Mass program'}
@@ -68,12 +67,14 @@ export function MassViewPage() {
             {mass.program.length === 1 ? 'hymn' : 'hymns'}
           </p>
         </div>
-        <div className="form-actions">
-          {user && user.role !== 'Viewer' && mass.status === 'draft' && (
-            <Link className="button secondary" to={`/masses/${mass.id}/edit`}>
-              Edit
-            </Link>
-          )}
+        <div className="saved-mass-actions">
+          <MassFocusMode
+            selections={placements.flatMap((placement) =>
+              mass.program
+                .filter((row) => row.placement.id === placement.id)
+                .sort((a, b) => a.position - b.position),
+            )}
+          />
           <MassLifecycle mass={mass} unavailable={query.isFetching || Boolean(query.error)} />
         </div>
       </div>

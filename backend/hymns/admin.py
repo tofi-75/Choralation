@@ -144,7 +144,7 @@ class HymnAdmin(GuardedAdmin):
     edit_roles = {Role.ADMIN, Role.PLANNER}
     list_display = ["title", "language", "is_active", "updated_at"]
     list_filter = ["is_active", "language"]
-    search_fields = ["title", "alternate_title", "composer", "source_or_hymnal"]
+    search_fields = ["title", "latin_title", "alternate_title", "composer", "source_or_hymnal"]
     filter_horizontal = ["genres", "seasons", "placements", "tags"]
     readonly_fields = [
         "created_by",

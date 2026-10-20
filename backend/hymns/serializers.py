@@ -69,6 +69,9 @@ class HymnWriteSerializer(StrictSerializer):
     tag_ids = serializers.ListField(child=serializers.IntegerField(min_value=1), required=False)
     is_season_neutral = serializers.BooleanField(required=False)
     is_active = serializers.BooleanField(required=False)
+    latin_title = OptionalText(max_length=255)
+    lyrics = OptionalText()
+    tempo = OptionalText(max_length=50)
     alternate_title = OptionalText(max_length=255)
     first_line = OptionalText(max_length=500)
     composer = OptionalText(max_length=255)
@@ -146,6 +149,9 @@ class HymnReadSerializer(serializers.ModelSerializer):
             "title",
             "usage_count",
             "last_used_date",
+            "latin_title",
+            "lyrics",
+            "tempo",
             "alternate_title",
             "first_line",
             "composer",

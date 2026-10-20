@@ -83,7 +83,7 @@ it('preserves credentials after a failure and supports retry, login, and logout'
   expect(await screen.findByRole('alert')).toHaveTextContent('Incorrect credentials.');
   expect(screen.getByLabelText('Password')).toHaveValue('kept-secret');
   await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
-  expect(await screen.findByRole('heading', { name: 'Welcome, planner.' })).toBeVisible();
+  expect(await screen.findByRole('heading', { name: 'Masses' })).toBeVisible();
   expect(screen.getByText('Planner', { selector: '.role-badge' })).toBeVisible();
   await userEvent.click(screen.getByRole('button', { name: 'Sign out' }));
   expect(await screen.findByRole('heading', { name: 'Sign in to your workspace' })).toBeVisible();
@@ -122,7 +122,7 @@ it('returns to login on session expiry and clears private cached data', async ()
     ),
   );
   const client = renderApp('/dashboard');
-  await screen.findByRole('heading', { name: 'Welcome, viewer.' });
+  await screen.findByRole('heading', { name: 'Masses' });
   client.setQueryData(['private-data'], { secret: 'do not retain after logout' });
   expired = true;
   await client.refetchQueries({ queryKey: ['session'] });

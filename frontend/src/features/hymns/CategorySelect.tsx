@@ -12,6 +12,7 @@ type Props = {
   retain?: number[];
   includeInactive?: boolean;
   compact?: boolean;
+  required?: boolean;
 };
 export function CategorySelect({
   label,
@@ -22,6 +23,7 @@ export function CategorySelect({
   retain = [],
   includeInactive = false,
   compact = true,
+  required = false,
 }: Props) {
   const id = useId();
   const [search, setSearch] = useState('');
@@ -58,7 +60,15 @@ export function CategorySelect({
           aria-controls={`${id}-choices`}
           onClick={() => setExpanded(!expanded)}
         >
-          <span className="selector-title">{label}</span>
+          <span className="selector-title">
+            {label}
+            {required && (
+              <span className="required-mark" aria-hidden="true">
+                {' '}
+                *
+              </span>
+            )}
+          </span>
           <span className="selection-summary" title={summary} dir="auto">
             {summary}
           </span>

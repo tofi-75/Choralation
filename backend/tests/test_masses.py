@@ -235,11 +235,6 @@ def test_permissions_deletion_finalized_and_admin_inspection(planning):
     api.force_authenticate(users["Admin"])
     assert (
         api.delete(f"/api/v1/masses/{mass['id']}/", HTTP_X_EXPECTED_MASS_REVISION="2").status_code
-        == 409
-    )
-    Mass.objects.filter(pk=mass["id"]).update(status="draft")
-    assert (
-        api.delete(f"/api/v1/masses/{mass['id']}/", HTTP_X_EXPECTED_MASS_REVISION="2").status_code
         == 204
     )
     assert not MassHymnSelection.objects.exists() and Hymn.objects.count() == 2
@@ -353,3 +348,49 @@ def test_any_season_or_unspecified_season_has_no_mismatch_notice(planning, neutr
     assert not any(item["code"] == "season_mismatch" for item in saved.data["warnings"])
     detail = api.get(f"/api/v1/masses/{mass['id']}/").data
     assert not any(item["code"] == "season_mismatch" for item in detail["warnings"])
+
+
+def test_archived_filter_is_applied_before_pagination_using_team_day(planning):
+    api, _, _, _, _, _ = planning
+    today = timezone.localdate()
+    Mass.objects.all().delete()
+    for offset in range(-30, 31):
+        Mass.objects.create(
+            date=today + timedelta(days=offset), title=str(offset), status="finalized"
+        )
+    upcoming = api.get("/api/v1/masses/?status=finalized&archived=false").data
+    assert upcoming["count"] == 31 and len(upcoming["results"]) == 25
+    assert [item["date"] for item in upcoming["results"]] == [
+        (today + timedelta(days=offset)).isoformat() for offset in range(25)
+    ]
+    archived = api.get("/api/v1/masses/history/?status=finalized&archived=true").data
+    assert archived["count"] == 30
+    assert all(item["is_archived"] for item in archived["results"])
+    assert api.get("/api/v1/masses/?archived=invalid").status_code == 400
+
+
+def test_ordinary_time_hymns_are_suitable_preferred_and_random_eligible(planning):
+    api, _, season, placement, hymns, mass = planning
+    ordinary, _ = LiturgicalSeason.objects.get_or_create(
+        slug="ordinary-time", defaults={"name": "Ordinary Time"}
+    )
+    hymns[0].seasons.set([ordinary])
+    saved = put(api, mass, [row(placement, hymns[0])])
+    assert not any(w["code"] == "season_mismatch" for w in saved.data["warnings"])
+    detail = api.get(f"/api/v1/masses/{mass['id']}/").data
+    assert not any(w["code"] == "season_mismatch" for w in detail["warnings"])
+    picks = api.post(
+        f"/api/v1/masses/{mass['id']}/random-picks/",
+        {
+            "season_id": season.pk,
+            "placement_ids": [placement.pk],
+            "excluded_hymn_ids": [hymns[1].pk],
+        },
+        format="json",
+    )
+    assert picks.status_code == 200
+    assert picks.data["picks"][0]["hymn"]["id"] == hymns[0].pk
+    # A universal hymn sorts with season matches ahead of unrelated seasons.
+    hymns[1].seasons.clear()
+    titles = api.get(f"/api/v1/hymns/?preferred_season={season.pk}&ordering=title").data["results"]
+    assert titles[0]["id"] == hymns[0].pk

@@ -176,8 +176,8 @@ def save_program(pk: int, rows: list[dict], actor, expected: str | None) -> Mass
 
 @transaction.atomic
 def delete_mass(pk: int, actor, expected: str | None) -> None:
-    """Admin-only, revision-guarded draft deletion; cascades its own rows only."""
-    checked_mass(pk, actor, expected, Role.ADMIN).delete()
+    """Admin-only deletion of any saved Mass; usage follows its removed selections."""
+    checked_mass(pk, actor, expected, Role.ADMIN, draft_only=False).delete()
 
 
 @transaction.atomic
@@ -188,9 +188,7 @@ def transition_mass(pk: int, actor, expected: str | None, *, reopen: bool = Fals
     Selection identities/order/notes never change. Usage is derived from status,
     so the transaction exposes both the lifecycle and history change together.
     """
-    mass = checked_mass(
-        pk, actor, expected, Role.ADMIN if reopen else Role.PLANNER, draft_only=False
-    )
+    mass = checked_mass(pk, actor, expected, Role.PLANNER, draft_only=False)
     target = "draft" if reopen else "finalized"
     if mass.status != target:
         mass.status = target

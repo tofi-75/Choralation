@@ -70,7 +70,7 @@ Classification tables have the source fields: name, stable unique slug, descript
 
 Hymn title is nonblank but **not unique**. Duplicate titles and language variants are valid independent records. A hymn has one language, and independent M2M genre/season/placement/tag relationships. Require an active language and at least one active placement on creation. Nonneutral hymns require a season; no Admin unclassified exception in version 1. Genres/tags are optional. Normalize optional empty strings to null at the API boundary, trim basic metadata but preserve internal line breaks in notes, and validate URL schemes as HTTP/HTTPS. Duration is a positive decimal, not a float.
 
-Use `PROTECT` for Hymn/Language, Mass/Season, Selection/Hymn and Selection/Placement references. Draft Mass deletion explicitly deletes its own selections in the same transaction; finalized deletion is forbidden. M2M category deletion must first check associations explicitly because Django's through-table cascade alone does not protect them. Reject hymn/category hard deletion when **any** reference exists, including drafts. Never delete usage to make another delete succeed.
+Use `PROTECT` for Hymn/Language, Mass/Season, Selection/Hymn and Selection/Placement references. Admin-only Mass deletion removes its own selections in the same transaction, including finalized programs after explicit UI confirmation. Hymn records remain, and derived usage updates immediately. M2M category deletion must first check associations explicitly because Django's through-table cascade alone does not protect them. Reject hymn/category hard deletion when **any** reference exists, including drafts. Never delete usage to make another delete succeed.
 
 `MassHymnSelection.position` is zero-based and unique within `(mass, placement)`. Require a contiguous 0..n-1 sequence in the save service and reject gaps/duplicates, rather than silently changing caller order. Do not make hymn IDs unique within a Mass/placement. Use a two-phase position update inside the locked transaction (temporary distinct positions above the existing/requested range, then final positions) so swaps cannot violate uniqueness mid-save. Add/remove/move rows within that same transaction and test it against PostgreSQL. No deferrable constraint dependency is needed.
 
@@ -90,7 +90,7 @@ Live category/hymn labels can change in history; no immutable label snapshot is 
 
 ## ADR-005 — Save transactions and Mass lifecycle
 
-Mass state is `draft` or `finalized`, starts at draft, and carries `revision=1`. The program API atomically replaces the complete selection list while retaining row identity supplied by the client. Metadata PATCH, program PUT, finalize, reopen, and draft DELETE share one Mass revision precondition.
+Mass state is `draft` or `finalized`, starts at draft, and carries `revision=1`. The program API atomically replaces the complete selection list while retaining row identity supplied by the client. Metadata PATCH, program PUT, finalize, reopen, and DELETE share one Mass revision precondition.
 
 Each mutation locks the Mass row with `select_for_update`, checks `X-Expected-Mass-Revision` against the current revision returned in `X-Mass-Revision`, verifies role/state, validates all requested relationships, and commits once. An effective change increments the revision once; an identical no-op leaves it unchanged. Selection IDs must belong to that Mass; unknown/foreign IDs are errors. New rows omit `id` and receive one only after commit.
 
@@ -103,10 +103,10 @@ Choose explicit revision headers rather than HTTP ETags: a Mass response contain
 | Finalize | Planner/Admin on draft | Finalized, timestamp set, changed revision |
 | Repeat finalize with current revision | Planner/Admin on finalized | 200 no-op; no new usage/timestamp |
 | Edit finalized | Nobody without reopening | 409 conflict; no write |
-| Reopen | Admin on finalized | Draft, finalized timestamp cleared, changed revision |
-| Repeat reopen with current revision | Admin on draft | 200 no-op |
+| Reopen (confirmed Edit action) | Planner/Admin on finalized | Draft, finalized timestamp cleared, changed revision |
+| Repeat reopen with current revision | Planner/Admin on draft | 200 no-op |
 | Delete draft | Admin | 204; own selections removed atomically |
-| Delete finalized | Nobody | 409 conflict |
+| Delete finalized | Admin | 204; own selections removed atomically, usage recomputed |
 
 Stale revisions fail before idempotent state handling. A replay carrying the old pre-finalization revision therefore gets 412; refetching and retrying with the current revision safely returns the finalized record. No separate usage rows/counters are created.
 
@@ -162,7 +162,7 @@ Phones are the primary usage surface. Keep search visible, category/tag pickers 
 
 `transition_mass` uses the same Mass row lock and expected revision as metadata/program writes. Authorization precedes precondition checking; a stale repeated action remains a conflict. Effective transitions advance revision once, set/clear finalization time and preserve selections. Internal Mass/selection admin remains read-only. No new migration is required: M3 already persisted status and finalized_at.
 
-`hymns/usage.py` supplies correlated finalized-occurrence count/max-date annotations independent of outer category joins. Inclusive usage ranges use one Exists subquery so the same occurrence satisfies both bounds. Never-used and not-used-since use finalized occurrences only; future finalized plans remain included with scheduled wording. History selectors prefetch previews or join Mass/placement rows to avoid per-row fetching. Direct finalization captures the displayed saved revision; Admin reopening binds a confirmation snapshot. Both invalidate all Mass/history/library/hymn/usage query variants. Finalization conflicts refresh the saved program and require explicit acknowledgement before another attempt. An editor mounted before another session finalizes remains mounted with its local working copy for explicit review; new finalized edit-route visits redirect to saved view.
+`hymns/usage.py` supplies correlated finalized-occurrence count/max-date annotations independent of outer category joins. Inclusive usage ranges use one Exists subquery so the same occurrence satisfies both bounds. Never-used and not-used-since use finalized occurrences only; future finalized plans remain included with scheduled wording. History selectors prefetch previews or join Mass/placement rows to avoid per-row fetching. Desktop finalization captures the displayed saved revision and describes its impact on hover/focus. Phone/touch finalization and Planner/Admin finalized Edit bind a confirmation snapshot. Both invalidate all Mass/history/library/hymn/usage query variants. Finalization conflicts refresh the saved program and require explicit acknowledgement before another attempt. An editor mounted before another session finalizes remains mounted with its local working copy for explicit review; new finalized edit-route visits redirect to saved view.
 
 Physical-phone acceptance is required in M4; browser emulation remains supporting evidence. See [M4 progress and acceptance log](m4-report.md).
 
@@ -180,3 +180,7 @@ Use one Render Docker service for built React, Django APIs, admin and static ass
 Supabase supplies PostgreSQL through the SSL session pooler on 5432 and a private S3-compatible PDF bucket. Django continues to enforce all authentication/roles; disable Supabase's unused Data API. S3 secrets remain server-side. Existing authenticated download URLs remain unchanged. Storage failures use generic 503 responses with bounded SDK waits.
 
 Free Render runs migrations/default provisioning before Gunicorn startup, then a real database readiness probe. GitHub checks use disposable PostgreSQL/local files and gate Render's native automatic deploys. Paid upgrades move migrations to pre-deploy and disable startup migrations. Schema changes must remain compatible with the prior app revision. All accounts, provider setup, Git publishing and hosted persistence checks are manual owner steps, and live completion is pending. [Deployment instructions](hosting.md).
+
+## Read-only performance surfaces
+
+`HymnMaterial` owns PDF/lyrics fallback; PDF.js loads lazily and reads the authenticated same-origin sheet-music endpoint. Only one bounded canvas/page is active and document/render tasks are cancelled when leaving. `MassFocusMode` owns current selection, gestures and the visible-document wake lock; it never calls mutation endpoints. The saved Mass determines program order. PDF support files are generated from the pinned package into ignored public assets at build/dev startup. See [performance review](ui-performance-review.md).

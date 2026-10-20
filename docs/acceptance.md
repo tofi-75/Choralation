@@ -45,7 +45,7 @@ Literal Easter + Communion + Traditional + Arabic finds H_RECENT and H_DOUBLE, e
 | A07 / M3 | Rapid edits under slow network; one failed save; two tabs save the same expected revision | No stale response overwrites last edit; retry keeps data; second writer receives precondition conflict; no false Saved state |
 | A08 / M4 | Isolated one-selection draft; finalize, repeat current-revision finalize, reopen, re-finalize | Count 0→1→1→0→1; timestamp/revision follow contract; no duplicate selections; old-revision replay is conflict |
 | A09 / M4 | Load the complete fixture; inspect H_OLD/H_RECENT, history date predicates, and M_INACTIVE_HISTORY | Counts 2 and 3, expected max dates; inactive section visible; scheduled wording; joins do not multiply usage |
-| A10 / M4 | Race save/finalize using separate PostgreSQL transactions; direct edit/delete of finalized; reopen as Planner | Consistent committed program/state, no partial update, finalized writes rejected, only Admin reopens |
+| A10 / M4 | Race save/finalize using separate PostgreSQL transactions; direct edit/delete of finalized; reopen as Planner | Consistent committed program/state, no partial update, direct finalized metadata/program writes rejected; confirmed Planner/Admin Edit reopens; only Admin deletes finalized Masses |
 | A10P / M5 | Coordinator on a real phone: create, scroll picker, touch reorder, notes with keyboard open, save/reopen/Edit, finalize/history, connection interruption/retry; portrait/landscape | Record device, OS/browser, date and outcomes; actions reachable, no horizontal overflow or data loss. iOS Safari and Android Chrome where available; unavailable coverage pending. Emulation alone does not pass. Desktop keyboard/Firefox regression also recorded. |
 | A11 / Deferred | Rank fixture M_TARGET/Communion; filter by language/genre; remove season; clear eligible matches | Exact score map above; neutral eligibility; wrong-season/placement/inactive exclusion; no-season notice; empty results stay empty |
 | A12 / Deferred | Create equal candidates with identical title/date/count; exercise 1/7/8/14/15/30/31/60/61/90/91-day history; test future/same-day drafts/finalized | Deterministic final ID tie; exact weights; history cutoff; reasons match facts; no double recency boost |
@@ -112,3 +112,23 @@ Evidence: [planning refinement](planning-refinement.md). Real-phone acceptance r
 | H3 | Failed GitHub checks block deployment; subsequent passing main commit builds and deploys the hosted app | Manual owner pipeline verification pending |
 
 H2/H3 are required to complete hosting; preparing Docker/YAML/docs alone is insufficient. Physical-phone A10P is moved to M5 and must be recorded on actual devices. Recommendations and saved-Mass performance redesign remain deferred.
+
+
+## October 19, 2026 — Home and saved Mass review
+
+- Login/root opens the Mass-focused home: next finalized Mass first, up to three more upcoming Masses, Drafts and All Masses links, four newest active hymns, All hymns/Add hymn (Planner/Admin), and Practice marked Coming soon. Empty/loading/retry states remain usable.
+- Saved Masses show today/upcoming finalized programs in ascending team-local date order. Drafts have a separate URL-backed list. Archived Masses show only past finalized programs and expand all saved hymns on demand, with direct hymn links. Date filtering occurs before pagination.
+- Creation dates fit their field and are capped at 13rem, with a calendar icon. Random selection is an accessible shuffle icon at the bottom; occupied placements and current edits stay intact.
+- Ordinary Time links are suitable for any season: no mismatch warning in picker/program/saved view; season preference and random picks include them. Literal library filters remain unchanged.
+- Saved drafts place Finalize and the Edit pen at top right. Desktop hover/focus explains finalization; narrow/touch screens use a short confirmation dialog. No permanent plain-text disclaimer.
+- Finalized programs show an Edit pen for Planner/Admin and Delete for Admin only. Both require explicit confirmation. Confirmed Edit returns to draft and removes derived usage until re-finalized; deletion removes the Mass/selections and usage while retaining hymns. Stale revisions never force an action.
+- Browser emulation is regression evidence only; physical-phone M5 acceptance remains pending. No live deployment is implied by these changes.
+
+## October 20 performance materials and reading
+
+- Verify vertically aligned New hymns controls, one-line Mass navigation at 320–844 px and no page overflow.
+- Create an Arabic hymn with Latin Characters Name, lyrics, default key and tempo; save/refresh/edit without loss; find it using native and Latin letters. Required fields show burgundy stars with accessible semantics.
+- Detail shows PDF, then available lyrics, then compact metadata; usage/scheduled date belong at the top of metadata. Edit is an accessible pen icon.
+- In a saved program, titles are centered and prominent. Focus follows saved placement/selection order, preserves duplicates/notes, skips empty sections and shows PDF → lyrics → title priority. Test PDF failure, page changes, boundary controls, left/right swipe, keyboard, Escape and focus restoration.
+- Verify screen-awake request, refusal, release on exit, late request resolution and visibility reacquisition. Browser support/system policy determine availability; confirm on actual phones under M5.
+- Future Arabic language settings require complete English/Arabic translation, RTL, remembered preference, localized labels/errors/dates and unchanged hymn content. Feature remains deferred; see [UI improvement plan](ui-performance-review.md).

@@ -94,3 +94,7 @@ Docker configuration is supplied and pinned but not executed; Docker is unavaila
 ## Hosting additions — October 13, 2026
 
 WhiteNoise 6.12.0 and django-storages[s3] 1.14.6 were verified against PyPI and installed in the project virtual environment. The existing lock generator resolves their S3 transitive dependencies into the base/dev/production locks. Runtime pins remain Python 3.14.8, Node 24.19.0 and npm 11.21.0. The new production image builds React and serves it with Django; the development backend Dockerfile remains separate. See [hosting report](hosting-report.md) for actual verification status.
+
+## October 20 PDF viewer addition
+
+Added exact `pdfjs-dist@6.4.299` (Node >=22.13 or >=24; project Node 24 satisfies it). [Mozilla's PDF.js examples](https://mozilla.github.io/pdf.js/examples/) supply the document/page/viewport/canvas pattern. Worker, fonts, CMaps and WASM ship locally; no CDN/viewer service is used. `npm install` completed without bypassed peer requirements and reported no dependency vulnerabilities. The PDF viewer is a lazy chunk; generated support assets remain ignored and regenerate during dev/build/browser-test hooks.

@@ -69,7 +69,7 @@ function mount(
 it('shows compact ordered hymns and notes with an explicit edit link', async () => {
   mount();
   expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent('Draft Mass');
-  expect(screen.getByRole('link', { name: 'Edit' })).toHaveAttribute('href', '/masses/1/edit');
+  expect(screen.getByRole('link', { name: 'Edit Mass' })).toHaveAttribute('href', '/masses/1/edit');
   expect(screen.getByRole('region', { name: 'Communion' })).toHaveTextContent('First hymn');
   expect(screen.getByRole('region', { name: 'Entrance' })).toHaveTextContent('Hymn not selected');
   expect(
@@ -98,9 +98,9 @@ it('retains a selected inactive section alongside empty active sections', async 
 });
 it.each([
   ['Viewer', 'draft'],
-  ['Planner', 'finalized'],
+  ['Viewer', 'finalized'],
 ] as const)('does not offer editing to %s for a %s Mass', async (role, status) => {
   mount(role, status);
   await screen.findByRole('heading', { level: 1 });
-  expect(screen.queryByRole('link', { name: 'Edit' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: 'Edit Mass' })).not.toBeInTheDocument();
 });

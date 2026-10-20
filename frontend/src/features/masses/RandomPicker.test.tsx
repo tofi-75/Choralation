@@ -148,3 +148,24 @@ it('inserts distinct rows on HTTP browsers that do not expose crypto.randomUUID'
     next.rows[0].key,
   );
 });
+
+it('accepts Ordinary Time hymns for another season', () => {
+  const saver = saverWithSeason();
+  const next = insertRandomPicks(
+    saver.state.draft,
+    [
+      {
+        placement_id: 1,
+        hymn: {
+          ...hymn,
+          is_season_neutral: false,
+          seasons: [{ ...category, id: 9, slug: 'ordinary-time', name: 'Ordinary Time' }],
+        },
+      },
+    ],
+    placements,
+  );
+  expect(next.rows).toHaveLength(1);
+  saver.update(next);
+  expect(saver.programWarnings).toEqual([]);
+});

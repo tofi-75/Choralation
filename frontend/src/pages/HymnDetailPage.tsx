@@ -5,6 +5,8 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router';
 
 import { deleteHymn, setHymnActive, textFields } from '../api/library';
 import { useSession } from '../features/auth/SessionProvider';
+import { HymnMaterial } from '../features/hymns/HymnMaterial';
+import { PlannerIcon } from '../features/masses/PlannerIcon';
 import { CategoryChips } from '../features/hymns/HymnSummary';
 import { useHymn, useRefreshLibrary } from '../features/hymns/queries';
 import { UsageSummary } from '../features/hymns/UsageSummary';
@@ -53,6 +55,12 @@ export function HymnDetailPage() {
       </section>
     );
   const saved = hymn.data;
+  const classifications = [
+    ['Genres', saved.genres],
+    ['Placements', saved.placements],
+    ['Seasons', saved.seasons],
+    ['Tags', saved.tags],
+  ] as const;
   const operation =
     action === 'delete' ? 'Delete hymn' : saved.is_active ? 'Deactivate hymn' : 'Reactivate hymn';
   return (
@@ -70,10 +78,27 @@ export function HymnDetailPage() {
             {saved.language.name} · {saved.is_active ? 'Active' : 'Inactive'}
             {saved.is_polyphonic && ' · Polyphonic'}
           </p>
+          <p className="hymn-musical-summary" aria-label="Musical details">
+            <span>
+              Key <strong>{saved.default_key ?? '—'}</strong>
+            </span>
+            <span>
+              Tempo <strong>{saved.tempo ?? '—'}</strong>
+            </span>
+            <span>
+              Voices{' '}
+              <strong>{saved.is_polyphonic ? saved.voices.length || 'Unspecified' : 1}</strong>
+            </span>
+          </p>
         </div>
         {user?.role !== 'Viewer' && (
-          <Link className="button primary" to={`/hymns/${saved.id}/edit`}>
-            Edit hymn
+          <Link
+            className="button primary icon-button"
+            to={`/hymns/${saved.id}/edit`}
+            aria-label="Edit hymn"
+            title="Edit hymn"
+          >
+            <PlannerIcon name="edit" />
           </Link>
         )}
       </div>
@@ -85,35 +110,31 @@ export function HymnDetailPage() {
       {!saved.is_active && (
         <p className="notice">This hymn is inactive. Its saved information is retained.</p>
       )}
-      <UsageSummary hymn={saved} />
-      <section className="detail-section" aria-labelledby="classification-title">
+      <HymnMaterial key={`material-${saved.id}`} hymn={saved} />
+      <section
+        className="detail-section compact-classification"
+        aria-labelledby="classification-title"
+      >
         <h2 id="classification-title">Classification</h2>
-        <dl className="detail-grid">
-          <div>
-            <dt>Genres</dt>
-            <dd>
-              <CategoryChips categories={saved.genres} />
-            </dd>
-          </div>
-          <div>
-            <dt>Placements</dt>
-            <dd>
-              <CategoryChips categories={saved.placements} />
-            </dd>
-          </div>
-          <div>
-            <dt>Seasons</dt>
-            <dd>
-              {saved.is_season_neutral && <span className="chip">Season-neutral</span>}
-              <CategoryChips categories={saved.seasons} />
-            </dd>
-          </div>
-          <div>
-            <dt>Tags</dt>
-            <dd>
-              <CategoryChips categories={saved.tags} />
-            </dd>
-          </div>
+        <dl>
+          {classifications
+            .filter(
+              ([label, categories]) =>
+                categories.length || (label === 'Seasons' && saved.is_season_neutral),
+            )
+            .map(([label, categories]) => (
+              <div key={label}>
+                <dt>{label}</dt>
+                <dd>
+                  {label === 'Seasons' &&
+                    saved.is_season_neutral &&
+                    !saved.seasons.some((season) => season.slug === 'ordinary-time') && (
+                      <span className="chip">Any season</span>
+                    )}
+                  {categories.length > 0 && <CategoryChips categories={categories} />}
+                </dd>
+              </div>
+            ))}
         </dl>
       </section>
       {saved.is_polyphonic && (
@@ -132,37 +153,18 @@ export function HymnDetailPage() {
           )}
         </section>
       )}
-      {(saved.sheet_music_pdf || saved.sheet_music_url) && (
-        <section className="detail-section" aria-labelledby="sheet-title">
-          <h2 id="sheet-title">Sheet music</h2>
-          {saved.sheet_music_pdf && (
-            <a
-              className="button secondary pdf-download"
-              href={saved.sheet_music_pdf.url}
-              dir="auto"
-            >
-              Download PDF · {saved.sheet_music_pdf.name}
-            </a>
-          )}
-          {saved.sheet_music_url && (
-            <p>
-              <a
-                className="text-button"
-                href={saved.sheet_music_url}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Open sheet music link
-              </a>
-            </p>
-          )}
-        </section>
-      )}
       <section className="detail-section" aria-labelledby="metadata-title">
         <h2 id="metadata-title">Details and references</h2>
+        <div className="hymn-usage-metadata">
+          <UsageSummary hymn={saved} dateFirst />
+        </div>
         <dl className="detail-grid">
           {textFields
-            .filter(([name]) => saved[name] && name !== 'sheet_music_url')
+            .filter(
+              ([name]) =>
+                saved[name] &&
+                !['sheet_music_url', 'lyrics', 'tempo', 'default_key'].includes(name),
+            )
             .map(([name, label]) => (
               <div key={name} className={name === 'notes' ? 'full-width' : ''}>
                 <dt>{label}</dt>

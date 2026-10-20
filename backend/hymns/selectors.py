@@ -107,6 +107,7 @@ def library_queryset(params) -> QuerySet:
         search = Q()
         for name in (
             "title",
+            "latin_title",
             "alternate_title",
             "first_line",
             "composer",
@@ -222,7 +223,9 @@ def library_queryset(params) -> QuerySet:
             raise ValidationError({"preferred_season": ["Supply one existing positive season ID."]})
         # A subquery avoids multiplying rows for multi-season hymns. Preference
         # changes ordering only; literal season filtering above stays unchanged.
-        matching_ids = Hymn.objects.filter(seasons=value).values("pk")
+        matching_ids = Hymn.objects.filter(
+            Q(seasons=value) | Q(seasons__slug="ordinary-time")
+        ).values("pk")
         rows = rows.annotate(
             _season_preferred=ExpressionWrapper(
                 Q(is_season_neutral=True) | Q(pk__in=matching_ids), output_field=BooleanField()

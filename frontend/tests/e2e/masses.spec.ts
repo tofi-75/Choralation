@@ -14,7 +14,7 @@ async function signIn(page: Page, role = 'Planner') {
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(
     page.getByRole('heading', {
-      name: `Welcome, e2e-${suffix}-${role.toLowerCase()}.`,
+      name: 'Masses',
       exact: true,
     }),
   ).toBeVisible();
@@ -98,7 +98,7 @@ test('Mass list: nearest upcoming first and past Masses archived at the end', as
     expect(response.status()).toBe(201);
   }
   await page.goto('/masses');
-  await page.getByRole('button', { name: 'Pending drafts', exact: true }).click();
+  await page.getByRole('link', { name: 'Drafts', exact: true }).click();
   await page.getByLabel('Search Mass plans').fill(prefix);
   await expect(page.locator('.mass-card')).toHaveCount(5);
   await expect(page.locator('.mass-card h3')).toHaveText(
@@ -114,7 +114,7 @@ test('Mass list: nearest upcoming first and past Masses archived at the end', as
   await page.screenshot({ path: info.outputPath('mass-list-order.png'), fullPage: true });
   await archived.getByRole('link', { name: new RegExp(`${prefix} Yesterday`) }).click();
   await expect(page.getByText('Saved draft', { exact: true })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Edit', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Edit Mass', exact: true })).toBeVisible();
 });
 
 test('Section picker and saved view: preference, scrolling, failed save and edit reentry', async ({
@@ -268,7 +268,7 @@ test('Section picker and saved view: preference, scrolling, failed save and edit
   );
   await page.screenshot({ path: info.outputPath('saved-mass-view.png'), fullPage: true });
   await page.reload();
-  await page.getByRole('link', { name: 'Edit', exact: true }).click();
+  await page.getByRole('link', { name: 'Edit Mass', exact: true }).click();
   await editSelection(page, matching);
   await expect(
     page.getByRole('textbox', { name: `Selection notes for ${matching}`, exact: true }),
@@ -276,10 +276,10 @@ test('Section picker and saved view: preference, scrolling, failed save and edit
   await page.getByRole('button', { name: 'Save draft', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/masses/${mass.id}$`));
   await page.getByRole('link', { name: '← Mass plans', exact: true }).click();
-  await page.getByRole('button', { name: 'Pending drafts', exact: true }).click();
+  await page.getByRole('link', { name: 'Drafts', exact: true }).click();
   await page.getByLabel('Search Mass plans').fill('Sunday Mass');
-  await page.locator(`a.mass-card[href="/masses/${mass.id}"]`).click();
-  await expect(page.getByRole('link', { name: 'Edit', exact: true })).toBeVisible();
+  await page.locator(`.mass-card a[href="/masses/${mass.id}"]`).click();
+  await expect(page.getByRole('link', { name: 'Edit Mass', exact: true })).toBeVisible();
   await expect(page.getByRole('textbox')).toHaveCount(0);
 });
 
@@ -339,7 +339,7 @@ test('Random picker: matching choices, retained notes, failed save retry and rel
         id: number;
         is_active: boolean;
         is_season_neutral: boolean;
-        seasons: { id: number }[];
+        seasons: { id: number; slug: string }[];
         placements: { id: number }[];
       };
       notes: string | null;
@@ -354,7 +354,8 @@ test('Random picker: matching choices, retained notes, failed save retry and rel
     expect(row.hymn.is_active).toBe(true);
     expect(row.hymn.placements.some((slot) => slot.id === row.placement.id)).toBe(true);
     expect(
-      row.hymn.is_season_neutral || row.hymn.seasons.some((item) => item.id === season.id),
+      row.hymn.is_season_neutral ||
+        row.hymn.seasons.some((item) => item.id === season.id || item.slug === 'ordinary-time'),
     ).toBe(true);
   }
   await page.reload();
@@ -378,7 +379,7 @@ test('Planner: multiple rows, reorder, retry, conflict review, and navigation gu
   await seedHymn(page, second);
   page.on('dialog', (dialog) => void dialog.accept());
   await page.goto('/masses');
-  await page.getByRole('link', { name: 'Create Mass', exact: true }).click();
+  await page.getByRole('link', { name: 'New Mass', exact: true }).click();
   await page.getByLabel('Date', { exact: true }).fill('2026-10-07');
   await page.getByText('Title and notes (optional)', { exact: true }).click();
   await page.getByLabel('Title', { exact: true }).fill(programTitle);
@@ -472,10 +473,10 @@ test('Planner: multiple rows, reorder, retry, conflict review, and navigation gu
   await page.getByRole('button', { name: 'Retry save', exact: true }).click();
   await saved(page);
   await page.getByRole('link', { name: '← Mass plans', exact: true }).click();
-  await page.getByRole('button', { name: 'Pending drafts', exact: true }).click();
+  await page.getByRole('link', { name: 'Drafts', exact: true }).click();
   await page.getByLabel('Search Mass plans').fill(programTitle);
   await page.getByRole('link', { name: new RegExp(programTitle) }).click();
-  await page.getByRole('link', { name: 'Edit', exact: true }).click();
+  await page.getByRole('link', { name: 'Edit Mass', exact: true }).click();
   await saved(page);
   await editSelection(page, second);
   await expect(
@@ -544,12 +545,10 @@ test('Planner: multiple rows, reorder, retry, conflict review, and navigation gu
   await page.getByLabel('Username').fill(`e2e-${suffix}-viewer`);
   await page.getByLabel('Password').fill(password!);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(
-    page.getByRole('heading', { name: `Welcome, e2e-${suffix}-viewer.`, exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Masses', exact: true })).toBeVisible();
   await page.goto(url);
   await expect(page).toHaveURL(url.replace(/\/edit$/, ''));
-  await expect(page.getByRole('link', { name: 'Edit', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Edit Mass', exact: true })).toHaveCount(0);
   await expect(page.getByRole('textbox')).toHaveCount(0);
   await expect(
     page.getByRole('button', { name: 'Add hymn to Communion', exact: true }),
@@ -596,7 +595,7 @@ test('Planner: optional details, create retry, saved filters, and picker sorting
   await seedHymn(page, hymn);
   page.on('dialog', (dialog) => void dialog.accept());
   await page.goto('/masses');
-  await page.getByRole('link', { name: 'Create Mass', exact: true }).click();
+  await page.getByRole('link', { name: 'New Mass', exact: true }).click();
   await expect(page.getByLabel('Title', { exact: true })).toBeHidden();
   await page.getByLabel('Date', { exact: true }).fill('2026-10-08');
   await page.getByText('Title and notes (optional)', { exact: true }).click();
@@ -676,7 +675,7 @@ test('Planner: optional details, create retry, saved filters, and picker sorting
   await expect(page.getByRole('link', { name: replacement, exact: true })).toHaveCount(0);
 
   await page.getByRole('link', { name: '← Mass plans', exact: true }).click();
-  await page.getByRole('button', { name: 'Pending drafts', exact: true }).click();
+  await page.getByRole('link', { name: 'Drafts', exact: true }).click();
   await page.getByLabel('Search Mass plans').fill(title);
   await page.getByRole('button', { name: 'Filters', exact: true }).click();
   await page.getByLabel('From date').fill('2026-10-08');
@@ -809,7 +808,7 @@ test('Planner: nearest Sunday, Maronite date selection and manual season overrid
   });
   page.on('dialog', (dialog) => void dialog.accept());
   await page.goto('/masses');
-  await page.getByRole('link', { name: 'Create Mass', exact: true }).click();
+  await page.getByRole('link', { name: 'New Mass', exact: true }).click();
   await expect(page.getByLabel('Date', { exact: true })).toHaveValue(nearestSunday());
   await expect(page.getByRole('combobox', { name: 'Liturgical season', exact: true })).toHaveValue(
     /\d+/,
