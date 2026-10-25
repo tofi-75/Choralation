@@ -1717,6 +1717,7 @@ input[aria-invalid='true'] {
 .picker-filters .form-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.4rem;
+  align-items: end;
 }
 .picker-filters .field {
   min-width: 0;

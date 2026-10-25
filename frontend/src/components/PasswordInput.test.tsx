@@ -105,3 +105,13 @@ it('toggles visibility without submitting or changing the actual form value', ()
   expect(input).toHaveAttribute('type', 'password');
   expect(submit).not.toHaveBeenCalled();
 });
+
+it('preserves the selection when switching password visibility', () => {
+  const { input } = mount();
+  fireEvent.input(input, { target: { value: 'abcdef' }, inputType: 'insertFromPaste' });
+  input.setSelectionRange(2, 4);
+  fireEvent.click(screen.getByRole('button', { name: 'Show password' }));
+  expect([input.selectionStart, input.selectionEnd]).toEqual([2, 4]);
+  fireEvent.click(screen.getByRole('button', { name: 'Hide password' }));
+  expect([input.selectionStart, input.selectionEnd]).toEqual([2, 4]);
+});

@@ -248,7 +248,16 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   await fullscreen.getByRole('button', { name: 'Next PDF page', exact: true }).click();
   await expect(fullscreen.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();
   const originalSize = page.viewportSize()!;
-  await page.setViewportSize({ width: 844, height: 390 });
+  // Emulate rotation without resizing the native fullscreen window (Linux disallows that).
+  const rotation = await page.context().newCDPSession(page);
+  const mobile = info.project.use.isMobile ?? false;
+  await rotation.send('Emulation.setDeviceMetricsOverride', {
+    width: 844,
+    height: 390,
+    deviceScaleFactor: 1,
+    mobile,
+    screenOrientation: { type: 'landscapePrimary', angle: 90 },
+  });
   await expect
     .poll(() =>
       fullscreen
@@ -260,7 +269,16 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
         ),
     )
     .toBe(true);
-  await page.setViewportSize(originalSize);
+  await rotation.send('Emulation.setDeviceMetricsOverride', {
+    ...originalSize,
+    deviceScaleFactor: 1,
+    mobile,
+    screenOrientation:
+      originalSize.width < originalSize.height
+        ? { type: 'portraitPrimary', angle: 0 }
+        : { type: 'landscapePrimary', angle: 90 },
+  });
+  await rotation.detach();
   if (await page.evaluate(() => document.fullscreenEnabled))
     await expect
       .poll(() =>

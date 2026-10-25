@@ -1,5 +1,5 @@
 /** Keep the real password input for forms/autofill; preview only a typed character. */
-import { useEffect, useId, useImperativeHandle, useRef, useState } from 'react';
+import { useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react';
 import type { ComponentPropsWithRef } from 'react';
 
 export function PasswordInput({
@@ -21,7 +21,15 @@ export function PasswordInput({
   const [preview, setPreview] = useState<string | null>(null);
   const [scroll, setScroll] = useState(0);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const selection = useRef<{ start: number; end: number } | null>(null);
   useEffect(() => () => clearTimeout(timer.current), []);
+  useLayoutEffect(() => {
+    // Some browsers reset the caret when the input type changes.
+    if (selection.current) {
+      input.current?.setSelectionRange(selection.current.start, selection.current.end);
+      selection.current = null;
+    }
+  }, [shown]);
 
   function concealPreview() {
     clearTimeout(timer.current);
@@ -100,6 +108,10 @@ export function PasswordInput({
         disabled={props.disabled}
         onClick={() => {
           concealPreview();
+          const field = input.current;
+          if (field && field.selectionStart !== null && field.selectionEnd !== null) {
+            selection.current = { start: field.selectionStart, end: field.selectionEnd };
+          }
           setShown((value) => !value);
         }}
       >
