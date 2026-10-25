@@ -65,7 +65,7 @@ with transaction.atomic():
                 mass = transition_mass(mass.pk, actor, str(mass.revision), reopen=True)
             delete_mass(mass.pk, actor, str(mass.revision))
         preserved = 0
-        for hymn_id in Hymn.objects.filter(
+        for hymn_id in Hymn.all_objects.filter(
             created_by__username__startswith=f"e2e-{suffix}-"
         ).values_list("id", flat=True):
             # The service also removes this run's uploaded PDFs after commit.

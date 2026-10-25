@@ -11,6 +11,7 @@ from accounts.lifecycle_views import (
     ResendView,
     ResetRequestView,
     ResetView,
+    UsernameAvailabilityView,
     VerificationView,
 )
 from accounts.views import CsrfView, LoginView, LogoutView, MeView
@@ -19,6 +20,7 @@ urlpatterns = [
     path("choir-creation/", ChoirCreationPermissionView.as_view()),
     path("config/", ConfigView.as_view()),
     path("register/", RegisterView.as_view()),
+    path("username-availability/", UsernameAvailabilityView.as_view()),
     path("verify-email/", VerificationView.as_view()),
     path("email/", EmailView.as_view()),
     path("resend-verification/", ResendView.as_view()),

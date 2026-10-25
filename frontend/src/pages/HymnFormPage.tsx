@@ -1,5 +1,5 @@
 /** Form owns unsaved input; query refreshes never reset it and failed saves retain it. */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { Link, useBeforeUnload, useNavigate, useParams } from 'react-router';
 
@@ -8,6 +8,7 @@ import { saveHymn, textFields } from '../api/library';
 import type { Categories, Hymn, HymnInput, TextField } from '../api/library';
 import { useSession } from '../features/auth/SessionProvider';
 import { CategorySelect } from '../features/hymns/CategorySelect';
+import { PdfAttachmentPreview } from '../features/hymns/PdfAttachmentPreview';
 import { useCategories, useHymn, useRefreshLibrary } from '../features/hymns/queries';
 
 type Values = Record<TextField, string> & {
@@ -50,7 +51,12 @@ export function HymnFormPage() {
     void categories.refetch();
     if (id) void hymn.refetch();
   }
-  if (user?.role === 'Viewer')
+  if (
+    user?.role === 'Viewer' &&
+    id &&
+    hymn.data &&
+    (hymn.data.publication_status ?? 'published') === 'published'
+  )
     return (
       <section>
         <h1>Read-only access</h1>
@@ -89,11 +95,16 @@ export function HymnFormPage() {
 
 function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories }) {
   const navigate = useNavigate();
+  const { user } = useSession();
+  const privateMode = hymn
+    ? (hymn.publication_status ?? 'published') !== 'published'
+    : user?.role === 'Viewer';
   const refresh = useRefreshLibrary();
   const [failure, setFailure] = useState<string | null>(null);
   const [pdf, setPdf] = useState<File | null>(null);
   const [removePdf, setRemovePdf] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [pdfInputKey, setPdfInputKey] = useState(0);
   const ordinaryTime = categories['liturgical-seasons'].find(
     (row) =>
       row.slug === 'ordinary-time' &&
@@ -139,6 +150,14 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
     Boolean(form.watch('latin_title'));
 
   const dirty = isDirty || Boolean(pdf) || removePdf;
+  useEffect(() => {
+    const beforeSwitch = (event: Event) => {
+      if (dirty && !window.confirm('Discard unsaved hymn changes?')) event.preventDefault();
+    };
+    window.addEventListener('choralation:before-signout', beforeSwitch);
+    return () => window.removeEventListener('choralation:before-signout', beforeSwitch);
+  }, [dirty]);
+
   useBeforeUnload((event) => {
     if (dirty) {
       event.preventDefault();
@@ -149,6 +168,10 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
   async function submit(values: Values) {
     setFailure(null);
     setPdfError(null);
+    if (pdf && (pdf.size > 10 * 1024 * 1024 || !pdf.name.toLowerCase().endsWith('.pdf'))) {
+      setPdfError('Choose a PDF up to 10 MB.');
+      return;
+    }
     let invalid = false;
     function reject(field: keyof Values, message: string) {
       setError(field, { message }, { shouldFocus: !invalid });
@@ -265,6 +288,12 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
         </Link>
         <h1 className="page-title">{hymn ? 'Edit hymn' : 'Add hymn'}</h1>
       </div>
+      {privateMode && (
+        <p className="notice">
+          This hymn is private to your account until a choir planner approves it. Saving does not
+          publish it; you can request approval from the saved hymn page.
+        </p>
+      )}
       <form className="hymn-form" onSubmit={form.handleSubmit(submit)} noValidate>
         <fieldset className="form-section" disabled={isSubmitting}>
           <legend>Basic information</legend>
@@ -451,6 +480,11 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
         </fieldset>
         <fieldset className="form-section" disabled={isSubmitting}>
           <legend>Sheet music and lyrics</legend>
+          <PdfAttachmentPreview
+            file={pdf}
+            existingUrl={!removePdf ? hymn?.sheet_music_pdf?.url : undefined}
+            title={title || 'Selected sheet music'}
+          />
           {hymn?.sheet_music_pdf && !removePdf && !pdf && (
             <div className="attachment-info">
               <a className="text-button" href={hymn.sheet_music_pdf.url}>
@@ -470,14 +504,25 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
             </p>
           )}
           <label className="field">
-            Sheet music PDF
+            {hymn?.sheet_music_pdf ? 'Replace sheet music PDF' : 'Sheet music PDF'}
             <input
+              key={pdfInputKey}
               type="file"
               accept=".pdf,application/pdf"
               aria-invalid={Boolean(pdfError)}
               aria-describedby={pdfError ? 'pdf-error' : 'pdf-help'}
               onChange={(event) => {
-                setPdf(event.target.files?.[0] ?? null);
+                const selected = event.target.files?.[0] ?? null;
+                if (
+                  selected &&
+                  (selected.size > 10 * 1024 * 1024 ||
+                    !selected.name.toLowerCase().endsWith('.pdf'))
+                ) {
+                  setPdfError('Choose a PDF up to 10 MB.');
+                  event.target.value = '';
+                  return;
+                }
+                setPdf(selected);
                 setPdfError(null);
                 if (event.target.files?.length) setRemovePdf(false);
               }}
@@ -486,6 +531,22 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
           <p className="tiny" id="pdf-help">
             Optional · PDF up to 10 MB. {pdf && `Selected: ${pdf.name}`}
           </p>
+          {pdf && (
+            <div className="attachment-info">
+              <p className="tiny">This PDF will replace the attachment only when you save.</p>
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => {
+                  setPdf(null);
+                  setPdfError(null);
+                  setPdfInputKey((value) => value + 1);
+                }}
+              >
+                Cancel PDF replacement
+              </button>
+            </div>
+          )}
           {pdfError && (
             <p className="field-error" id="pdf-error">
               {pdfError}

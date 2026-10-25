@@ -55,7 +55,39 @@ class Tag(Category):
     pass
 
 
+class PublishedHymnManager(models.Manager):
+    """Public library/Mass queries cannot accidentally include unapproved material."""
+
+    def get_queryset(self):
+        return super().get_queryset().filter(publication_status="published")
+
+
 class Hymn(models.Model):
+    objects = PublishedHymnManager()
+    all_objects = models.Manager()
+    publication_status = models.CharField(
+        max_length=12,
+        default="published",
+        db_index=True,
+        choices=[(value, value) for value in ("published", "private", "pending", "declined")],
+    )
+    submitted_to = models.ForeignKey(
+        "choirs.Choir",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="hymn_submissions",
+    )
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="reviewed_hymns",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    review_note = models.TextField(blank=True, default="")
+
     title = models.CharField(max_length=255)
     latin_title = models.CharField(max_length=255, null=True, blank=True)
     lyrics = models.TextField(null=True, blank=True)
@@ -105,7 +137,20 @@ class Hymn(models.Model):
     )
 
     class Meta:
+        base_manager_name = "all_objects"
+        default_manager_name = "objects"
         constraints = [
+            models.CheckConstraint(
+                condition=models.Q(
+                    publication_status__in=["published", "private", "pending", "declined"]
+                ),
+                name="hymn_publication_status_valid",
+            ),
+            models.CheckConstraint(
+                condition=~models.Q(publication_status="pending")
+                | models.Q(submitted_to__isnull=False),
+                name="hymn_pending_has_choir",
+            ),
             models.CheckConstraint(
                 condition=~models.Q(title__regex=r"^\s*$"), name="hymn_title_nonblank"
             ),

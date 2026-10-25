@@ -12,10 +12,13 @@ from botocore.exceptions import BotoCoreError, ClientError
 from django.db import IntegrityError, models, transaction
 from django.db.models.deletion import ProtectedError
 from django.db.models.functions import Lower, Trim
+from django.utils import timezone
 from django.utils.text import slugify
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
 
 from accounts.permissions import Role, role_for, verified_access
+from choirs.access import is_admin, require_choir
+from choirs.models import Membership
 from common.storage import StorageUnavailable
 from hymns.models import CATEGORY_TYPES, RELATIONS, Hymn
 from hymns.uploads import pdf_upload_path
@@ -39,7 +42,11 @@ def require_role(actor, minimum: Role) -> None:
 def reference_counts(category) -> dict[str, int]:
     """Count direct incoming relations (not usage); future FK relations are included."""
     return {
-        relation.get_accessor_name(): getattr(category, relation.get_accessor_name()).count()
+        relation.get_accessor_name(): (
+            Hymn.all_objects.filter(**{relation.field.name: category}).count()
+            if relation.related_model is Hymn
+            else getattr(category, relation.get_accessor_name()).count()
+        )
         for relation in category._meta.related_objects
     }
 
@@ -139,8 +146,22 @@ def save_hymn(data: dict, actor, pk: int | None = None) -> Hymn:
 
 def _save_hymn(data, actor, pk, stored_files) -> Hymn:
     """Validate the locked aggregate before writing metadata, relations, or files."""
-    require_role(actor, Role.PLANNER)
-    hymn = locked_record(Hymn, pk) if pk is not None else Hymn()
+    if not verified_access(actor):
+        raise PermissionDenied("Sign in before adding a hymn.")
+    try:
+        hymn = Hymn.all_objects.select_for_update().get(pk=pk) if pk is not None else Hymn()
+    except Hymn.DoesNotExist as error:
+        raise NotFound("Hymn not found.") from error
+    if pk is None:
+        hymn.publication_status = "private" if role_for(actor) == Role.VIEWER else "published"
+    elif hymn.publication_status == "published":
+        require_role(actor, Role.PLANNER)
+    elif hymn.created_by_id != actor.pk and role_for(actor) != Role.ADMIN:
+        raise NotFound("Hymn not found.")
+    else:
+        # Editing withdraws any pending version. It must be explicitly submitted again.
+        hymn.publication_status = "private"
+        hymn.submitted_to = None
     old_pdf = hymn.sheet_music_pdf.name
     old = {
         name: set(getattr(hymn, name).values_list("id", flat=True)) if pk else set()
@@ -228,8 +249,16 @@ def _save_hymn(data, actor, pk, stored_files) -> Hymn:
 @transaction.atomic
 def delete_hymn(pk: int, actor) -> None:
     """Admin-only deletion; future protected selections prevent historical loss."""
-    require_role(actor, Role.ADMIN)
-    hymn = locked_record(Hymn, pk)
+    if not verified_access(actor):
+        raise PermissionDenied("Sign in before continuing.")
+    try:
+        hymn = Hymn.all_objects.select_for_update().get(pk=pk)
+    except Hymn.DoesNotExist as error:
+        raise NotFound("Hymn not found.") from error
+    if hymn.publication_status == "published":
+        require_role(actor, Role.ADMIN)
+    elif hymn.created_by_id != actor.pk and role_for(actor) != Role.ADMIN:
+        raise NotFound("Hymn not found.")
     storage, pdf_name = hymn.sheet_music_pdf.storage, hymn.sheet_music_pdf.name
     try:
         hymn.delete()
@@ -237,3 +266,91 @@ def delete_hymn(pk: int, actor) -> None:
         raise ReferencedRecord() from error
     if pdf_name:
         transaction.on_commit(lambda: storage.delete(pdf_name), robust=True)
+
+
+class SubmissionConflict(APIException):
+    status_code = 409
+    default_code = "submission_conflict"
+    default_detail = "This hymn changed. Refresh and review the latest version before continuing."
+
+
+@transaction.atomic
+def submit_hymn(actor, pk, choir_id, expected_updated_at):
+    choir = require_choir(actor, choir_id, lock=True)
+    if not is_admin(actor) and not Membership.objects.filter(choir=choir, user=actor).exists():
+        raise NotFound("Choir not found.")
+    try:
+        hymn = Hymn.all_objects.select_for_update().get(pk=pk, created_by=actor)
+    except Hymn.DoesNotExist as error:
+        raise NotFound("Hymn not found.") from error
+    if hymn.updated_at != expected_updated_at:
+        raise SubmissionConflict()
+    if hymn.publication_status == "published":
+        raise ValidationError({"hymn": ["This hymn is already published."]})
+    hymn.publication_status = "pending"
+    hymn.submitted_to = choir
+    hymn.review_note = ""
+    hymn.reviewed_at = None
+    hymn.reviewed_by = None
+    hymn.save(
+        update_fields=[
+            "publication_status",
+            "submitted_to",
+            "review_note",
+            "reviewed_at",
+            "reviewed_by",
+            "updated_at",
+        ]
+    )
+    return hymn
+
+
+@transaction.atomic
+def review_hymn(actor, pk, decision, expected_updated_at, note=""):
+    # Lock choir before hymn, matching membership/choir administration lock order.
+    target = (
+        Hymn.all_objects.filter(pk=pk, publication_status="pending")
+        .values_list("submitted_to_id", flat=True)
+        .first()
+    )
+    if target is None:
+        raise NotFound("Pending submission not found.")
+    require_choir(actor, target, planner=True, lock=True)
+    try:
+        hymn = Hymn.all_objects.select_for_update().get(pk=pk)
+    except Hymn.DoesNotExist as error:
+        raise NotFound("Pending submission not found.") from error
+    if (
+        hymn.publication_status != "pending"
+        or hymn.submitted_to_id != target
+        or hymn.updated_at != expected_updated_at
+    ):
+        raise SubmissionConflict()
+    if decision not in {"approve", "decline"}:
+        raise ValidationError({"decision": ["Choose approve or decline."]})
+    if decision == "approve" and (
+        not hymn.is_active
+        or not hymn.language.is_active
+        or not hymn.placements.filter(is_active=True).exists()
+    ):
+        raise ValidationError(
+            {
+                "hymn": [
+                    "An active hymn, active language and active placement are required before publication."
+                ]
+            }
+        )
+    hymn.publication_status = "published" if decision == "approve" else "declined"
+    hymn.reviewed_by = actor
+    hymn.reviewed_at = timezone.now()
+    hymn.review_note = note
+    hymn.save(
+        update_fields=[
+            "publication_status",
+            "reviewed_by",
+            "reviewed_at",
+            "review_note",
+            "updated_at",
+        ]
+    )
+    return hymn

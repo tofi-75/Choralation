@@ -204,7 +204,10 @@ def test_role_matrix_active_state_and_csrf(library):
     assert api.delete(url).status_code == 403
     api.force_authenticate(users["Viewer"])
     assert api.get(url).status_code == 200
-    assert api.post("/api/v1/hymns/", payload, format="json").status_code == 403
+    private = api.post("/api/v1/hymns/", payload, format="json")
+    assert private.status_code == 201
+    assert private.data["publication_status"] == "private"
+    assert not Hymn.objects.filter(pk=private.data["id"]).exists()
     assert api.patch(url, {"notes": "Forbidden"}, format="json").status_code == 403
     api.force_authenticate(users["Admin"])
     assert api.patch(url, {"is_active": False}, format="json").status_code == 200

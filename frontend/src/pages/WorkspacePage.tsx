@@ -4,12 +4,10 @@ import { useChoirQuery } from '../features/choirs/useChoirQuery';
 import { Link } from 'react-router';
 import { fetchHymns } from '../api/library';
 import { fetchMasses } from '../api/masses';
-import { useSession } from '../features/auth/SessionProvider';
 import { useChoir } from '../features/choirs/ChoirProvider';
 import { ChoirRequired } from '../features/choirs/ChoirRequired';
 
 export function WorkspacePage() {
-  const { user } = useSession();
   const { active } = useChoir();
   const masses = useChoirQuery({
     queryKey: ['masses', 'home'],
@@ -81,11 +79,9 @@ export function WorkspacePage() {
             <Link className="button secondary" to="/hymns">
               All hymns
             </Link>
-            {user?.role !== 'Viewer' && (
-              <Link className="button primary" to="/hymns/new">
-                Add hymn
-              </Link>
-            )}
+            <Link className="button primary" to="/hymns/new">
+              Add hymn
+            </Link>
           </div>
         </div>
         {hymns.isPending && <p role="status">Loading new hymns…</p>}

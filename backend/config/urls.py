@@ -30,7 +30,7 @@ handler500 = "common.errors.server_error"
 if settings.SERVE_FRONTEND:
     urlpatterns.append(
         re_path(
-            r"^(?:|login|register|verify-email|forgot-password|reset-password|account|choirs(?:/(?:join|new|\d+))?|dashboard|history|hymns(?:/(?:new|\d+(?:/edit)?))?|masses(?:/(?:new|history|\d+(?:/(?:edit|details))?))?)/?$",
+            r"^(?:|login|register|verify-email|forgot-password|reset-password|account|choirs(?:/(?:join|new|\d+))?|dashboard|history|hymns(?:/(?:mine|new|\d+(?:/edit)?))?|masses(?:/(?:new|history|\d+(?:/(?:edit|details))?))?)/?$",
             frontend_page,
         )
     )

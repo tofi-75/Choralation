@@ -79,7 +79,7 @@ jobs:
       - name: Simple account browser flows
         env:
           E2E_SIMPLE_ACCOUNTS: "true"
-        run: python scripts/ci-browser.py simple-accounts.spec.ts
+        run: python scripts/ci-browser.py simple-accounts.spec.ts hymn-submissions.spec.ts
       - name: Upload failure artifacts
         if: failure()
         uses: actions/upload-artifact@v4

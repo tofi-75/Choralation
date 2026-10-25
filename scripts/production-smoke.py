@@ -44,6 +44,7 @@ def main(origin):
         "/dashboard",
         "/history",
         "/hymns/1",
+        "/hymns/mine",
         "/masses/164/edit",
     ):
         with get(origin, path) as response:

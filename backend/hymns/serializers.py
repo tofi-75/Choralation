@@ -128,7 +128,41 @@ class SheetMusicReadSerializer(serializers.Serializer):
     url = serializers.CharField()
 
 
+class HymnSubmitSerializer(StrictSerializer):
+    choir_id = serializers.IntegerField(min_value=1)
+    expected_updated_at = serializers.DateTimeField()
+
+
+class HymnReviewSerializer(StrictSerializer):
+    decision = serializers.ChoiceField(choices=["approve", "decline"])
+    expected_updated_at = serializers.DateTimeField()
+    note = serializers.CharField(max_length=1000, required=False, allow_blank=True)
+
+
+class SubmissionInfoSerializer(serializers.Serializer):
+    choir_id = serializers.IntegerField(allow_null=True)
+    choir_name = serializers.CharField(allow_null=True)
+    submitted_by = serializers.CharField(allow_null=True)
+    note = serializers.CharField()
+    can_review = serializers.BooleanField()
+
+
 class HymnReadSerializer(serializers.ModelSerializer):
+    submission = serializers.SerializerMethodField()
+
+    @extend_schema_field(SubmissionInfoSerializer(allow_null=True))
+    def get_submission(self, instance):
+        if instance.publication_status == "published":
+            return None
+        return {
+            "choir_id": instance.submitted_to_id,
+            "choir_name": instance.submitted_to.name if instance.submitted_to_id else None,
+            "submitted_by": instance.created_by.username if instance.created_by_id else None,
+            "note": instance.review_note,
+            "can_review": instance.publication_status == "pending"
+            and getattr(instance, "can_review_submission", False),
+        }
+
     usage_count = serializers.IntegerField(read_only=True)
     last_used_date = serializers.DateField(read_only=True, allow_null=True)
     language = CategoryReadSerializer()
@@ -152,6 +186,8 @@ class HymnReadSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "title",
+            "publication_status",
+            "submission",
             "usage_count",
             "last_used_date",
             "latin_title",

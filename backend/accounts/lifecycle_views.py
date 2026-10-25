@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model, login, logout
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
@@ -10,6 +11,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts import services
+from accounts.models import AccountProfile
 from accounts.permissions import AdminPermission, VerifiedPermission
 from accounts.security import limit
 from accounts.serializers import (
@@ -21,9 +23,46 @@ from accounts.serializers import (
     RegistrationSerializer,
     ResetSerializer,
     TokenSerializer,
+    UsernameAvailabilityResultSerializer,
+    UsernameAvailabilitySerializer,
     UserSerializer,
 )
 from accounts.views import public_user
+
+
+@method_decorator(csrf_protect, name="dispatch")
+class UsernameAvailabilityView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    @extend_schema(
+        request=UsernameAvailabilitySerializer,
+        responses={200: UsernameAvailabilityResultSerializer},
+    )
+    def post(self, request):
+        # POST keeps prospective identifiers out of URLs and request logs.
+        limit("username-check-total", "deployment", 600, 900)
+        limit("username-check-client", request.META.get("REMOTE_ADDR", ""), 90, 900)
+        data = UsernameAvailabilitySerializer(data=request.data)
+        data.is_valid(raise_exception=True)
+        User = get_user_model()
+        name = User.normalize_username(data.validated_data["username"].strip())
+        candidate = User(username=name)
+        try:
+            candidate.full_clean(exclude=["password", "email"])
+            valid = "@" not in name
+        except DjangoValidationError:
+            valid = False
+        available = valid and not (
+            User.objects.filter(username__iexact=name).exists()
+            or AccountProfile.objects.filter(username_key=name.lower()).exists()
+        )
+        return Response(
+            {
+                "available": available,
+                "detail": "Username is available." if available else "Choose another username.",
+            }
+        )
 
 
 class ConfigView(APIView):

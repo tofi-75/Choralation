@@ -139,7 +139,7 @@ test('Section picker and saved view: preference, scrolling, failed save and edit
     name: string;
   }[];
   const slot = placements.find((row) => row.name === 'Communion')!;
-  const entrance = placements.find((row) => row.name === 'Entrance / Processional')!;
+  const entrance = placements.find((row) => row.name === 'Opening')!;
   const season = seasons.find((row) => row.name === 'Holy Cross')!;
   const otherSeason = seasons.find((row) => row.name === 'Epiphany')!;
   const headers = await csrf(page);
@@ -264,9 +264,9 @@ test('Section picker and saved view: preference, scrolling, failed save and edit
   await expect(page.getByText('Saved Mass instructions')).toBeVisible();
   await expect(page.getByRole('textbox')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Random hymns', exact: true })).toHaveCount(0);
-  await expect(
-    page.getByRole('region', { name: 'Entrance / Processional', exact: true }),
-  ).toContainText('Hymn not selected');
+  await expect(page.getByRole('region', { name: 'Opening', exact: true })).toContainText(
+    'Hymn not selected',
+  );
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   );
@@ -293,7 +293,7 @@ test('Random picker: matching choices, retained notes, failed save retry and rel
   await signIn(page);
   const manualTitle = `Random retained ${suffix}-${info.project.name}`;
   const manual = await seedHymn(page, manualTitle);
-  await seedHymn(page, `Random entrance ${suffix}-${info.project.name}`, 'Entrance / Processional');
+  await seedHymn(page, `Random entrance ${suffix}-${info.project.name}`, 'Opening');
   await seedHymn(page, `Random offertory ${suffix}-${info.project.name}`, 'Offertory');
   const seasons = (await (await page.request.get('/api/v1/liturgical-seasons/')).json()) as {
     id: number;
@@ -416,9 +416,9 @@ test('Planner: multiple rows, reorder, retry, conflict review, and navigation gu
   await expect(
     page.getByRole('textbox', { name: `Selection notes for ${second}`, exact: true }),
   ).toHaveValue('Second hymn moved first');
-  await choose(page, first, 'Entrance / Processional');
+  await choose(page, first, 'Opening');
   await expect(page.getByRole('region', { name: 'Selection warnings' })).toContainText(
-    'Not classified for Entrance / Processional.',
+    'Not classified for Opening.',
   );
   await expect(page.getByRole('region', { name: 'Selection warnings' })).toContainText(
     'Already selected in this program.',
@@ -441,7 +441,7 @@ test('Planner: multiple rows, reorder, retry, conflict review, and navigation gu
     `${first} appears more than once in this program.`,
   );
   await page
-    .getByRole('region', { name: 'Entrance / Processional', exact: true })
+    .getByRole('region', { name: 'Opening', exact: true })
     .getByRole('button', { name: `Remove ${first}`, exact: true })
     .click();
   await saved(page);

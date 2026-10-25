@@ -23,6 +23,8 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
 
+from choirs.access import is_admin
+from choirs.models import Membership
 from hymns.models import CATEGORY_TYPES, Hymn
 from hymns.usage import finalized_occurrences, with_usage
 
@@ -67,14 +69,42 @@ def active_filter(queryset, value: str):
     return queryset if value == "all" else queryset.filter(is_active=value == "true")
 
 
-def hymn_queryset(choir_id=None) -> QuerySet:
+def hymn_queryset(choir_id=None, rows=None) -> QuerySet:
     """Use one language join and four prefetches for both list and detail."""
     return with_usage(
-        Hymn.objects.select_related("language").prefetch_related(
-            "genres", "seasons", "placements", "tags"
-        ),
+        (Hymn.objects.all() if rows is None else rows)
+        .select_related("language", "created_by", "submitted_to")
+        .prefetch_related("genres", "seasons", "placements", "tags"),
         choir_id,
     )
+
+
+def visible_hymns(user, choir_id=None):
+    if not user.is_authenticated:
+        return hymn_queryset(
+            choir_id,
+            Hymn.all_objects.none().annotate(
+                can_review_submission=Value(False, output_field=BooleanField())
+            ),
+        )
+    managed = Membership.objects.filter(user=user, role="Planner").values("choir_id")
+    visibility = Q(publication_status="published") | Q(created_by=user)
+    reviewable = Q(publication_status="pending", submitted_to_id__in=managed)
+    rows = (
+        Hymn.all_objects.all()
+        if is_admin(user)
+        else Hymn.all_objects.filter(visibility | reviewable)
+    )
+    rows = rows.annotate(
+        can_review_submission=Value(True, output_field=BooleanField())
+        if is_admin(user)
+        else Exists(
+            Membership.objects.filter(
+                user=user, role="Planner", choir_id=OuterRef("submitted_to_id")
+            )
+        )
+    )
+    return hymn_queryset(choir_id, rows)
 
 
 def library_queryset(params, choir_id=None) -> QuerySet:

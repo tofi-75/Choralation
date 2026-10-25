@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router';
 
 import { deleteHymn, setHymnActive, textFields } from '../api/library';
 import { useSession } from '../features/auth/SessionProvider';
+import { HymnSubmissionPanel } from '../features/hymns/HymnSubmissionPanel';
 import { HymnMaterial } from '../features/hymns/HymnMaterial';
 import { PlannerIcon } from '../features/masses/PlannerIcon';
 import { CategoryChips } from '../features/hymns/HymnSummary';
@@ -55,6 +56,10 @@ export function HymnDetailPage() {
       </section>
     );
   const saved = hymn.data;
+  const published = (saved.publication_status ?? 'published') === 'published';
+  const canEdit = published
+    ? user?.role !== 'Viewer'
+    : user?.id === saved.created_by || user?.role === 'Admin';
   const classifications = [
     ['Genres', saved.genres],
     ['Placements', saved.placements],
@@ -65,8 +70,11 @@ export function HymnDetailPage() {
     action === 'delete' ? 'Delete hymn' : saved.is_active ? 'Deactivate hymn' : 'Reactivate hymn';
   return (
     <>
-      <Link className="text-button" to="/hymns">
-        ← Hymn library
+      <Link
+        className="text-button"
+        to={published ? '/hymns' : saved.created_by === user?.id ? '/hymns/mine' : '/choirs'}
+      >
+        {published ? '← Hymn library' : saved.created_by === user?.id ? '← My hymns' : '← Choirs'}
       </Link>
       <div className="page-heading">
         <div>
@@ -91,7 +99,7 @@ export function HymnDetailPage() {
             </span>
           </p>
         </div>
-        {user?.role !== 'Viewer' && (
+        {canEdit && (
           <Link
             className="button primary icon-button"
             to={`/hymns/${saved.id}/edit`}
@@ -110,6 +118,7 @@ export function HymnDetailPage() {
       {!saved.is_active && (
         <p className="notice">This hymn is inactive. Its saved information is retained.</p>
       )}
+      <HymnSubmissionPanel key={`submission-${saved.id}-${saved.updated_at}`} hymn={saved} />
       <HymnMaterial key={`material-${saved.id}`} hymn={saved} />
       <section
         className="detail-section compact-classification"
@@ -212,23 +221,30 @@ export function HymnDetailPage() {
           </div>
         </dl>
       </section>
-      <HymnUsage key={saved.id} id={saved.id} />
-      {user?.role === 'Admin' && (
-        <section className="admin-actions" aria-label="Admin actions">
+      {published && <HymnUsage key={saved.id} id={saved.id} />}
+      {(user?.role === 'Admin' || (!published && user?.id === saved.created_by)) && (
+        <section
+          className="admin-actions"
+          aria-label={published ? 'Admin actions' : 'Private hymn actions'}
+        >
           <h2>Manage this hymn</h2>
           <p className="muted">
-            Deactivate to retain its information. Deletion permanently removes an unreferenced hymn.
+            {published
+              ? 'Deactivate to retain its information. Deletion permanently removes an unreferenced hymn.'
+              : 'Deleting removes your private hymn and its PDF, and withdraws any pending approval request.'}
           </p>
-          <button
-            className="button secondary"
-            onClick={(event) => {
-              actionTrigger.current = event.currentTarget;
-              setFailure(null);
-              setAction('active');
-            }}
-          >
-            {saved.is_active ? 'Deactivate hymn' : 'Reactivate hymn'}
-          </button>
+          {user?.role === 'Admin' && (
+            <button
+              className="button secondary"
+              onClick={(event) => {
+                actionTrigger.current = event.currentTarget;
+                setFailure(null);
+                setAction('active');
+              }}
+            >
+              {saved.is_active ? 'Deactivate hymn' : 'Reactivate hymn'}
+            </button>
+          )}
           <button
             className="button danger"
             onClick={(event) => {

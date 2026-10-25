@@ -82,6 +82,7 @@ def production_routes(settings, tmp_path):
         "/history",
         "/hymns",
         "/hymns/new",
+        "/hymns/mine",
         "/hymns/94/edit",
         "/masses/new",
         "/masses/164/edit",

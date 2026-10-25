@@ -94,8 +94,10 @@ async function checkSideButtons(viewer: Locator) {
     .getByRole('button', { name: 'Next PDF page', exact: true })
     .boundingBox())!;
   const viewport = (await viewer.locator('.pdf-viewport').boundingBox())!;
-  expect(previous.x + previous.width).toBeLessThanOrEqual(viewport.x);
-  expect(next.x).toBeGreaterThanOrEqual(viewport.x + viewport.width);
+  expect(previous.x).toBeGreaterThanOrEqual(viewport.x);
+  expect(previous.x + previous.width).toBeLessThan(viewport.x + viewport.width / 3);
+  expect(next.x + next.width).toBeLessThanOrEqual(viewport.x + viewport.width);
+  expect(next.x).toBeGreaterThan(viewport.x + (viewport.width * 2) / 3);
   expect(
     Math.abs(previous.y + previous.height / 2 - viewport.y - viewport.height / 2),
   ).toBeLessThan(2);
@@ -215,6 +217,16 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   await expect(fullscreen.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();
   await checkPdfZoom(fullscreen);
   await checkSideButtons(fullscreen);
+  const fullArea = (await fullscreen.locator('.pdf-viewport').boundingBox())!;
+  const fullBounds = (await fullscreen.boundingBox())!;
+  expect(fullArea.height).toBeGreaterThan(fullBounds.height * 0.98);
+  expect(fullArea.width).toBeGreaterThan(fullBounds.width * 0.98);
+  await expect(fullscreen).toHaveAttribute('data-controls-visible', 'false', { timeout: 5000 });
+  await fullscreen
+    .locator('.pdf-viewport')
+    .click({ position: { x: fullArea.width / 2, y: fullArea.height / 3 } });
+  await expect(fullscreen).toHaveAttribute('data-controls-visible', 'true');
+
   await expect(
     fullscreen.getByRole('button', { name: 'Next PDF page', exact: true }),
   ).toBeDisabled();
@@ -291,6 +303,15 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
     page.getByRole('button', { name: `Open ${pdf.title} PDF fullscreen`, exact: true }),
   ).toBeFocused();
   await expect(page.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();
+  await page.getByRole('link', { name: 'Edit hymn', exact: true }).click();
+  await page
+    .getByLabel('Replace sheet music PDF', { exact: true })
+    .setInputFiles('tests/fixtures/two-page-sheet-music.pdf');
+  await expect(
+    page.locator('.pdf-edit-preview').getByRole('img', { name: /sheet music page 1/ }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Save hymn', exact: true }).click();
+  await expect(page.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
   const massResponse = await page.request.post('/api/v1/masses/', {
     headers,
     data: {
@@ -305,7 +326,7 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   const program = await page.request.put(`/api/v1/masses/${mass.id}/program/`, {
     headers: { ...headers, 'X-Expected-Mass-Revision': String(mass.revision) },
     data: {
-      selections: [pdf, lyric, plain].map((hymn, position) => ({
+      selections: [pdf, lyric, plain, pdf].map((hymn, position) => ({
         hymn_id: hymn.id,
         placement_id: lyric.placements[0].id,
         position,
@@ -331,13 +352,14 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   await expect(focus.getByText('Screen kept awake', { exact: true })).toBeVisible();
   await checkPdfZoom(focus);
   await checkSideButtons(focus);
+  await focus.getByRole('button', { name: 'Fit to width', exact: true }).click();
   await focus.getByRole('button', { name: 'Next PDF page', exact: true }).click();
   await expect(focus.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();
-  await expect(focus.getByText('Hymn 1 of 3', { exact: true })).toBeVisible();
+  await expect(focus.getByText('Hymn 1 of 4', { exact: true })).toBeVisible();
   // Keyboard page navigation on the PDF must not bubble to hymn navigation.
   await page.keyboard.press('ArrowLeft');
   await expect(focus.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
-  await expect(focus.getByText('Hymn 1 of 3', { exact: true })).toBeVisible();
+  await expect(focus.getByText('Hymn 1 of 4', { exact: true })).toBeVisible();
   await focus
     .getByRole('button', { name: `Open ${pdf.title} PDF fullscreen`, exact: true })
     .click();
@@ -345,7 +367,7 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
   await fullscreen.getByRole('button', { name: 'Exit PDF fullscreen', exact: true }).click();
   await expect(fullscreen).toHaveCount(0);
-  await expect(focus.getByText('Hymn 1 of 3', { exact: true })).toBeVisible();
+  await expect(focus.getByText('Hymn 1 of 4', { exact: true })).toBeVisible();
   // Browsers without the Fullscreen API still get a full-viewport reading dialog.
   await page.evaluate(() => {
     Object.defineProperty(HTMLElement.prototype, 'requestFullscreen', {
@@ -374,7 +396,7 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   await page.screenshot({ path: info.outputPath('pdf-fullscreen.png') });
   await page.keyboard.press('Escape');
   await expect(fullscreen).toHaveCount(0);
-  await expect(focus.getByText('Hymn 1 of 3', { exact: true })).toBeVisible();
+  await expect(focus.getByText('Hymn 1 of 4', { exact: true })).toBeVisible();
   await page.screenshot({ path: info.outputPath('focus-pdf.png') });
   if (info.project.name.startsWith('mobile')) {
     const box = (await focus.locator('.focus-reading').boundingBox())!;
@@ -391,11 +413,25 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
     await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await session.detach();
   } else await page.keyboard.press('ArrowRight');
-  await expect(focus.getByText('Hymn 2 of 3', { exact: true })).toBeVisible();
+  await expect(focus.getByText('Hymn 2 of 4', { exact: true })).toBeVisible();
   await expect(focus.locator('.hymn-lyrics')).toContainText('السطر الأول');
   await page.screenshot({ path: info.outputPath('focus-lyrics.png') });
   await focus.getByRole('button', { name: 'Next hymn', exact: true }).click();
   await expect(focus.locator('.focus-title-only')).toHaveText(plain.title);
+  await focus.getByRole('button', { name: 'Next hymn', exact: true }).click();
+  await expect(focus.getByText('Hymn 4 of 4', { exact: true })).toBeVisible();
+  await expect(focus.getByRole('button', { name: 'Fit to height', exact: true })).toBeVisible();
+  await expect
+    .poll(() =>
+      focus
+        .locator('.pdf-viewport')
+        .evaluate((element) =>
+          Math.abs(
+            element.querySelector('canvas')!.getBoundingClientRect().width - element.clientWidth,
+          ),
+        ),
+    )
+    .toBeLessThan(2);
   await expect(focus.getByRole('button', { name: 'Next hymn', exact: true })).toBeDisabled();
   await focus.getByRole('button', { name: 'Exit focus mode', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Focus mode', exact: true })).toBeFocused();
@@ -447,5 +483,16 @@ test('Home heading alignment and Mass actions stay on one line at narrow widths'
       true,
     );
   }
+  await page.setViewportSize({ width: 360, height: 764 });
+  await page.goto('/masses/new');
+  const date = page.locator('.mass-date-field');
+  const season = page.getByRole('combobox', { name: 'Liturgical season' });
+  await expect(date).toBeVisible();
+  const dateBox = (await date.locator('input').boundingBox())!;
+  const seasonBox = (await season.boundingBox())!;
+  expect(Math.abs(dateBox.y - seasonBox.y)).toBeLessThan(2);
+  expect(dateBox.width).toBeLessThan(170);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: info.outputPath('compact-mass-date.png'), fullPage: true });
   await page.screenshot({ path: info.outputPath('mass-list.png'), fullPage: true });
 });

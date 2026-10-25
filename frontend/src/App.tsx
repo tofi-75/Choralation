@@ -15,6 +15,9 @@ import { ChoirProvider } from './features/choirs/ChoirProvider';
 const LibraryPage = lazy(() =>
   import('./pages/LibraryPage').then((module) => ({ default: module.LibraryPage })),
 );
+const MyHymnsPage = lazy(() =>
+  import('./pages/MyHymnsPage').then((module) => ({ default: module.MyHymnsPage })),
+);
 const HymnDetailPage = lazy(() =>
   import('./pages/HymnDetailPage').then((module) => ({ default: module.HymnDetailPage })),
 );
@@ -77,6 +80,7 @@ export function App() {
             <Route path="/dashboard" element={<WorkspacePage />} />
             <Route path="/hymns" element={<LibraryPage />} />
             <Route path="/history" element={<MassHistoryPage />} />
+            <Route path="/hymns/mine" element={<MyHymnsPage />} />
             <Route path="/hymns/new" element={<HymnFormPage />} />
             <Route path="/hymns/:id" element={<HymnDetailPage />} />
             <Route path="/hymns/:id/edit" element={<HymnFormPage />} />

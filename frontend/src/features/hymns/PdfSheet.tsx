@@ -8,30 +8,55 @@ import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 GlobalWorkerOptions.workerSrc = workerUrl;
 
+export type PdfFit = 'height' | 'width';
+
 export default function PdfSheet({
   url,
   title,
   onFailure,
   focus = false,
+  fit: preferredFit,
+  onFitChange,
 }: {
   url: string;
   title: string;
   onFailure: () => void;
   focus?: boolean;
+  fit?: PdfFit;
+  onFitChange?: (fit: PdfFit) => void;
 }) {
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
   const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
   const [page, setPage] = useState(1);
+  const [expanded, setExpanded] = useState(false);
   const [size, setSize] = useState({ width: 0, height: 0 });
-  const [fit, setFit] = useState<'height' | 'width'>('height');
+  const [localFit, setLocalFit] = useState<PdfFit>('height');
+  const fit = preferredFit ?? localFit;
+  const setFit = (value: PdfFit) => {
+    setLocalFit(value);
+    onFitChange?.(value);
+  };
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const hideControls = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const pointer = useRef<{ x: number; y: number; id: number } | null>(null);
+  function revealControls() {
+    setControlsVisible(true);
+    clearTimeout(hideControls.current);
+    hideControls.current = setTimeout(() => setControlsVisible(false), 2600);
+  }
+  useEffect(() => () => clearTimeout(hideControls.current), []);
+  useEffect(() => {
+    if (!expanded) return;
+    setControlsVisible(true);
+    hideControls.current = setTimeout(() => setControlsVisible(false), 2600);
+    return () => clearTimeout(hideControls.current);
+  }, [expanded]);
   const [zoom, setZoom] = useState(1);
   const [rendering, setRendering] = useState(true);
-  const [expanded, setExpanded] = useState(false);
   const fullscreenRoot = useRef<HTMLDivElement>(null);
   const previewButton = useRef<HTMLButtonElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
-  const touch = useRef<{ x: number; y: number } | null>(null);
   const ignoreClickUntil = useRef(0);
   const sideNavigation = expanded || focus;
   const hasPages = Boolean(pdfDocument && pdfDocument.numPages > 1);
@@ -49,11 +74,14 @@ export default function PdfSheet({
     return (
       <button
         type="button"
-        className={`button secondary ${sideNavigation ? 'pdf-side-page' : ''}`}
+        className={`button secondary pdf-side-page ${delta === -1 ? 'pdf-previous' : 'pdf-next'}`}
         // Keep side controls focusable at boundaries for keyboard page navigation.
         disabled={sideNavigation ? undefined : disabled}
         aria-disabled={sideNavigation ? disabled : undefined}
-        onClick={() => movePage(delta)}
+        onClick={() => {
+          movePage(delta);
+          revealControls();
+        }}
         aria-label={delta === -1 ? 'Previous PDF page' : 'Next PDF page'}
       >
         {delta === -1 ? '‹' : '›'}
@@ -65,6 +93,7 @@ export default function PdfSheet({
     flushSync(() => {
       setRendering(true);
       setExpanded(true);
+      setControlsVisible(true);
     });
     try {
       void fullscreenRoot.current?.requestFullscreen?.().catch(() => {});
@@ -177,15 +206,12 @@ export default function PdfSheet({
   }, [container, page, fit]);
   const content = (
     <>
-      <div className="pdf-toolbar">
-        <a className="text-button" href={url} download>
-          Download PDF
-        </a>
-        {!expanded && (
-          <button className="text-button" onClick={openFullscreen}>
-            Fullscreen ↗
-          </button>
-        )}
+      <div
+        className="pdf-toolbar"
+        role="toolbar"
+        aria-label="PDF controls"
+        onPointerDown={revealControls}
+      >
         <div className="pdf-zoom" role="group" aria-label="PDF zoom">
           <button
             className="button secondary"
@@ -207,23 +233,62 @@ export default function PdfSheet({
           <button
             className="button secondary pdf-fit"
             aria-label={fit === 'height' ? 'Fit to width' : 'Fit to height'}
-            title={`Currently fitted to ${fit}`}
+            title={fit === 'height' ? 'Fit to width' : 'Fit to length (whole page)'}
             onClick={() => {
-              setFit((value) => (value === 'height' ? 'width' : 'height'));
+              setFit(fit === 'height' ? 'width' : 'height');
               setZoom(1);
             }}
           >
-            {fit === 'height' ? 'Fit to width' : 'Fit to height'}
+            <svg
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              aria-hidden="true"
+            >
+              <rect x="5" y="3" width="14" height="18" rx="1" />
+              {fit === 'height' ? (
+                <path d="M2 12h20M5 9l-3 3 3 3m14-6 3 3-3 3" />
+              ) : (
+                <path d="M12 1v22M9 4l3-3 3 3M9 20l3 3 3-3" />
+              )}
+            </svg>
           </button>
         </div>
-        {hasPages && pdfDocument && (
-          <div className="pdf-pages" aria-label="PDF pages">
-            {!sideNavigation && pageButton(-1)}
-            <span aria-live="polite" aria-atomic="true">
-              Page {page} / {pdfDocument.numPages}
-            </span>
-            {!sideNavigation && pageButton(1)}
-          </div>
+        {pdfDocument && (
+          <span className="pdf-page-count" aria-live="polite" aria-atomic="true">
+            Page {page} / {pdfDocument.numPages}
+          </span>
+        )}
+        <a
+          className="button secondary"
+          href={url}
+          download
+          aria-label="Download PDF"
+          title="Download PDF"
+        >
+          ↓
+        </a>
+        {expanded ? (
+          <Dialog.Close
+            ref={closeButton}
+            className="button secondary"
+            aria-label="Exit PDF fullscreen"
+            title="Exit fullscreen"
+          >
+            ✕
+          </Dialog.Close>
+        ) : (
+          <button
+            className="button secondary"
+            onClick={openFullscreen}
+            aria-label="Fullscreen"
+            title="Fullscreen"
+          >
+            ⛶
+          </button>
         )}
       </div>
       <div
@@ -244,7 +309,7 @@ export default function PdfSheet({
           }
         }}
       >
-        {sideNavigation && hasPages && pageButton(-1)}
+        {hasPages && pageButton(-1)}
         <div
           className="pdf-viewport"
           data-page-swipes={canSwipePages}
@@ -254,41 +319,40 @@ export default function PdfSheet({
           tabIndex={0}
           role="region"
           aria-label="Sheet music viewport"
+          onPointerDown={(event) => {
+            if (!canSwipePages || event.pointerType === 'mouse') return;
+            if (!event.isPrimary) {
+              pointer.current = null;
+              return;
+            }
+            pointer.current = { x: event.clientX, y: event.clientY, id: event.pointerId };
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }}
+          onPointerUp={(event) => {
+            const start = pointer.current;
+            pointer.current = null;
+            if (!start || start.id !== event.pointerId || !canSwipePages) return;
+            const dx = event.clientX - start.x;
+            const dy = event.clientY - start.y;
+            if (Math.abs(dx) >= 45 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+              ignoreClickUntil.current = performance.now() + 500;
+              movePage(dx < 0 ? 1 : -1);
+              revealControls();
+            }
+          }}
+          onPointerCancel={() => {
+            pointer.current = null;
+          }}
           onTouchStart={(event) => {
             if (expanded || zoom > 1) event.stopPropagation();
-            touch.current =
-              canSwipePages &&
-              event.touches.length === 1 &&
-              event.currentTarget.scrollWidth <= event.currentTarget.clientWidth + 1
-                ? { x: event.touches[0].clientX, y: event.touches[0].clientY }
-                : null;
           }}
           onTouchMove={(event) => {
             if (expanded || zoom > 1) event.stopPropagation();
-            if (event.touches.length !== 1) {
-              touch.current = null;
-              ignoreClickUntil.current = performance.now() + 500;
-            } else if (touch.current) {
-              const dx = Math.abs(event.touches[0].clientX - touch.current.x);
-              const dy = Math.abs(event.touches[0].clientY - touch.current.y);
-              if (Math.max(dx, dy) > 10) ignoreClickUntil.current = performance.now() + 500;
-              if (dy > 12 && dy > dx * 1.4) touch.current = null;
-            }
+            // A second finger cancels page navigation; pinch/vertical pan remain native.
+            if (event.touches.length !== 1) pointer.current = null;
           }}
           onTouchEnd={(event) => {
             if (expanded || zoom > 1) event.stopPropagation();
-            const start = touch.current;
-            touch.current = null;
-            if (!start || !canSwipePages || event.changedTouches.length !== 1) return;
-            const dx = event.changedTouches[0].clientX - start.x;
-            const dy = event.changedTouches[0].clientY - start.y;
-            if (Math.abs(dx) >= 55 && Math.abs(dx) > Math.abs(dy) * 1.4) {
-              ignoreClickUntil.current = performance.now() + 500;
-              movePage(dx < 0 ? 1 : -1);
-            }
-          }}
-          onTouchCancel={() => {
-            touch.current = null;
           }}
           onClick={(event) => {
             const viewport = event.currentTarget;
@@ -298,6 +362,7 @@ export default function PdfSheet({
               viewport.scrollWidth > viewport.clientWidth + 1
             )
               return;
+            revealControls();
             const box = viewport.getBoundingClientRect();
             const position = (event.clientX - box.left) / box.width;
             if (position < 1 / 3) movePage(-1);
@@ -332,7 +397,7 @@ export default function PdfSheet({
             )}
           </div>
         </div>
-        {sideNavigation && hasPages && pageButton(1)}
+        {hasPages && pageButton(1)}
       </div>
     </>
   );
@@ -344,7 +409,11 @@ export default function PdfSheet({
         setExpanded(open);
       }}
     >
-      {!expanded && <div className="pdf-sheet">{content}</div>}
+      {!expanded && (
+        <div className="pdf-sheet" data-controls-visible="true">
+          {content}
+        </div>
+      )}
       <Dialog.Portal>
         {expanded && (
           <>
@@ -353,9 +422,15 @@ export default function PdfSheet({
               className="pdf-fullscreen"
               ref={fullscreenRoot}
               aria-describedby={undefined}
+              data-controls-visible={controlsVisible}
+              onPointerMove={(event) => {
+                if (event.pointerType === 'mouse') revealControls();
+              }}
+              onClick={revealControls}
+              onFocusCapture={revealControls}
               onOpenAutoFocus={(event) => {
                 event.preventDefault();
-                closeButton.current?.focus();
+                fullscreenRoot.current?.querySelector<HTMLElement>('.pdf-viewport')?.focus();
               }}
               onCloseAutoFocus={(event) => {
                 event.preventDefault();
@@ -374,16 +449,7 @@ export default function PdfSheet({
                 }
               }}
             >
-              <header className="focus-header">
-                <Dialog.Title dir="auto">{title} · PDF</Dialog.Title>
-                <Dialog.Close
-                  ref={closeButton}
-                  className="button secondary focus-close"
-                  aria-label="Exit PDF fullscreen"
-                >
-                  ✕
-                </Dialog.Close>
-              </header>
+              <Dialog.Title className="sr-only">{title} · PDF</Dialog.Title>
               <div className="pdf-sheet pdf-fullscreen-reading">{content}</div>
             </Dialog.Content>
           </>

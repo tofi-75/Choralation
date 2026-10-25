@@ -9,9 +9,14 @@ from django.db.migrations.executor import MigrationExecutor
 def test_legacy_migration_preserves_identity_passwords_masses_and_selections():
     executor = MigrationExecutor(connection)
     latest = executor.loader.graph.leaf_nodes()
-    executor.migrate([("masses", "0001_initial")])
+    executor.migrate([("masses", "0001_initial"), ("hymns", "0005_mass_sections")])
     state = executor.loader.project_state(
-        [("masses", "0001_initial"), ("accounts", "0002_initial"), ("choirs", "0001_initial")]
+        [
+            ("masses", "0001_initial"),
+            ("accounts", "0002_initial"),
+            ("choirs", "0001_initial"),
+            ("hymns", "0005_mass_sections"),
+        ]
     ).apps
     User = state.get_model("auth", "User")
     Group = state.get_model("auth", "Group")

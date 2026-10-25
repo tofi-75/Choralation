@@ -1,10 +1,21 @@
 /** Shared reading surface: private PDF first, then lyrics, then the hymn title. */
 import { lazy, Suspense, useCallback, useState } from 'react';
+import type { PdfFit } from './PdfSheet';
 import type { Hymn } from '../../api/library';
 
 const PdfSheet = lazy(() => import('./PdfSheet'));
 
-export function HymnMaterial({ hymn, focus = false }: { hymn: Hymn; focus?: boolean }) {
+export function HymnMaterial({
+  hymn,
+  focus = false,
+  fit,
+  onFitChange,
+}: {
+  hymn: Hymn;
+  focus?: boolean;
+  fit?: PdfFit;
+  onFitChange?: (fit: PdfFit) => void;
+}) {
   const [failed, setFailed] = useState(false);
   const onFailure = useCallback(() => setFailed(true), []);
   return (
@@ -15,10 +26,13 @@ export function HymnMaterial({ hymn, focus = false }: { hymn: Hymn; focus?: bool
       {hymn.sheet_music_pdf && !failed ? (
         <Suspense fallback={<p role="status">Loading sheet music…</p>}>
           <PdfSheet
+            key={hymn.sheet_music_pdf.url}
             url={hymn.sheet_music_pdf.url}
             title={hymn.title}
             onFailure={onFailure}
             focus={focus}
+            fit={fit}
+            onFitChange={onFitChange}
           />
         </Suspense>
       ) : (

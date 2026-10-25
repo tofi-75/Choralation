@@ -209,3 +209,7 @@ Saved Masses now offer **Focus mode** for PDF → lyrics → title reading, with
 
 
 Public information is served without sign-in or JavaScript at `/about`, `/privacy` and `/terms`. See [Gmail verification readiness](docs/google-verification.md) for the privacy-request runbook, local delivery acceptance, Google scope justification and remaining domain/owner release gates. The policy identifies Toufic Lattouf (Lebanon) and tofi.lattouf@gmail.com as the operator/contact. Google approval and hosted delivery are separate from local engineering checks.
+
+Local account and reader refinements add username availability, password strength feedback, compact PDF controls, immersive fullscreen, replacement previews and revised standard Mass sections. See [behavior, migration and missing-PDF recovery notes](docs/reader-and-account-refinements.md). These refinements have not been deployed yet.
+
+Regular members can save private hymns under **My hymns** and request planner approval before publication. Planners review them from **Choirs → Hymn submissions**. See [workflow, privacy boundary and migration/rollback notes](docs/member-hymn-submissions.md).

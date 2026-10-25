@@ -510,3 +510,8 @@ The original phases are preserved in substance: foundation, hymn domain, plannin
 ### October 10 picker refinement
 
 Sortable desktop metadata, compact phone controls/cards, sidebar collapse and drag/keyboard hymn ordering are implemented as owner review follow-ups. Neutral suitability suppresses both picker and program season notices. See [implementation and evidence](docs/picker-review.md). M4's physical-device gate remains pending; this refinement does not advance M5 recommendations or the deferred saved-program performance design.
+
+
+### October 26 member hymn submissions
+
+Regular members can now save private hymns and ask a choir planner to publish them. My hymns holds author-owned copies; Choirs exposes the planner review inbox. Shared library, Mass selections and PDF downloads enforce publication visibility. Existing shared data is preserved by an additive migration. See [workflow and release safeguards](docs/member-hymn-submissions.md). This local implementation does not advance deferred recommendations, Practice, Arabic translation or physical-phone acceptance. Hosted deployment remains pending.

@@ -11,11 +11,13 @@ from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.parsers import JSONParser, MultiPartParser
 from rest_framework.response import Response
 
-from accounts.permissions import AdminPermission, PlannerPermission, VerifiedPermission
+from accounts.permissions import AdminPermission, Role, VerifiedPermission, role_for
+from accounts.security import limit
 from accounts.serializers import ErrorSerializer
-from choirs.access import request_choir
+from choirs.access import request_choir, require_choir
 from common.storage import StorageUnavailable
 from hymns import selectors, services
+from hymns.models import Hymn
 from hymns.serializers import (
     CategoryDetailSerializer,
     CategoryReadSerializer,
@@ -23,6 +25,8 @@ from hymns.serializers import (
     CategoryWriteSerializer,
     HymnMultipartWriteSerializer,
     HymnReadSerializer,
+    HymnReviewSerializer,
+    HymnSubmitSerializer,
     HymnWriteSerializer,
     ReorderSerializer,
 )
@@ -92,17 +96,12 @@ class HymnViewSet(viewsets.GenericViewSet):
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_queryset(self):
-        return selectors.hymn_queryset(request_choir(self.request, required=False))
+        return selectors.visible_hymns(
+            self.request.user, request_choir(self.request, required=False)
+        )
 
     def get_permissions(self):
-        policy = (
-            AdminPermission
-            if self.action == "destroy"
-            else PlannerPermission
-            if self.action in {"create", "partial_update"}
-            else VerifiedPermission
-        )
-        return [policy()]
+        return [VerifiedPermission()]
 
     def list(self, request):
         rows = selectors.library_queryset(
@@ -113,6 +112,58 @@ class HymnViewSet(viewsets.GenericViewSet):
 
     def retrieve(self, request, pk=None):
         return Response(self.get_serializer(self.get_object()).data)
+
+    @extend_schema(responses={200: HymnReadSerializer(many=True)})
+    @action(detail=False, methods=["get"], url_path="mine")
+    def mine(self, request):
+        selectors.validate_query(request.query_params, {"page", "page_size"})
+        rows = self.get_queryset().filter(created_by=request.user).order_by("-updated_at", "-id")
+        page = self.paginate_queryset(rows)
+        return self.get_paginated_response(self.get_serializer(page, many=True).data)
+
+    @extend_schema(responses={200: HymnReadSerializer(many=True)})
+    @action(detail=False, methods=["get"], url_path="review-queue")
+    def review_queue(self, request):
+        selectors.validate_query(request.query_params, {"page", "page_size", "choir_id"})
+        rows = (
+            self.get_queryset()
+            .filter(publication_status="pending", can_review_submission=True)
+            .order_by("updated_at", "id")
+        )
+        choir_id = request.query_params.get("choir_id")
+        if choir_id is not None:
+            if (
+                not choir_id.isascii()
+                or not choir_id.isdigit()
+                or len(choir_id) > 18
+                or int(choir_id) < 1
+            ):
+                raise ValidationError({"choir_id": ["Choose a valid choir."]})
+            require_choir(request.user, int(choir_id), planner=True)
+            rows = rows.filter(submitted_to_id=int(choir_id))
+        page = self.paginate_queryset(rows)
+        return self.get_paginated_response(self.get_serializer(page, many=True).data)
+
+    @extend_schema(request=HymnSubmitSerializer, responses={200: HymnReadSerializer, **ERRORS})
+    @action(detail=True, methods=["post"], url_path="submit")
+    def submit(self, request, pk=None):
+        limit("hymn-submit", request.user.pk, 10, 3600)
+        self.get_object()
+        data = HymnSubmitSerializer(data=request.data)
+        data.is_valid(raise_exception=True)
+        services.submit_hymn(request.user, int(pk), **data.validated_data)
+        return Response(self.get_serializer(self.get_object()).data)
+
+    @extend_schema(request=HymnReviewSerializer, responses={200: HymnReadSerializer, **ERRORS})
+    @action(detail=True, methods=["post"], url_path="review")
+    def review(self, request, pk=None):
+        self.get_object()
+        data = HymnReviewSerializer(data=request.data)
+        data.is_valid(raise_exception=True)
+        hymn = services.review_hymn(request.user, int(pk), **data.validated_data)
+        # Declining ends the reviewer's ongoing access; return this authorized action's result without another visibility lookup.
+        updated = selectors.hymn_queryset(rows=Hymn.all_objects.filter(pk=hymn.pk)).get()
+        return Response(self.get_serializer(updated).data)
 
     @extend_schema(
         responses={200: HymnUsageSerializer(many=True), **ERRORS},
@@ -134,6 +185,8 @@ class HymnViewSet(viewsets.GenericViewSet):
         return self.save(request, pk=int(pk))
 
     def save(self, request, pk=None, status=200):
+        if role_for(request.user) == Role.VIEWER:
+            limit("member-hymn-write", request.user.pk, 60, 3600)
         # Reject an invalid context before persisting shared metadata or a PDF.
         request_choir(request, required=False)
         data = request.data

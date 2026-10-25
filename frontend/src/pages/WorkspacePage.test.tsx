@@ -63,12 +63,12 @@ it('shows the next four saved Masses, new hymns, navigation and practice', async
   expect(screen.getByRole('link', { name: 'Add hymn' })).toHaveAttribute('href', '/hymns/new');
   expect(screen.getByRole('region', { name: 'Practice' })).toHaveTextContent('Coming soon');
 });
-it('handles an empty program list and keeps hymn creation hidden for viewers', async () => {
+it('handles an empty program list and allows members to add private hymns', async () => {
   session.user.role = 'Viewer';
   vi.mocked(fetchMasses).mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
   mount();
   await waitFor(() => expect(screen.getByText(/No upcoming saved Masses/)).toBeVisible());
-  expect(screen.queryByRole('link', { name: 'Add hymn' })).not.toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Add hymn' })).toHaveAttribute('href', '/hymns/new');
 });
 
 vi.mock('../features/choirs/ChoirProvider', () => ({

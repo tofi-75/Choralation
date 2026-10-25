@@ -17,6 +17,8 @@ import { ApiError } from '../api/client';
 import { useSession } from '../features/auth/SessionProvider';
 import { PasswordInput } from '../components/PasswordInput';
 import { PublicLinks } from '../components/PublicLinks';
+import { PasswordStrength, passwordRequirements } from '../components/PasswordStrength';
+import { UsernameField } from '../components/UsernameField';
 
 function accountError(error: unknown) {
   return error instanceof ApiError
@@ -41,6 +43,8 @@ function PasswordField({
   confirmation?: boolean;
 }) {
   const id = useId();
+  const [password, setPassword] = useState('');
+  const newPassword = !confirmation && name !== 'current_password';
   return (
     <div className="field">
       <label htmlFor={id}>{label}</label>
@@ -49,6 +53,16 @@ function PasswordField({
         name={name}
         required
         maxLength={256}
+        aria-describedby={newPassword ? `${id}-strength` : undefined}
+        onChange={(event) => {
+          const value = event.currentTarget.value;
+          setPassword(value);
+          event.currentTarget.setCustomValidity(
+            newPassword && !passwordRequirements(value).every((rule) => rule.met)
+              ? 'Use at least 8 characters, one uppercase letter (A–Z), one number and one symbol.'
+              : '',
+          );
+        }}
         autoComplete={
           confirmation
             ? 'new-password'
@@ -57,6 +71,7 @@ function PasswordField({
               : 'new-password'
         }
       />
+      {newPassword && <PasswordStrength password={password} id={`${id}-strength`} />}
     </div>
   );
 }
@@ -250,16 +265,7 @@ export function AccountPages({
                   });
                 }}
               >
-                <label className="field">
-                  Username
-                  <input
-                    name="username"
-                    required
-                    maxLength={150}
-                    autoComplete="username"
-                    autoCapitalize="none"
-                  />
-                </label>
+                <UsernameField />
                 <label className="field">
                   Email
                   <input name="email" type="email" required autoComplete="email" />

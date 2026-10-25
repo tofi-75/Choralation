@@ -21,6 +21,7 @@ export function useRefreshLibrary() {
       client.invalidateQueries({ queryKey: ['hymns'] }),
       client.invalidateQueries({ queryKey: ['hymn'] }),
       client.invalidateQueries({ queryKey: ['categories'] }),
+      client.invalidateQueries({ queryKey: ['hymn-submissions'] }),
     ]);
   };
 }

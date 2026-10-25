@@ -32,6 +32,7 @@ const choices = {
   languages: [category(4, 'Arabic'), category(5, 'Inactive language', false)],
   tags: [category(6, 'Mary')],
 };
+vi.mock('../features/hymns/PdfSheet', () => ({ default: () => <div>PDF preview</div> }));
 beforeEach(() => clearCsrfToken());
 
 function mount(
@@ -160,10 +161,11 @@ it.each([
   expect((pdfInput as HTMLInputElement).files?.[0]).toBe(pdf);
 });
 
-it('keeps Viewer routes read-only even when the URL is entered directly', async () => {
+it('lets members add private hymns while explaining the approval requirement', async () => {
   mount('Viewer');
-  expect(await screen.findByRole('heading', { name: 'Read-only access' })).toBeVisible();
-  expect(screen.queryByRole('button', { name: 'Save hymn' })).not.toBeInTheDocument();
+  expect(await screen.findByRole('heading', { name: 'Add hymn' })).toBeVisible();
+  expect(screen.getByText(/This hymn is private to your account/)).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Save hymn' })).toBeVisible();
 });
 
 it('requires placements and seasons, while excluding new inactive language choices', async () => {
@@ -314,3 +316,13 @@ it.each([
     }
   },
 );
+
+it('protects a member’s unsaved hymn when changing choir or signing out', async () => {
+  mount('Viewer');
+  const title = await screen.findByRole('textbox', { name: /^Title/ });
+  await userEvent.type(title, 'Unsaved private hymn');
+  vi.spyOn(window, 'confirm').mockReturnValue(false);
+  const event = new Event('choralation:before-signout', { cancelable: true });
+  expect(window.dispatchEvent(event)).toBe(false);
+  expect(title).toHaveValue('Unsaved private hymn');
+});

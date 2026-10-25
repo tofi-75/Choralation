@@ -9,7 +9,6 @@ import { categoryKinds, fetchHymns } from '../api/library';
 import { CategorySelect } from '../features/hymns/CategorySelect';
 import { CategoryChips } from '../features/hymns/HymnSummary';
 import { useCategories } from '../features/hymns/queries';
-import { useSession } from '../features/auth/SessionProvider';
 import { UsageSummary } from '../features/hymns/UsageSummary';
 import { useChoir } from '../features/choirs/ChoirProvider';
 
@@ -21,7 +20,6 @@ const filterNames = {
   tags: 'tags',
 } as const;
 export function LibraryPage() {
-  const { user } = useSession();
   const { active } = useChoir();
   const [params, setParams] = useSearchParams();
   const categories = useCategories();
@@ -118,11 +116,14 @@ export function LibraryPage() {
           <h1 className="page-title">Hymn library</h1>
           <p className="muted library-intro">Find hymns for your next gathering.</p>
         </div>
-        {user?.role !== 'Viewer' && (
+        <div className="form-actions">
+          <Link className="button secondary" to="/hymns/mine">
+            My hymns
+          </Link>
           <Link className="button primary" to="/hymns/new">
             Add hymn
           </Link>
-        )}
+        </div>
       </div>
       <section className="library-controls" aria-label="Search and filters">
         <div className="search-row">

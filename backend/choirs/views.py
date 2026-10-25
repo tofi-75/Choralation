@@ -23,6 +23,7 @@ from choirs.serializers import (
     DirectorySerializer,
     JoinSerializer,
     MemberSerializer,
+    PendingRequestsSerializer,
     RequestResultSerializer,
 )
 from hymns.selectors import LibraryPagination
@@ -186,6 +187,24 @@ class ChoirViewSet(viewsets.GenericViewSet):
         code = values.get("code", "").strip().upper().replace(" ", "").replace("-", "")
         item = services.request_join(request.user, values["choir_id"], code)
         return Response({"id": item.pk, "status": item.status}, status=201)
+
+    @extend_schema(responses={200: PendingRequestsSerializer})
+    @action(detail=False, methods=["get"], url_path="pending-requests")
+    def pending_requests(self, request):
+        """Incoming applications are visible only to that choir's planners/Admins."""
+        rows = JoinRequest.objects.filter(status="pending")
+        if not is_admin(request.user):
+            rows = rows.filter(
+                choir_id__in=Membership.objects.filter(user=request.user, role="Planner").values(
+                    "choir_id"
+                )
+            )
+        rows = rows.order_by("created_at", "id").values(
+            "id", "choir_id", choir_name=F("choir__name"), username=F("user__username")
+        )
+        paginator = LibraryPagination()
+        page = paginator.paginate_queryset(rows, request, view=self)
+        return paginator.get_paginated_response(page)
 
     @extend_schema(request=EmptySerializer, responses={204: None})
     @action(

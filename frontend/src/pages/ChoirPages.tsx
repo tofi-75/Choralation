@@ -1,7 +1,7 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams, useLocation } from 'react-router';
 import {
   cancelApplication,
   changeMember,
@@ -18,6 +18,8 @@ import type { Choir, ChoirInput } from '../api/choirs';
 import { ApiError } from '../api/client';
 import { useSession } from '../features/auth/SessionProvider';
 import { useChoir } from '../features/choirs/ChoirProvider';
+import { HymnReviewQueue } from '../features/hymns/HymnReviewQueue';
+import { ChoirJoinRequests } from '../features/choirs/ChoirJoinRequests';
 
 function ChoirFields({ choir }: { choir?: Choir }) {
   return (
@@ -56,6 +58,8 @@ function choirValues(form: HTMLFormElement): ChoirInput {
 }
 export function ChoirPages({ mode }: { mode: 'list' | 'join' | 'new' | 'detail' }) {
   const { id } = useParams();
+  const location = useLocation();
+  const hymnReview = (location.state as { hymnReview?: string } | null)?.hymnReview;
   const { user } = useSession();
   const context = useChoir();
   const client = useQueryClient();
@@ -92,6 +96,7 @@ export function ChoirPages({ mode }: { mode: 'list' | 'join' | 'new' | 'detail' 
       context.refresh(),
       client.invalidateQueries({ queryKey: ['choir-detail'] }),
       client.invalidateQueries({ queryKey: ['choir-applications'] }),
+      client.invalidateQueries({ queryKey: ['choir-join-requests'] }),
       client.invalidateQueries({ queryKey: ['session'] }),
     ]);
   }
@@ -158,13 +163,18 @@ export function ChoirPages({ mode }: { mode: 'list' | 'join' | 'new' | 'detail' 
             {joined ? 'Joined' : application ? 'Request pending' : 'Request to join'}
           </button>
         ) : (
-          <button
-            className="button secondary"
-            disabled={context.active?.id === choir.id}
-            onClick={() => void context.select(choir.id)}
-          >
-            {context.active?.id === choir.id ? 'Selected' : 'Open choir'}
-          </button>
+          <div className="form-actions">
+            <Link className="button secondary" to={`/choirs/${choir.id}`}>
+              {choir.role === 'Planner' || user?.role === 'Admin' ? 'Manage choir' : 'View choir'}
+            </Link>
+            <button
+              className="button secondary"
+              disabled={context.active?.id === choir.id}
+              onClick={() => void context.select(choir.id)}
+            >
+              {context.active?.id === choir.id ? 'Selected' : 'Use choir'}
+            </button>
+          </div>
         )}
       </li>
     );
@@ -205,6 +215,13 @@ export function ChoirPages({ mode }: { mode: 'list' | 'join' | 'new' | 'detail' 
           )}
         </div>
       </div>
+      {mode === 'list' && ['approved', 'declined'].includes(hymnReview ?? '') && (
+        <p className="notice" role="status">
+          {hymnReview === 'approved'
+            ? 'Hymn approved and published.'
+            : 'Changes requested. The hymn remains private.'}
+        </p>
+      )}
       {error && (
         <p className="notice error" role="alert">
           {error}
@@ -217,6 +234,20 @@ export function ChoirPages({ mode }: { mode: 'list' | 'join' | 'new' | 'detail' 
       )}
       {mode === 'list' && (
         <>
+          {(user?.role === 'Admin' || context.choirs.some((choir) => choir.role === 'Planner')) && (
+            <ChoirJoinRequests
+              pending={pending}
+              onDecision={(choir, request, status) =>
+                run(
+                  () => decideApplication(choir, request, status),
+                  status === 'approved' ? 'Member approved.' : 'Request declined.',
+                )
+              }
+            />
+          )}
+          {(user?.role === 'Admin' || context.choirs.some((choir) => choir.role === 'Planner')) && (
+            <HymnReviewQueue />
+          )}
           {context.choirs.length === 0 && (
             <section className="form-section">
               <h2>Find your choir</h2>
@@ -366,6 +397,7 @@ export function ChoirPages({ mode }: { mode: 'list' | 'join' | 'new' | 'detail' 
               <p className="tiny">
                 {saved.is_public ? 'Public' : 'Private'} · {saved.members.length} members
               </p>
+              {saved.role === 'Planner' && <HymnReviewQueue choirId={saved.id} />}
               {saved.role === 'Planner' && (
                 <>
                   <details className="form-section">

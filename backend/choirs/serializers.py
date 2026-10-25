@@ -64,6 +64,20 @@ class ApplicationSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=["pending", "approved", "declined", "cancelled"])
 
 
+class PendingRequestSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    choir_id = serializers.IntegerField()
+    choir_name = serializers.CharField()
+    username = serializers.CharField()
+
+
+class PendingRequestsSerializer(serializers.Serializer):
+    count = serializers.IntegerField()
+    next = serializers.URLField(allow_null=True)
+    previous = serializers.URLField(allow_null=True)
+    results = PendingRequestSerializer(many=True)
+
+
 class RequestResultSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     status = serializers.ChoiceField(choices=["pending", "approved", "declined", "cancelled"])

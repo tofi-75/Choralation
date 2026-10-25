@@ -62,6 +62,23 @@ export const joinChoir = (choir_id: number, code?: string) =>
     body: JSON.stringify({ choir_id, ...(code ? { code } : {}) }),
   });
 export const fetchApplications = () => request('/choirs/requests/', z.array(applicationSchema));
+export const fetchPendingRequests = (page = 1) =>
+  request(
+    `/choirs/pending-requests/?page=${page}`,
+    z.object({
+      count: z.number(),
+      next: z.string().nullable(),
+      previous: z.string().nullable(),
+      results: z.array(
+        z.object({
+          id: z.number(),
+          choir_id: z.number(),
+          choir_name: z.string(),
+          username: z.string(),
+        }),
+      ),
+    }),
+  );
 export const cancelApplication = (id: number) =>
   request(`/choirs/requests/${id}/cancel/`, z.undefined(), { method: 'POST', body: '{}' });
 export const decideApplication = (choir: number, id: number, status: 'approved' | 'declined') =>

@@ -41,7 +41,16 @@ class HymnForm(forms.ModelForm):
 
     class Meta:
         model = Hymn
-        exclude = ["created_by", "updated_by", "sheet_music_pdf_name"]
+        exclude = [
+            "created_by",
+            "updated_by",
+            "sheet_music_pdf_name",
+            "publication_status",
+            "submitted_to",
+            "reviewed_by",
+            "reviewed_at",
+            "review_note",
+        ]
 
     def clean(self):
         cleaned = super().clean()

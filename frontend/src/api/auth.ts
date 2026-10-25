@@ -12,8 +12,19 @@ export const userSchema = z.object({
   verification_required: z.boolean().optional(),
   can_create_choirs: z.boolean().optional(),
   can_edit_hymns: z.boolean().optional(),
+  can_add_hymns: z.boolean().optional(),
 });
 export type User = z.infer<typeof userSchema>;
+export const checkUsername = (username: string, signal?: AbortSignal) =>
+  request(
+    '/auth/username-availability/',
+    z.object({ available: z.boolean(), detail: z.string() }),
+    {
+      method: 'POST',
+      body: JSON.stringify({ username }),
+      signal,
+    },
+  );
 export const fetchAuthConfig = () =>
   request(
     '/auth/config/',

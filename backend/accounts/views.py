@@ -32,15 +32,17 @@ def public_user(user) -> dict:
     """Expose only identity and resolved role; no permissions/password internals."""
     profile = profile_for(user)
     role = role_for(user)
+    has_access = verified_access(user)
     return {
         "id": user.pk,
         "username": user.get_username(),
         "role": str(role),
         "email": profile.email,
         "email_verified": bool(profile.verified_at),
-        "verification_required": not verified_access(user),
+        "verification_required": not has_access,
         "can_create_choirs": role == Role.ADMIN or profile.can_create_choirs,
         "can_edit_hymns": role in {Role.ADMIN, Role.PLANNER},
+        "can_add_hymns": has_access,
     }
 
 

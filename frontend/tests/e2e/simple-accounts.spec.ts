@@ -15,6 +15,17 @@ test('simple accounts register, email-login and change password without account 
   const before = existsSync(folder) ? readdirSync(folder).length : 0;
   await page.goto('/register');
   await page.getByLabel('Username', { exact: true }).fill(username);
+  await expect(page.getByRole('status')).toContainText('Username is available.');
+  const passwordField = page.getByLabel('Password', { exact: true });
+  await passwordField.fill('weak');
+  await expect(page.getByText('Weak', { exact: true })).toBeVisible();
+  expect(
+    await passwordField.evaluate((element) => (element as HTMLInputElement).checkValidity()),
+  ).toBe(false);
+  expect(await passwordField.evaluate((element) => getComputedStyle(element).fontWeight)).toBe(
+    '400',
+  );
+
   await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByLabel('Confirm password', { exact: true }).fill(password);

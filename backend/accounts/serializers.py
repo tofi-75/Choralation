@@ -32,6 +32,7 @@ class UserSerializer(serializers.Serializer):
     verification_required = serializers.BooleanField()
     can_create_choirs = serializers.BooleanField()
     can_edit_hymns = serializers.BooleanField()
+    can_add_hymns = serializers.BooleanField()
 
 
 class RegistrationSerializer(StrictSerializer):
@@ -48,6 +49,15 @@ class RegistrationSerializer(StrictSerializer):
                 {"password_confirmation": ["Passwords do not match."]}
             )
         return data
+
+
+class UsernameAvailabilitySerializer(StrictSerializer):
+    username = serializers.CharField(max_length=150)
+
+
+class UsernameAvailabilityResultSerializer(serializers.Serializer):
+    available = serializers.BooleanField()
+    detail = serializers.CharField()
 
 
 class EmailSerializer(StrictSerializer):

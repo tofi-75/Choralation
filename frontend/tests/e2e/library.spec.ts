@@ -191,19 +191,34 @@ test('Planner: create Unicode hymn, save recovery, URL filters, refresh, and edi
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
 });
 
-test('Viewer: readable library and direct edit route stays read-only', async ({ page }) => {
+test('Member: private creation is available while shared hymns remain read-only', async ({
+  page,
+}) => {
   await signIn(page, 'Viewer');
-  await expect(page.getByRole('link', { name: 'Add hymn', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Add hymn', exact: true })).toBeVisible();
   await page.goto('/hymns/new');
-  await expect(page.getByRole('heading', { name: 'Read-only access' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Save hymn' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Add hymn', exact: true })).toBeVisible();
+  await expect(page.getByText(/This hymn is private to your account/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save hymn' })).toBeVisible();
   const csrf = (await (await page.request.get('/api/v1/auth/csrf/')).json()).csrf_token;
   const forbidden = await page.request.post('/api/v1/hymns/', {
     headers: { 'X-CSRFToken': csrf },
     data: { title: 'Forbidden' },
   });
-  expect(forbidden.status()).toBe(403);
+  expect(forbidden.status()).toBe(400);
   const hymns = (await (await page.request.get('/api/v1/hymns/?is_active=all')).json()).results;
+  if (hymns.length) {
+    await page.goto(`/hymns/${hymns[0].id}/edit`);
+    await expect(page.getByRole('heading', { name: 'Read-only access' })).toBeVisible();
+    expect(
+      (
+        await page.request.patch(`/api/v1/hymns/${hymns[0].id}/`, {
+          headers: { 'X-CSRFToken': csrf },
+          data: { title: 'Unauthorized edit' },
+        })
+      ).status(),
+    ).toBe(403);
+  }
   const attached = hymns.find(
     (hymn: { sheet_music_pdf: { url: string } | null }) => hymn.sheet_music_pdf,
   );

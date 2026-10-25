@@ -42,6 +42,17 @@ export const textFields = [
 export type TextField = (typeof textFields)[number][0];
 const optionalText = z.string().nullable();
 export const hymnSchema = z.object({
+  publication_status: z.enum(['published', 'private', 'pending', 'declined']).optional(),
+  submission: z
+    .object({
+      choir_id: z.number().nullable(),
+      choir_name: z.string().nullable(),
+      submitted_by: z.string().nullable(),
+      note: z.string(),
+      can_review: z.boolean(),
+    })
+    .nullable()
+    .optional(),
   usage_count: z.number().int().nonnegative(),
   last_used_date: z.string().nullable(),
   id: z.number().int().positive(),
@@ -139,3 +150,17 @@ export function setHymnActive(id: number, active: boolean) {
 export function deleteHymn(id: number) {
   return request(`/hymns/${id}/`, z.undefined(), { method: 'DELETE' });
 }
+
+export const fetchMyHymns = (page = 1) => request(`/hymns/mine/?page=${page}`, pageSchema);
+export const fetchHymnReviews = (page = 1, choir?: number) =>
+  request(`/hymns/review-queue/?page=${page}${choir ? `&choir_id=${choir}` : ''}`, pageSchema);
+export const submitHymn = (hymn: Hymn, choir_id: number) =>
+  request(`/hymns/${hymn.id}/submit/`, hymnSchema, {
+    method: 'POST',
+    body: JSON.stringify({ choir_id, expected_updated_at: hymn.updated_at }),
+  });
+export const reviewHymn = (hymn: Hymn, decision: 'approve' | 'decline', note: string) =>
+  request(`/hymns/${hymn.id}/review/`, hymnSchema, {
+    method: 'POST',
+    body: JSON.stringify({ decision, note, expected_updated_at: hymn.updated_at }),
+  });

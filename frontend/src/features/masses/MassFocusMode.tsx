@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { Mass } from '../../api/masses';
 import { HymnMaterial } from '../hymns/HymnMaterial';
 
+import type { PdfFit } from '../hymns/PdfSheet';
+
 type Selection = Mass['program'][number];
 
 function useScreenAwake() {
@@ -65,6 +67,7 @@ function FocusSession({ selections: initialSelections }: { selections: Selection
   // Keep the reading sequence stable if another session edits/refetches the Mass.
   const [selections] = useState(initialSelections);
   const [index, setIndex] = useState(0);
+  const [fit, setFit] = useState<PdfFit>('height');
   const touch = useRef<{ x: number; y: number } | null>(null);
   const awake = useScreenAwake();
   const selected = selections[index];
@@ -132,7 +135,7 @@ function FocusSession({ selections: initialSelections }: { selections: Selection
             {selected.notes}
           </p>
         )}
-        <HymnMaterial key={selected.id} hymn={selected.hymn} focus />
+        <HymnMaterial key={selected.id} hymn={selected.hymn} focus fit={fit} onFitChange={setFit} />
       </div>
       <footer className="focus-footer">
         <nav aria-label="Hymn navigation">
