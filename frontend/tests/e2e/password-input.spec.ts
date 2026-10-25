@@ -19,7 +19,7 @@ test('Password controls preview one character, mask on blur, and toggle without 
   await expect(password).toHaveAttribute('type', 'password');
   // Playwright resets an unfocused input's selection before typing; explicitly append.
   await password.press('End');
-  await password.pressSequentially('c');
+  await page.keyboard.type('c');
   await expect(password).toHaveValue('abc');
   await expect(mask).toHaveText('••c');
   await page.getByLabel('Email or username').focus();
