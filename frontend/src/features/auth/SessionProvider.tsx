@@ -39,6 +39,22 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
+    const refresh = () => {
+      void query.refetch();
+    };
+    const expired = () => {
+      void client.cancelQueries({ queryKey: sessionKey });
+      client.setQueryData(sessionKey, null);
+    };
+    window.addEventListener('choralation:session-refresh', refresh);
+    window.addEventListener('choralation:session-expired', expired);
+    return () => {
+      window.removeEventListener('choralation:session-refresh', refresh);
+      window.removeEventListener('choralation:session-expired', expired);
+    };
+  }, [query.refetch, client]);
+
+  useEffect(() => {
     if (query.data === null) {
       clearCsrfToken();
       client.removeQueries({ predicate: (entry) => entry.queryKey[0] !== 'session' });
@@ -48,7 +64,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     return client.getQueryCache().subscribe((event) => {
       const error = event.query.state.error;
-      if (error instanceof ApiError && error.code === 'not_authenticated') {
+      if (
+        event.query.queryKey[0] !== 'auth-config' &&
+        error instanceof ApiError &&
+        error.code === 'not_authenticated'
+      ) {
         client.removeQueries({ predicate: (entry) => entry.queryKey[0] !== 'session' });
         client.setQueryData(sessionKey, null);
       }

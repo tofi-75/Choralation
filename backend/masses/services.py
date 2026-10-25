@@ -12,6 +12,7 @@ from django.utils import timezone
 from rest_framework.exceptions import APIException, ValidationError
 
 from accounts.permissions import Role
+from choirs.access import require_choir
 from hymns.models import Hymn, LiturgicalSeason, MassPlacement
 from hymns.services import locked_record, require_role
 from masses.models import Mass, MassHymnSelection
@@ -43,8 +44,10 @@ def checked_mass(
     pk: int, actor, expected: str | None, minimum: Role = Role.PLANNER, *, draft_only: bool = True
 ) -> Mass:
     """Require a transaction; authorize before parsing, then check revision/state."""
-    require_role(actor, minimum)
+    if minimum == Role.ADMIN:
+        require_role(actor, minimum)
     mass = locked_record(Mass, pk)
+    require_choir(actor, mass.choir_id, planner=True, lock=True)
     if expected is None:
         raise RevisionRequired()
     if not re.fullmatch(r"[1-9][0-9]*", expected) or len(expected) > 19:
@@ -70,11 +73,12 @@ def save_mass(data: dict, actor, pk: int | None = None, expected: str | None = N
     Retain an unchanged inactive season, reject new inactive links. Identical
     metadata is a no-op. Blank titles regenerate the date-based default.
     """
-    require_role(actor, Role.PLANNER)
+    if pk is None:
+        require_choir(actor, data.get("choir_id"), planner=True, lock=True)
     mass = (
         checked_mass(pk, actor, expected)
         if pk is not None
-        else Mass(created_by=actor, updated_by=actor)
+        else Mass(created_by=actor, updated_by=actor, choir_id=data["choir_id"])
     )
     season_id = data.get("liturgical_season_id", mass.liturgical_season_id)
     if season_id:
@@ -84,6 +88,8 @@ def save_mass(data: dict, actor, pk: int | None = None, expected: str | None = N
                 {"liturgical_season_id": ["Choose an active season or retain the saved season."]}
             )
     values = dict(data)
+    if pk is not None and "choir_id" in values:
+        raise ValidationError({"choir": ["A Mass cannot be transferred between choirs."]})
     if pk is None or "title" in values:
         values["title"] = (
             values.get("title")

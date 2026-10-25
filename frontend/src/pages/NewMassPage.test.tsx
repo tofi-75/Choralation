@@ -47,7 +47,7 @@ it('cancels a same-date creation and keeps inputs, then creates once after confi
       expect.stringContaining('2 Mass plans already exist for 2026-10-11'),
     ),
   );
-  expect(fetchMasses).toHaveBeenCalledWith('from=2026-10-11&to=2026-10-11');
+  expect(fetchMasses).toHaveBeenCalledWith('from=2026-10-11&to=2026-10-11', 1);
   expect(createMass).not.toHaveBeenCalled();
   expect(screen.getByLabelText('Title')).toHaveValue('Choir Mass');
   await waitFor(() => expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled());
@@ -55,12 +55,15 @@ it('cancels a same-date creation and keeps inputs, then creates once after confi
   fireEvent.click(screen.getByRole('button', { name: 'Next' }));
   await screen.findByText('Hymn step');
   expect(createMass).toHaveBeenCalledTimes(1);
-  expect(createMass).toHaveBeenCalledWith({
-    date: '2026-10-11',
-    title: 'Choir Mass',
-    notes: null,
-    liturgical_season_id: 1,
-  });
+  expect(createMass).toHaveBeenCalledWith(
+    {
+      date: '2026-10-11',
+      title: 'Choir Mass',
+      notes: null,
+      liturgical_season_id: 1,
+    },
+    1,
+  );
 });
 it('blocks creation when the same-date lookup fails and preserves details for retry', async () => {
   vi.mocked(fetchMasses).mockRejectedValue(new Error('Unable to check existing plans.'));
@@ -78,3 +81,12 @@ it('proceeds without confirmation when the date has no saved plans', async () =>
   await screen.findByText('Hymn step');
   expect(confirm).not.toHaveBeenCalled();
 });
+
+vi.mock('../features/choirs/ChoirProvider', () => ({
+  useChoir: () => ({
+    active: { id: 1, name: 'Test choir', role: 'Planner' },
+    choirs: [],
+    select: async () => {},
+    refresh: async () => {},
+  }),
+}));

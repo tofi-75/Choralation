@@ -1,5 +1,6 @@
 /** Global finalized selections include scheduled plans; dates use the team day. */
 import type { Hymn } from '../../api/library';
+import { useChoir } from '../choirs/ChoirProvider';
 
 export function usageDateLabel(day: string, today?: string) {
   const current =
@@ -28,6 +29,8 @@ export function UsageSummary({
   hymn: Pick<Hymn, 'usage_count' | 'last_used_date'>;
   dateFirst?: boolean;
 }) {
+  const { active } = useChoir();
+  if (!active) return null;
   const count = (
     <span>
       {hymn.usage_count === 0
@@ -42,7 +45,7 @@ export function UsageSummary({
     </small>
   );
   return (
-    <span className="usage-summary">
+    <span className="usage-summary" title={`Usage in ${active.name}`}>
       {dateFirst ? (
         <>
           {date}

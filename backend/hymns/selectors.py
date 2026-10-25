@@ -67,16 +67,17 @@ def active_filter(queryset, value: str):
     return queryset if value == "all" else queryset.filter(is_active=value == "true")
 
 
-def hymn_queryset() -> QuerySet:
+def hymn_queryset(choir_id=None) -> QuerySet:
     """Use one language join and four prefetches for both list and detail."""
     return with_usage(
         Hymn.objects.select_related("language").prefetch_related(
             "genres", "seasons", "placements", "tags"
-        )
+        ),
+        choir_id,
     )
 
 
-def library_queryset(params) -> QuerySet:
+def library_queryset(params, choir_id=None) -> QuerySet:
     """AND dimensions, OR IDs within each; neutral does not broaden season matches."""
     validate_query(
         params,
@@ -91,7 +92,13 @@ def library_queryset(params) -> QuerySet:
             "preferred_season",
         },
     )
-    rows = active_filter(hymn_queryset(), params.get("is_active", "true"))
+    if choir_id is None and (
+        set(params) & USAGE_PARAMS
+        or params.get("ordering", "title")
+        in {"recently_used", "least_recently_used", "most_used", "least_used"}
+    ):
+        raise ValidationError({"choir": ["Choose a choir to view usage statistics."]})
+    rows = active_filter(hymn_queryset(choir_id), params.get("is_active", "true"))
     for name, model in FILTER_TYPES.items():
         if name not in params:
             continue
@@ -129,7 +136,7 @@ def library_queryset(params) -> QuerySet:
         and dates["used_after"] > dates["used_before"]
     ):
         raise ValidationError({"used_before": ["End date must be on or after start date."]})
-    occurrences = finalized_occurrences().filter(hymn_id=OuterRef("pk"))
+    occurrences = finalized_occurrences(choir_id).filter(hymn_id=OuterRef("pk"))
     bounded = occurrences
     for key, lookup in (("used_after", "gte"), ("used_before", "lte")):
         if key in dates:

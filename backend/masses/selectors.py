@@ -13,23 +13,25 @@ from hymns.selectors import hymn_queryset, validate_query
 from masses.models import Mass, MassHymnSelection
 
 
-def mass_queryset() -> QuerySet[Mass]:
+def mass_queryset(choir_id=None) -> QuerySet[Mass]:
     """Read all rows, including inactive saved hymns and placements, without N+1."""
     return Mass.objects.select_related("liturgical_season").prefetch_related(
         Prefetch(
             "selections",
             queryset=MassHymnSelection.objects.select_related("placement").prefetch_related(
-                Prefetch("hymn", queryset=hymn_queryset())
+                Prefetch("hymn", queryset=hymn_queryset(choir_id))
             ),
         )
     )
 
 
-def mass_list(params: QueryDict) -> QuerySet[Mass]:
+def mass_list(params: QueryDict, choir_id=None) -> QuerySet[Mass]:
     """Inclusive date bounds, literal season/status, search, deterministic pagination."""
     validate_query(params, {"from", "to", "status", "season", "q", "archived", "page", "page_size"})
-    rows = Mass.objects.select_related("liturgical_season").annotate(
-        selection_count=Count("selections")
+    rows = (
+        Mass.objects.filter(choir_id=choir_id)
+        .select_related("liturgical_season")
+        .annotate(selection_count=Count("selections"))
     )
     dates = {}
     for key in ("from", "to"):
@@ -112,10 +114,10 @@ def program_warnings(mass: Mass) -> list[dict]:
     return warnings
 
 
-def mass_history(params: QueryDict) -> QuerySet[Mass]:
+def mass_history(params: QueryDict, choir_id=None) -> QuerySet[Mass]:
     """Same literal filters as planning, newest first, with prefetched previews."""
     return (
-        mass_list(params)
+        mass_list(params, choir_id)
         .prefetch_related(
             Prefetch(
                 "selections", queryset=MassHymnSelection.objects.select_related("hymn", "placement")
@@ -125,12 +127,14 @@ def mass_history(params: QueryDict) -> QuerySet[Mass]:
     )
 
 
-def hymn_usage(pk: int, params: QueryDict) -> QuerySet[MassHymnSelection]:
+def hymn_usage(pk: int, params: QueryDict, choir_id=None) -> QuerySet[MassHymnSelection]:
     """Finalized occurrences only; date bounds constrain each occurrence's Mass."""
     validate_query(params, {"from", "to", "season", "q", "page", "page_size"})
     return (
         MassHymnSelection.objects.filter(
-            hymn_id=pk, mass__status="finalized", mass_id__in=mass_list(params).values("pk")
+            hymn_id=pk,
+            mass__status="finalized",
+            mass_id__in=mass_list(params, choir_id).values("pk"),
         )
         .select_related("mass", "placement")
         .order_by(

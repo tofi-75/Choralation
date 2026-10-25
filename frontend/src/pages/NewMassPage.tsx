@@ -6,14 +6,15 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router';
 import { createMass, fetchMasses } from '../api/masses';
-import { useSession } from '../features/auth/SessionProvider';
+import { useChoir } from '../features/choirs/ChoirProvider';
+import { ChoirRequired } from '../features/choirs/ChoirRequired';
 import { useCategories } from '../features/hymns/queries';
 import { nearestSunday } from '../features/masses/calendar';
 import { MassDateFields } from '../features/masses/MassDateFields';
 
 export function NewMassPage() {
   const categories = useCategories();
-  const { user } = useSession();
+  const { active } = useChoir();
   const navigate = useNavigate();
   const client = useQueryClient();
   const [pending, setPending] = useState(false);
@@ -25,7 +26,8 @@ export function NewMassPage() {
     setNewDate(day);
     setNewSeason(season);
   }, []);
-  if (user?.role === 'Viewer') return <Navigate to="/masses" replace />;
+  if (!active) return <ChoirRequired />;
+  if (active.role !== 'Planner') return <Navigate to="/masses" replace />;
   return (
     <div className="mass-creation">
       <Link className="text-button" to="/masses">
@@ -44,6 +46,7 @@ export function NewMassPage() {
           try {
             const existing = await fetchMasses(
               new URLSearchParams({ from: newDate, to: newDate }).toString(),
+              active.id,
             );
             if (
               existing.count &&
@@ -52,12 +55,15 @@ export function NewMassPage() {
               )
             )
               return;
-            const saved = await createMass({
-              date: String(data.get('date')),
-              title: String(data.get('title')).trim() || null,
-              notes: String(data.get('notes')).trim() || null,
-              liturgical_season_id: data.get('season') ? Number(data.get('season')) : null,
-            });
+            const saved = await createMass(
+              {
+                date: String(data.get('date')),
+                title: String(data.get('title')).trim() || null,
+                notes: String(data.get('notes')).trim() || null,
+                liturgical_season_id: data.get('season') ? Number(data.get('season')) : null,
+              },
+              active.id,
+            );
             void client.invalidateQueries({ queryKey: ['masses'] });
             navigate(`/masses/${saved.id}/edit`);
           } catch (error) {

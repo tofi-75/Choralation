@@ -41,7 +41,9 @@ function mount(url = '/masses') {
 }
 it('shows upcoming saved programs by default with separate drafts and archives links', async () => {
   mount();
-  await waitFor(() => expect(fetchMasses).toHaveBeenCalledWith('status=finalized&archived=false'));
+  await waitFor(() =>
+    expect(fetchMasses).toHaveBeenCalledWith('status=finalized&archived=false', 1),
+  );
   expect(screen.getByRole('link', { name: 'Drafts' })).toHaveAttribute(
     'href',
     '/masses?status=draft',
@@ -56,14 +58,25 @@ it('shows upcoming saved programs by default with separate drafts and archives l
 });
 it('restores a draft deep link and retains that list when clearing search filters', async () => {
   mount('/masses?status=draft&q=Choir');
-  await waitFor(() => expect(fetchMasses).toHaveBeenCalledWith('status=draft&q=Choir'));
+  await waitFor(() => expect(fetchMasses).toHaveBeenCalledWith('status=draft&q=Choir', 1));
   fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
-  await waitFor(() => expect(fetchMasses).toHaveBeenLastCalledWith('status=draft'));
+  await waitFor(() => expect(fetchMasses).toHaveBeenLastCalledWith('status=draft', 1));
   expect(screen.getByLabelText('URL')).toHaveTextContent('?status=draft');
   expect(screen.getByRole('link', { name: 'Saved Masses' })).toHaveAttribute('href', '/masses');
 });
 it('requests only past saved programs for the archive', async () => {
   mount('/masses?archived=true');
-  await waitFor(() => expect(fetchMasses).toHaveBeenCalledWith('archived=true&status=finalized'));
+  await waitFor(() =>
+    expect(fetchMasses).toHaveBeenCalledWith('archived=true&status=finalized', 1),
+  );
   expect(screen.getByRole('heading', { name: 'Archived Masses' })).toBeVisible();
 });
+
+vi.mock('../features/choirs/ChoirProvider', () => ({
+  useChoir: () => ({
+    active: { id: 1, name: 'Test choir', role: 'Planner' },
+    choirs: [],
+    select: async () => {},
+    refresh: async () => {},
+  }),
+}));

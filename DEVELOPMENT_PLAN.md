@@ -1,5 +1,10 @@
 # Mass Hymn Picker — Development and Delivery Plan
 
+> **October 25, 2026 — Simple accounts:** Registration opens Home immediately; email ownership remains unverified. Verification and emailed recovery are independently disabled. Owner-assisted recovery is available at tofi.lattouf@gmail.com. This supersedes earlier activation instructions. See [release, configuration and recovery](docs/simple-accounts-release.md). Hosted backup, exact-commit CI and deployment acceptance are release gates.
+
+> **October 20, 2026 — Accounts and choirs:** Self-service email verification, recovery, choir membership and choir-specific hymn counts supersede the shared-workspace rules below. See [account and choir setup](docs/accounts-and-choirs.md). Existing local data is preserved in Initial choir. Registration and mandatory legacy verification ship disabled pending owner email setup. Hosting checks: core flows accepted, records persist; PDF persistence and CI-gated deployment remain pending.
+
+
 > **October 13, 2026 priority update:** Render + Supabase hosting preparation is the current delivery task; see [deployment guide](docs/hosting.md). All account/login/provider setup and publishing are manual owner steps deferred until later. Physical-phone acceptance moves from M4 to M5. Saved-Mass performance redesign and recommendations are deferred. Historical milestone statements below retain their original dates; hosted completion requires actual URL, persistence and pipeline verification.
 
 **Prepared:** October 5, 2026  

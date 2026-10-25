@@ -1,5 +1,8 @@
 # Delivery backlog and accountability
 
+> **October 20, 2026 — Accounts and choirs:** Self-service email verification, recovery, choir membership and choir-specific hymn counts supersede the shared-workspace rules below. See [account and choir setup](accounts-and-choirs.md). Existing local data is preserved in Initial choir. Registration and mandatory legacy verification ship disabled pending owner email setup. Hosting checks: core flows accepted, records persist; PDF persistence and CI-gated deployment remain pending.
+
+
 > **October 13, 2026 priority update:** Render + Supabase hosting preparation is the current delivery task; see [deployment guide](hosting.md). All account/login/provider setup and publishing are manual owner steps deferred until later. Physical-phone acceptance moves from M4 to M5. Saved-Mass performance redesign and recommendations are deferred. Historical milestone statements below retain their original dates; hosted completion requires actual URL, persistence and pipeline verification.
 
 **Baseline:** October 8, 2026. M0–M3 engineering work and requested M3 follow-ups are complete. The owner authorized the M3 commit and beginning M4. M4.1–M4.5 engineering is implemented and verified; M4.6 acceptance is pending. M5–M7 have not started. Container execution and coordinator review remain pending; physical-phone acceptance is an explicit M4 gate.

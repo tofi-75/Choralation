@@ -3,11 +3,11 @@
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
+from choir_fixtures import choir_client, choir_member, legacy_choir
 from django.contrib.auth.models import Group
 from django.test import RequestFactory
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.test import APIClient
 
 from hymns.models import Hymn, Language, LiturgicalSeason, MassPlacement
 from hymns.services import reference_counts
@@ -24,6 +24,7 @@ def planning(django_user_model):
     for role in ("Admin", "Planner", "Viewer"):
         user = django_user_model.objects.create_user(username=f"mass-{role.lower()}")
         user.groups.add(Group.objects.get(name=role))
+        choir_member(user)
         users[role] = user
     language = Language.objects.create(name="Mass language", slug="mass")
     season = LiturgicalSeason.objects.create(name="Mass season", slug="mass")
@@ -34,7 +35,7 @@ def planning(django_user_model):
         hymn.placements.add(placement)
         hymn.seasons.add(season)
         hymns.append(hymn)
-    api = APIClient()
+    api = choir_client()
     api.force_authenticate(users["Planner"])
     created = api.post(
         "/api/v1/masses/", {"date": "2026-10-07", "liturgical_season_id": season.pk}, format="json"
@@ -135,7 +136,7 @@ def test_invalid_full_payload_is_atomic(planning, defect):
     if defect == "duplicate-position":
         rows[1]["position"] = 0
     if defect == "foreign-id":
-        other = Mass.objects.create(date="2026-10-09", title="Other")
+        other = Mass.objects.create(choir=legacy_choir(), date="2026-10-09", title="Other")
         foreign = MassHymnSelection.objects.create(
             mass=other, hymn=hymns[1], placement=placement, position=0
         )
@@ -298,7 +299,9 @@ def test_list_nearest_upcoming_then_archived_uses_team_midnight(planning, monkey
         ("near", "2026-10-11"),
         ("today second", "2026-10-09"),
     ]:
-        records[title] = Mass.objects.create(title=f"Sorted {title}", date=day)
+        records[title] = Mass.objects.create(
+            choir=legacy_choir(), title=f"Sorted {title}", date=day
+        )
     with timezone.override("Asia/Beirut"):
         response = api.get("/api/v1/masses/", {"q": "Sorted"})
     assert response.status_code == 200
@@ -318,7 +321,9 @@ def test_list_global_order_spans_pages_and_archive_filters(planning, monkeypatch
     today = date(2026, 10, 8)
     monkeypatch.setattr("masses.selectors.timezone.localdate", lambda: today)
     for offset in range(1, 27):
-        Mass.objects.create(title=f"Upcoming {offset}", date=today + timedelta(days=offset))
+        Mass.objects.create(
+            choir=legacy_choir(), title=f"Upcoming {offset}", date=today + timedelta(days=offset)
+        )
     first = api.get("/api/v1/masses/").data
     second = api.get("/api/v1/masses/?page=2").data
     assert first["count"] == 27 and len(first["results"]) == 25
@@ -328,7 +333,7 @@ def test_list_global_order_spans_pages_and_archive_filters(planning, monkeypatch
     assert all(not row["is_archived"] for row in first["results"])
     assert [row["is_archived"] for row in second["results"]] == [False, True]
     assert second["results"][1]["id"] == saved["id"]
-    old = Mass.objects.create(title="Older archive", date="2026-10-01")
+    old = Mass.objects.create(choir=legacy_choir(), title="Older archive", date="2026-10-01")
     archived = api.get("/api/v1/masses/?to=2026-10-07").data["results"]
     assert [row["id"] for row in archived] == [saved["id"], old.pk]
     assert all(row["is_archived"] for row in archived)
@@ -356,7 +361,10 @@ def test_archived_filter_is_applied_before_pagination_using_team_day(planning):
     Mass.objects.all().delete()
     for offset in range(-30, 31):
         Mass.objects.create(
-            date=today + timedelta(days=offset), title=str(offset), status="finalized"
+            choir=legacy_choir(),
+            date=today + timedelta(days=offset),
+            title=str(offset),
+            status="finalized",
         )
     upcoming = api.get("/api/v1/masses/?status=finalized&archived=false").data
     assert upcoming["count"] == 31 and len(upcoming["results"]) == 25

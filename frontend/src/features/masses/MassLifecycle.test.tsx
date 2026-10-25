@@ -14,6 +14,7 @@ afterEach(() => {
   clearCsrfToken();
 });
 function mount(conflict = false, role = 'Planner', finalized = false, held?: Promise<void>) {
+  choirFixture.role = role;
   const writes: RequestInit[] = [];
   vi.stubGlobal(
     'fetch',
@@ -131,3 +132,19 @@ it('does not delete a finalized Mass when an Admin cancels confirmation', async 
   await user.click(screen.getByRole('button', { name: 'Cancel' }));
   expect(writes).toHaveLength(0);
 });
+
+const choirFixture = vi.hoisted(() => ({ role: 'Planner' }));
+vi.mock('../choirs/ChoirProvider', () => ({
+  useChoir: () => ({
+    active: {
+      id: 1,
+      name: 'Test choir',
+      role: choirFixture.role === 'Viewer' ? 'Member' : 'Planner',
+    },
+    choirs: [
+      { id: 1, name: 'Test choir', role: choirFixture.role === 'Viewer' ? 'Member' : 'Planner' },
+    ],
+    select: async () => {},
+    refresh: async () => {},
+  }),
+}));

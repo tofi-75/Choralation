@@ -1,6 +1,7 @@
+import { useChoirQuery } from '../features/choirs/useChoirQuery';
 /** URL owns every applied filter; search debounce is canceled on history/navigation changes. */
 import * as Dialog from '@radix-ui/react-dialog';
-import { useQuery } from '@tanstack/react-query';
+
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 
@@ -10,6 +11,7 @@ import { CategoryChips } from '../features/hymns/HymnSummary';
 import { useCategories } from '../features/hymns/queries';
 import { useSession } from '../features/auth/SessionProvider';
 import { UsageSummary } from '../features/hymns/UsageSummary';
+import { useChoir } from '../features/choirs/ChoirProvider';
 
 const filterNames = {
   genres: 'genres',
@@ -20,10 +22,14 @@ const filterNames = {
 } as const;
 export function LibraryPage() {
   const { user } = useSession();
+  const { active } = useChoir();
   const [params, setParams] = useSearchParams();
   const categories = useCategories();
   const query = params.toString();
-  const rows = useQuery({ queryKey: ['hymns', query], queryFn: () => fetchHymns(query) });
+  const rows = useChoirQuery({
+    queryKey: ['hymns', query],
+    queryFn: (choirId) => fetchHymns(query, choirId),
+  });
   const [draftSearch, setDraftSearch] = useState<{ text: string; origin: string } | null>(null);
   const appliedSearch = params.get('q') ?? '';
   const search = draftSearch?.origin === query ? draftSearch.text : appliedSearch;
@@ -84,6 +90,7 @@ export function LibraryPage() {
           }
           <input
             type="date"
+            disabled={!active}
             value={params.get(key) ?? ''}
             onChange={(event) => change(key, event.target.value)}
           />
@@ -93,6 +100,7 @@ export function LibraryPage() {
         Usage
         <select
           value={params.get('never_used') ?? ''}
+          disabled={!active}
           onChange={(event) => change('never_used', event.target.value)}
         >
           <option value="">Any usage</option>
@@ -138,10 +146,18 @@ export function LibraryPage() {
             >
               <option value="title">Title</option>
               <option value="newest_added">Newest added</option>
-              <option value="recently_used">Recently used</option>
-              <option value="least_recently_used">Least recently used</option>
-              <option value="most_used">Most used</option>
-              <option value="least_used">Least used</option>
+              <option value="recently_used" disabled={!active}>
+                Recently used
+              </option>
+              <option value="least_recently_used" disabled={!active}>
+                Least recently used
+              </option>
+              <option value="most_used" disabled={!active}>
+                Most used
+              </option>
+              <option value="least_used" disabled={!active}>
+                Least used
+              </option>
             </select>
           </label>
           <Dialog.Root>

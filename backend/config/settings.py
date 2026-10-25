@@ -10,6 +10,7 @@ from pathlib import Path
 import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
 
+from config.account_email import public_origin
 from config.environment import boolean, csv, load_environment
 from config.hosting import database_options, storage_options
 
@@ -28,6 +29,35 @@ USE_TZ = True
 LANGUAGE_CODE = "en-us"
 MARONITE_FEED_ENABLED = boolean("MARONITE_FEED_ENABLED", True)
 ALLOW_HOSTED_DEMO_DATA = boolean("ALLOW_HOSTED_DEMO_DATA")
+ACCOUNT_REGISTRATION_ENABLED = boolean("ACCOUNT_REGISTRATION_ENABLED")
+ACCOUNT_VERIFICATION_REQUIRED = boolean("ACCOUNT_VERIFICATION_REQUIRED")
+ACCOUNT_EMAIL_VERIFICATION_ENABLED = boolean("ACCOUNT_EMAIL_VERIFICATION_ENABLED", True)
+ACCOUNT_PASSWORD_RESET_ENABLED = boolean("ACCOUNT_PASSWORD_RESET_ENABLED", True)
+ACCOUNT_EMAIL_DAILY_LIMIT = int(os.environ.get("ACCOUNT_EMAIL_DAILY_LIMIT", "100"))
+ACCOUNT_LOGIN_LIMIT = int(os.environ.get("ACCOUNT_LOGIN_LIMIT", "10"))
+ACCOUNT_LOGIN_GLOBAL_LIMIT = int(os.environ.get("ACCOUNT_LOGIN_GLOBAL_LIMIT", "120"))
+APP_PUBLIC_URL = os.environ.get("APP_PUBLIC_URL", "http://localhost:5173").rstrip("/")
+EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND", "django.core.mail.backends.filebased.EmailBackend")
+EMAIL_FILE_PATH = Path(os.environ.get("EMAIL_FILE_PATH", PROJECT_ROOT / ".local" / "emails"))
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "Choralation <noreply@example.invalid>")
+GMAIL_CLIENT_ID = os.environ.get("GMAIL_CLIENT_ID", "")
+GMAIL_CLIENT_SECRET = os.environ.get("GMAIL_CLIENT_SECRET", "")
+GMAIL_REFRESH_TOKEN = os.environ.get("GMAIL_REFRESH_TOKEN", "")
+AUTHENTICATION_BACKENDS = ["accounts.backends.EmailOrUsernameBackend"]
+if (
+    not DEBUG
+    and (ACCOUNT_REGISTRATION_ENABLED or ACCOUNT_VERIFICATION_REQUIRED)
+    and (ACCOUNT_EMAIL_VERIFICATION_ENABLED or ACCOUNT_PASSWORD_RESET_ENABLED)
+):
+    if (
+        EMAIL_BACKEND != "accounts.email_backend.GmailBackend"
+        or not all((GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN))
+        or not APP_PUBLIC_URL.startswith("https://")
+    ):
+        raise ImproperlyConfigured(
+            "Configure production HTTPS Gmail delivery before enabling registration."
+        )
+    public_origin(APP_PUBLIC_URL, require_https=True)
 # Render supplies the public host. Additional custom domains stay explicit.
 render_hostname = os.environ.get("RENDER_EXTERNAL_HOSTNAME", "")
 if render_hostname:
@@ -46,7 +76,7 @@ DATABASES["default"]["TEST"] = {"NAME": os.environ.get("TEST_DATABASE_NAME", "te
 DATABASES["default"].setdefault("OPTIONS", {}).update(database_options(database_url, DEBUG))
 
 INSTALLED_APPS = [
-    "django.contrib.admin",
+    "accounts.admin_config.VerifiedAdminConfig",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -55,6 +85,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "drf_spectacular",
     "accounts",
+    "choirs",
     "common",
     "hymns",
     "masses",
@@ -121,22 +152,30 @@ SECURE_HSTS_SECONDS = 0 if DEBUG else 31_536_000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
 SECURE_HSTS_PRELOAD = not DEBUG
 SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "no-referrer"
 X_FRAME_OPTIONS = "DENY"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],
-    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    "DEFAULT_PERMISSION_CLASSES": ["accounts.permissions.VerifiedPermission"],
     "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "common.errors.exception_handler",
 }
 SPECTACULAR_SETTINGS = {
+    "ENUM_NAME_OVERRIDES": {
+        "MassStatusEnum": ["draft", "finalized"],
+        "JoinDecisionEnum": ["approved", "declined"],
+        "JoinRequestStatusEnum": ["pending", "approved", "declined", "cancelled"],
+        "AccountRoleEnum": ["Admin", "Planner", "Viewer"],
+        "ChoirRoleEnum": ["Member", "Planner"],
+    },
     "TITLE": "Mass Hymn Picker API",
     "DESCRIPTION": "Session authentication, hymn library, classifications, and private PDF sheet music.",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
-    "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAuthenticated"],
+    "SERVE_PERMISSIONS": ["accounts.permissions.VerifiedPermission"],
     "COMPONENT_SPLIT_REQUEST": True,
 }
 LOGGING = {

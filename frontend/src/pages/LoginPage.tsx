@@ -1,12 +1,15 @@
 /** Accessible credentials form: preserves input on failures and never logs passwords. */
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
-import { Navigate, useLocation } from 'react-router';
+import { Link, Navigate, useLocation } from 'react-router';
 import { z } from 'zod';
 
-import { signIn } from '../api/auth';
+import { fetchAuthConfig, signIn } from '../api/auth';
 import { ApiError } from '../api/client';
 import { useSession } from '../features/auth/SessionProvider';
+import { PasswordInput } from '../components/PasswordInput';
+import { PublicLinks } from '../components/PublicLinks';
 
 const credentialsSchema = z.object({
   username: z.string().trim().min(1),
@@ -17,6 +20,7 @@ type Credentials = z.infer<typeof credentialsSchema>;
 export function LoginPage() {
   const session = useSession();
   const location = useLocation();
+  const config = useQuery({ queryKey: ['auth-config'], queryFn: fetchAuthConfig });
   const [failure, setFailure] = useState<string | null>(null);
   const {
     register,
@@ -24,8 +28,25 @@ export function LoginPage() {
     setError,
     formState: { errors, isSubmitting },
   } = useForm<Credentials>();
-  if (session.user) return <Navigate to="/dashboard" replace />;
+  if (session.user) {
+    const destination = (location.state as { returnTo?: string } | null)?.returnTo;
+    return (
+      <Navigate
+        to={
+          destination?.startsWith('/verify-email')
+            ? destination
+            : session.user.verification_required
+              ? '/verify-email'
+              : '/dashboard'
+        }
+        replace
+      />
+    );
+  }
   const expired = Boolean((location.state as { expired?: boolean } | null)?.expired);
+  const passwordUpdated = Boolean(
+    (location.state as { passwordUpdated?: boolean } | null)?.passwordUpdated,
+  );
 
   async function submit(values: Credentials) {
     setFailure(null);
@@ -60,7 +81,7 @@ export function LoginPage() {
           <span className="mark" aria-hidden="true">
             ♪
           </span>{' '}
-          Mass Hymn Picker
+          Choralation
         </div>
         <div className="welcome-copy">
           <p className="eyebrow">For your church music team</p>
@@ -76,14 +97,19 @@ export function LoginPage() {
         <div className="login-card">
           <p className="eyebrow">Welcome back</p>
           <h2 id="login-title">Sign in to your workspace</h2>
-          <p className="muted">Use the account provided by your team coordinator.</p>
+          <p className="muted">Sign in with your email or username.</p>
+          {passwordUpdated && (
+            <p className="notice" role="status">
+              Password updated. Sign in with your new password.
+            </p>
+          )}
           {expired && (
             <p className="notice" role="status">
               Your session ended. Sign in again to continue.
             </p>
           )}
           <form onSubmit={handleSubmit(submit)} noValidate>
-            <label htmlFor="username">Username</label>
+            <label htmlFor="username">Email or username</label>
             <input
               id="username"
               autoComplete="username"
@@ -99,9 +125,8 @@ export function LoginPage() {
               </p>
             )}
             <label htmlFor="password">Password</label>
-            <input
+            <PasswordInput
               id="password"
-              type="password"
               autoComplete="current-password"
               aria-invalid={Boolean(errors.password)}
               aria-describedby={errors.password ? 'password-error' : undefined}
@@ -121,7 +146,15 @@ export function LoginPage() {
               {isSubmitting ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
-          <p className="account-help">Need access? Contact your team coordinator.</p>
+          <p className="account-help">
+            {config.data?.password_reset_enabled ? (
+              <Link to="/forgot-password">Forgot password?</Link>
+            ) : (
+              <a href="mailto:tofi.lattouf@gmail.com">Need help signing in? Contact support</a>
+            )}{' '}
+            · <Link to="/register">Create an account</Link>
+          </p>
+          <PublicLinks />
         </div>
       </section>
     </main>

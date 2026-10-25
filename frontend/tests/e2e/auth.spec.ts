@@ -10,12 +10,12 @@ for (const role of ['Admin', 'Planner', 'Viewer'] as const) {
     const username = `e2e-${suffix}-${role.toLowerCase()}`;
     await page.goto('/dashboard');
     await expect(page.getByRole('heading', { name: 'Sign in to your workspace' })).toBeVisible();
-    await page.getByLabel('Username').fill(username);
-    await page.getByLabel('Password').fill('deliberately-wrong');
+    await page.getByLabel('Email or username').fill(username);
+    await page.getByLabel('Password', { exact: true }).fill('deliberately-wrong');
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page.getByRole('alert')).toContainText('incorrect');
-    await expect(page.getByLabel('Username')).toHaveValue(username);
-    await page.getByLabel('Password').fill(password);
+    await expect(page.getByLabel('Email or username')).toHaveValue(username);
+    await page.getByLabel('Password', { exact: true }).fill(password);
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Masses', exact: true })).toBeVisible();
     await expect(page.locator('.account-name')).toBeVisible();
@@ -47,8 +47,8 @@ for (const role of ['Admin', 'Planner', 'Viewer'] as const) {
     expect(invalidated.status()).toBe(204);
     await page.reload();
     await expect(page.getByRole('heading', { name: 'Sign in to your workspace' })).toBeVisible();
-    await page.getByLabel('Username').fill(username);
-    await page.getByLabel('Password').fill(password);
+    await page.getByLabel('Email or username').fill(username);
+    await page.getByLabel('Password', { exact: true }).fill(password);
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible();
     await page.getByRole('button', { name: 'Sign out' }).click();

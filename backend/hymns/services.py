@@ -15,7 +15,7 @@ from django.db.models.functions import Lower, Trim
 from django.utils.text import slugify
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
 
-from accounts.permissions import Role, role_for
+from accounts.permissions import Role, role_for, verified_access
 from common.storage import StorageUnavailable
 from hymns.models import CATEGORY_TYPES, RELATIONS, Hymn
 from hymns.uploads import pdf_upload_path
@@ -32,7 +32,7 @@ class ReferencedRecord(APIException):
 def require_role(actor, minimum: Role) -> None:
     """Reject unauthenticated/insufficient actors, including direct service callers."""
     allowed = {Role.ADMIN} if minimum == Role.ADMIN else {Role.ADMIN, Role.PLANNER}
-    if not actor.is_authenticated or not actor.is_active or role_for(actor) not in allowed:
+    if not verified_access(actor) or role_for(actor) not in allowed:
         raise PermissionDenied("Your account cannot make this change.")
 
 

@@ -73,6 +73,10 @@ jobs:
           npx playwright install --with-deps chromium
           cd ..
           python scripts/ci-browser.py
+      - name: Simple account browser flows
+        env:
+          E2E_SIMPLE_ACCOUNTS: "true"
+        run: python scripts/ci-browser.py simple-accounts.spec.ts
       - name: Upload failure artifacts
         if: failure()
         uses: actions/upload-artifact@v4
@@ -108,6 +112,8 @@ jobs:
             -e DJANGO_DEBUG=false -e DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost \
             -e DJANGO_TRUST_PROXY_HTTPS=true -e DJANGO_STORAGE_BACKEND=local \
             -e MARONITE_FEED_ENABLED=false \
+            -e ACCOUNT_REGISTRATION_ENABLED=true \
+            -e ACCOUNT_EMAIL_VERIFICATION_ENABLED=false -e ACCOUNT_PASSWORD_RESET_ENABLED=false \
             -e DATABASE_URL=postgresql://choralation:ci-only-password@127.0.0.1:5432/choralation_production_smoke \
             -e PORT=10000 choralation:ci
           python scripts/production-smoke.py http://127.0.0.1:10000

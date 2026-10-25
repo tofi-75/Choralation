@@ -1,3 +1,4 @@
+import { initialChoirId, selectInitialChoir } from './choir-context';
 /** M4 real-backend weekly workflow, cache refresh, stale review and retained edits. */
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
@@ -8,13 +9,15 @@ if (!suffix || !password) throw new Error('Run through dev.cmd e2e.');
 
 async function signIn(page: Page, role = 'Planner') {
   await page.goto('/');
-  await page.getByLabel('Username').fill(`e2e-${suffix}-${role.toLowerCase()}`);
-  await page.getByLabel('Password').fill(password!);
+  await page.getByLabel('Email or username').fill(`e2e-${suffix}-${role.toLowerCase()}`);
+  await page.getByLabel('Password', { exact: true }).fill(password!);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Masses', exact: true })).toBeVisible();
+  await selectInitialChoir(page);
 }
 async function csrf(page: Page) {
   return {
+    'X-Choir-ID': await initialChoirId(page),
     'X-CSRFToken': (await (await page.request.get('/api/v1/auth/csrf/')).json())
       .csrf_token as string,
   };
@@ -149,7 +152,11 @@ test('Weekly workflow: create hymn, draft, finalize, usage/history, reopen and r
   ).toHaveCount(0);
   await page.goto(`/masses/${massId}`);
   await confirm(page, 'Finalize Mass');
-  const usage = await (await page.request.get(`/api/v1/hymns/${hymnId}/`)).json();
+  const usage = await (
+    await page.request.get(`/api/v1/hymns/${hymnId}/`, {
+      headers: { 'X-Choir-ID': await initialChoirId(page) },
+    })
+  ).json();
   expect(usage.usage_count).toBe(2);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: info.outputPath('finalized-program.png'), fullPage: true });

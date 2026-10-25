@@ -4,11 +4,11 @@ from django.db import transaction
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from accounts.permissions import AdminPermission, PlannerPermission
+from accounts.permissions import AdminPermission, VerifiedPermission
 from accounts.serializers import EmptySerializer, ErrorSerializer
+from choirs.access import request_choir, require_choir, visible_choirs
 from hymns.selectors import LibraryPagination
 from masses import selectors, services
 from masses.random_picker import random_picks
@@ -27,19 +27,29 @@ ERRORS = {code: ErrorSerializer for code in (400, 403, 404, 409, 412, 428)}
 REVISION = [
     OpenApiParameter("X-Expected-Mass-Revision", str, OpenApiParameter.HEADER, required=True)
 ]
+CHOIR_HEADER = OpenApiParameter(
+    "X-Choir-ID",
+    int,
+    OpenApiParameter.HEADER,
+    required=True,
+    description="Selected choir; membership or app Admin access is required.",
+)
 
 
 @extend_schema_view(
     list=extend_schema(
         responses={200: MassListSerializer(many=True), **ERRORS},
-        parameters=[
+        parameters=[CHOIR_HEADER]
+        + [
             OpenApiParameter(name, str)
             for name in ("from", "to", "status", "season", "q", "archived")
         ],
     ),
     retrieve=extend_schema(responses={200: MassReadSerializer, **ERRORS}),
     create=extend_schema(
-        request=MassWriteSerializer, responses={201: MassReadSerializer, **ERRORS}
+        request=MassWriteSerializer,
+        responses={201: MassReadSerializer, **ERRORS},
+        parameters=[CHOIR_HEADER],
     ),
     partial_update=extend_schema(
         request=MassWriteSerializer,
@@ -54,33 +64,33 @@ class MassViewSet(viewsets.GenericViewSet):
     http_method_names = ["get", "post", "patch", "put", "delete", "head", "options"]
 
     def get_queryset(self):
-        return selectors.mass_queryset()
+        return selectors.mass_queryset(request_choir(self.request, required=False)).filter(
+            choir__in=visible_choirs(self.request.user)
+        )
 
     def get_permissions(self):
-        policy = (
-            AdminPermission
-            if self.action == "destroy"
-            else PlannerPermission
-            if self.action
-            in {"create", "partial_update", "program", "random_picks", "finalize", "reopen"}
-            else IsAuthenticated
-        )
+        policy = AdminPermission if self.action == "destroy" else VerifiedPermission
         return [policy()]
 
     def list(self, request):
-        page = self.paginate_queryset(selectors.mass_list(request.query_params))
+        page = self.paginate_queryset(
+            selectors.mass_list(request.query_params, request_choir(request))
+        )
         return self.get_paginated_response(MassListSerializer(page, many=True).data)
 
     @extend_schema(
         responses={200: MassHistorySerializer(many=True), **ERRORS},
-        parameters=[
+        parameters=[CHOIR_HEADER]
+        + [
             OpenApiParameter(name, str)
             for name in ("from", "to", "status", "season", "q", "archived")
         ],
     )
     @action(detail=False, methods=["get"])
     def history(self, request):
-        page = self.paginate_queryset(selectors.mass_history(request.query_params))
+        page = self.paginate_queryset(
+            selectors.mass_history(request.query_params, request_choir(request))
+        )
         return self.get_paginated_response(MassHistorySerializer(page, many=True).data)
 
     @extend_schema(
@@ -108,6 +118,7 @@ class MassViewSet(viewsets.GenericViewSet):
 
     def detail_response(self, pk, status=200):
         mass = self.get_queryset().get(pk=pk)
+        mass = selectors.mass_queryset(mass.choir_id).get(pk=pk)
         return Response(
             MassReadSerializer(mass).data,
             status=status,
@@ -127,6 +138,8 @@ class MassViewSet(viewsets.GenericViewSet):
     def save(self, request, pk=None, status=200):
         serializer = MassWriteSerializer(data=request.data, partial=pk is not None)
         serializer.is_valid(raise_exception=True)
+        if pk is None:
+            serializer.validated_data["choir_id"] = request_choir(request, planner=True)
         mass = services.save_mass(
             serializer.validated_data,
             request.user,
@@ -152,7 +165,7 @@ class MassViewSet(viewsets.GenericViewSet):
             request.user,
             request.headers.get("X-Expected-Mass-Revision"),
         )
-        mass = self.get_queryset().get(pk=instance.pk)
+        mass = selectors.mass_queryset(instance.choir_id).get(pk=instance.pk)
         return Response(
             {
                 "mass_id": mass.pk,
@@ -171,11 +184,12 @@ class MassViewSet(viewsets.GenericViewSet):
     @action(detail=True, methods=["post"], url_path="random-picks")
     def random_picks(self, request, pk=None):
         instance = self.get_object()
+        require_choir(request.user, instance.choir_id, planner=True)
         if instance.status != "draft":
             raise services.MassFinalized()
         serializer = RandomPickRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        result = random_picks(**serializer.validated_data)
+        result = random_picks(**serializer.validated_data, choir_id=instance.choir_id)
         return Response(RandomPicksSerializer(result).data)
 
     def destroy(self, request, pk=None):

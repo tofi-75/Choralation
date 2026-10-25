@@ -45,8 +45,8 @@ function mount() {
 it('shows the next four saved Masses, new hymns, navigation and practice', async () => {
   mount();
   await screen.findByRole('link', { name: /Upcoming 1/ });
-  expect(fetchMasses).toHaveBeenCalledWith('status=finalized&archived=false');
-  expect(fetchHymns).toHaveBeenCalledWith('ordering=newest_added');
+  expect(fetchMasses).toHaveBeenCalledWith('status=finalized&archived=false', 1);
+  expect(fetchHymns).toHaveBeenCalledWith('ordering=newest_added', 1);
   const upcoming = screen.getByRole('region', { name: 'Upcoming Masses' });
   expect(within(upcoming).getAllByRole('link')).toHaveLength(4);
   expect(within(upcoming).getAllByRole('link')[0]).toHaveAttribute('href', '/masses/1');
@@ -70,3 +70,16 @@ it('handles an empty program list and keeps hymn creation hidden for viewers', a
   await waitFor(() => expect(screen.getByText(/No upcoming saved Masses/)).toBeVisible());
   expect(screen.queryByRole('link', { name: 'Add hymn' })).not.toBeInTheDocument();
 });
+
+vi.mock('../features/choirs/ChoirProvider', () => ({
+  useChoir: () => ({
+    active: {
+      id: 1,
+      name: 'Test choir',
+      role: session.user.role === 'Viewer' ? 'Member' : 'Planner',
+    },
+    choirs: [],
+    select: async () => {},
+    refresh: async () => {},
+  }),
+}));

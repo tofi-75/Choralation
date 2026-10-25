@@ -6,6 +6,12 @@ import type { Plugin, ViteDevServer } from 'vite';
 
 // Both development and built previews use the same relative API URLs on phones.
 const proxy = {
+  ...Object.fromEntries(
+    ['/about', '/privacy', '/terms', '/static'].map((path) => [
+      path,
+      { target: process.env.BACKEND_ORIGIN ?? 'http://127.0.0.1:8000', changeOrigin: false },
+    ]),
+  ),
   '/api': {
     target: process.env.BACKEND_ORIGIN ?? 'http://127.0.0.1:8000',
     changeOrigin: false,

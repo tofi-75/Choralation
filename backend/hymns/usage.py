@@ -11,15 +11,15 @@ from django.db.models.functions import Coalesce
 from masses.models import MassHymnSelection
 
 
-def finalized_occurrences() -> QuerySet[MassHymnSelection]:
+def finalized_occurrences(choir_id=None) -> QuerySet[MassHymnSelection]:
     """Global history includes future finalized programs, never drafts."""
-    return MassHymnSelection.objects.filter(mass__status="finalized")
+    return MassHymnSelection.objects.filter(mass__status="finalized", mass__choir_id=choir_id)
 
 
-def with_usage(rows: QuerySet) -> QuerySet:
+def with_usage(rows: QuerySet, choir_id=None) -> QuerySet:
     """Add zero/null for never-used hymns with no per-record queries."""
     totals = (
-        finalized_occurrences()
+        finalized_occurrences(choir_id)
         .filter(hymn_id=OuterRef("pk"))
         .order_by()
         .values("hymn_id")

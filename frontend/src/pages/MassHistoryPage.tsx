@@ -1,10 +1,14 @@
+import { useChoirQuery } from '../features/choirs/useChoirQuery';
 /** Newest-first saved programs; drafts can be inspected but never count as usage. */
-import { useQuery } from '@tanstack/react-query';
+
 import { Link, useSearchParams } from 'react-router';
 import { fetchMassHistory } from '../api/masses';
 import { HistoryControls, HistoryPages } from '../features/masses/HistoryControls';
+import { useChoir } from '../features/choirs/ChoirProvider';
+import { ChoirRequired } from '../features/choirs/ChoirRequired';
 
 export function MassHistoryPage() {
+  const { active } = useChoir();
   const today = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Beirut',
     year: 'numeric',
@@ -16,9 +20,10 @@ export function MassHistoryPage() {
   if (!query.has('status')) query.set('status', 'finalized');
   if (query.get('status') === 'all') query.delete('status');
   const encoded = query.toString();
-  const history = useQuery({
+  const history = useChoirQuery({
     queryKey: ['mass-history', encoded],
-    queryFn: () => fetchMassHistory(encoded),
+    queryFn: (choirId) => fetchMassHistory(encoded, choirId),
+    enabled: Boolean(active),
   });
   const change = (key: string, value: string) => {
     const next = new URLSearchParams(params);
@@ -27,6 +32,7 @@ export function MassHistoryPage() {
     if (key !== 'page') next.delete('page');
     setParams(next, { replace: true });
   };
+  if (!active) return <ChoirRequired />;
   return (
     <>
       <div className="page-heading">

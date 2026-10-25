@@ -4,10 +4,13 @@ import { useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router';
 
 import { signOut } from '../api/auth';
+import { PublicLinks } from '../components/PublicLinks';
 import { useSession } from '../features/auth/SessionProvider';
+import { useChoir } from '../features/choirs/ChoirProvider';
 
 export function AppShell() {
   const session = useSession();
+  const choir = useChoir();
   const [collapsed, setCollapsed] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
@@ -45,7 +48,7 @@ export function AppShell() {
             <span aria-hidden="true">{collapsed ? '›' : '♪'}</span>
           </button>
           <Link className="wordmark sidebar-brand-name" to="/dashboard">
-            Mass Hymn Picker
+            Choralation
           </Link>
         </div>
         <nav id="desktop-navigation" aria-label="Main">
@@ -54,6 +57,8 @@ export function AppShell() {
             ['/hymns', 'Hymn library', '♫'],
             ['/masses', 'Mass plans', '▤'],
             ['/history', 'Mass history', '◷'],
+            ['/choirs', 'Choirs', '♧'],
+            ['/account', 'Account', '○'],
           ].map(([path, label, icon]) => (
             <NavLink
               key={path}
@@ -86,6 +91,16 @@ export function AppShell() {
                   <Dialog.Description>Navigate your team's shared workspace.</Dialog.Description>
                   <nav aria-label="Mobile">
                     <Dialog.Close asChild>
+                      <Link className="nav-item" to="/choirs">
+                        Choirs
+                      </Link>
+                    </Dialog.Close>
+                    <Dialog.Close asChild>
+                      <Link className="nav-item" to="/account">
+                        Account
+                      </Link>
+                    </Dialog.Close>
+                    <Dialog.Close asChild>
                       <Link className="nav-item" to="/history">
                         Mass history
                       </Link>
@@ -111,7 +126,21 @@ export function AppShell() {
               </Dialog.Portal>
             </Dialog.Root>
           </div>
-          <span className="workspace-label">Team workspace</span>
+          <label className="choir-selector">
+            <span className="sr-only">Active choir</span>
+            <select
+              aria-label="Active choir"
+              value={choir.active?.id ?? ''}
+              onChange={(e) => void choir.select(e.target.value ? Number(e.target.value) : null)}
+            >
+              <option value="">Choose a choir</option>
+              {choir.choirs.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
           <div className="account-controls">
             <span className="account-name" dir="auto">
               {session.user?.username}
@@ -134,6 +163,7 @@ export function AppShell() {
         <main id="main-content" className="page-content" tabIndex={-1}>
           <Outlet />
         </main>
+        <PublicLinks />
       </div>
     </div>
   );

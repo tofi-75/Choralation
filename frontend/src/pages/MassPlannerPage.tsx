@@ -1,6 +1,7 @@
+import { useChoirQuery } from '../features/choirs/useChoirQuery';
 /** Mounted working copy survives refresh errors; revision conflicts require review. */
 import * as Dialog from '@radix-ui/react-dialog';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Link, Navigate, useBeforeUnload, useBlocker, useNavigate, useParams } from 'react-router';
 
@@ -9,6 +10,7 @@ import type { Categories, Category } from '../api/library';
 import { deleteMass, fetchMass } from '../api/masses';
 import type { Mass } from '../api/masses';
 import { useSession } from '../features/auth/SessionProvider';
+import { useChoir } from '../features/choirs/ChoirProvider';
 import { useCategories } from '../features/hymns/queries';
 import { DraftSaver } from '../features/masses/DraftSaver';
 import { newRowKey } from '../features/masses/rowKey';
@@ -26,8 +28,12 @@ function validationMessages(value: unknown): string[] {
 }
 
 export function MassPlannerPage() {
+  const choir = useChoir();
   const { id } = useParams();
-  const mass = useQuery({ queryKey: ['mass', id], queryFn: () => fetchMass(id!) });
+  const mass = useChoirQuery({
+    queryKey: ['mass', id],
+    queryFn: (choirId) => fetchMass(id!, choirId),
+  });
   const categories = useCategories();
   const client = useQueryClient();
   const [epoch, setEpoch] = useState(0);
@@ -53,7 +59,23 @@ export function MassPlannerPage() {
         <Link to="/masses">Return to Mass plans</Link>
       </section>
     );
-  if (user?.role === 'Viewer') return <Navigate to={`/masses/${id}`} replace />;
+  if (
+    !choir.choirs.some((c) => c.id === mass.data.choir_id && c.role === 'Planner') &&
+    user?.role !== 'Admin'
+  )
+    return <Navigate to={`/masses/${id}`} replace />;
+  if (choir.active?.id !== mass.data.choir_id)
+    return (
+      <section className="form-section">
+        <p>This Mass belongs to another choir you can access.</p>
+        <button
+          className="button primary"
+          onClick={() => void choir.select(mass.data.choir_id, `/masses/${id}/edit`)}
+        >
+          Open this choir
+        </button>
+      </section>
+    );
   return (
     <>
       {(mass.error || categories.error) && (
@@ -75,7 +97,7 @@ export function MassPlannerPage() {
         initial={mass.data}
         categories={categories.data}
         reload={(saved) => {
-          client.setQueryData(['mass', id], saved);
+          client.setQueryData(['mass', id, choir.active?.id ?? null], saved);
           setEpoch((value) => value + 1);
         }}
       />
@@ -102,6 +124,7 @@ function Planner({
   categories: Categories;
   reload: (saved: Mass) => void;
 }) {
+  const choirContext = useChoir();
   const [saver] = useState(() => new DraftSaver(initial));
   const subscribe = useCallback((callback: () => void) => saver.subscribe(callback), [saver]);
   const state = useSyncExternalStore(subscribe, () => saver.state);
@@ -266,7 +289,10 @@ function Planner({
               if (window.confirm('Discard local edits and load the latest saved version?')) {
                 try {
                   const latest = await fetchMass(String(initial.id));
-                  client.setQueryData(['mass', String(initial.id)], latest);
+                  client.setQueryData(
+                    ['mass', String(initial.id), choirContext.active?.id ?? null],
+                    latest,
+                  );
                   reload(latest);
                 } catch (error) {
                   setActionError(error instanceof Error ? error.message : 'Unable to reload.');

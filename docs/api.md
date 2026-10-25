@@ -1,5 +1,10 @@
 # API contract — implementation baseline
 
+> **October 25 simple-account mode:** `GET /api/v1/auth/config/` returns `registration_enabled`, `email_verification_enabled`, and `password_reset_enabled`. Release values are `true`, `false`, `false`. Registration authenticates and returns identity with truthful `email_verified` and effective `verification_required=false`. Verification, resend, email-setting and emailed-reset APIs return sanitized `email_unavailable` without sending mail or consuming tokens when their feature is disabled. Email/username login still requires the password. Signed-in current-password changes remain available. [Configuration and recovery](simple-accounts-release.md) supersedes earlier activation instructions.
+
+> **October 20, 2026 — Accounts and choirs:** Self-service email verification, recovery, choir membership and choir-specific hymn counts supersede the shared-workspace rules below. See [account and choir setup](accounts-and-choirs.md). Existing local data is preserved in Initial choir. Registration and mandatory legacy verification ship disabled pending owner email setup. Hosting checks: core flows accepted, records persist; PDF persistence and CI-gated deployment remain pending.
+
+
 **Date:** October 8, 2026. **Status:** M1 sessions, M2 hymn/category endpoints, M3 draft Mass/program endpoints and Maronite calendar suggestions are implemented. M4 lifecycle, usage and saved history endpoints are implemented and verified; physical-phone acceptance remains pending. Recommendations (M5) and dashboard (M7) remain planned.
 **Owner:** Implementation owner. **Base:** `/api/v1/`.  
 Changes to this contract must update [architecture decisions](architecture.md), frontend types, OpenAPI schemas, and relevant tests together.
@@ -230,3 +235,17 @@ Hymn create/PATCH and authenticated PDF downloads can return HTTP 503 with code 
 ## Performance material fields — October 20
 
 Hymn reads and POST/PATCH accept optional nullable `latin_title` (255 characters), `lyrics` (unbounded plain text) and `tempo` (50 characters, e.g. `Andante · 80 BPM`). Blank values normalize to null; lyrics preserve internal line breaks. `q` now searches `latin_title` as well as native title and the existing reference fields. Omitted PATCH fields are retained. Existing roles and private PDF delivery are unchanged. Migration: `hymns.0004_performance_materials`.
+
+
+## October 20, 2026 — Accounts and choir context
+
+`/api/v1/auth/` now supports `config/`, `register/`, `email/`, `verify-email/`, `resend-verification/`, `password-reset/request/`, `password-reset/confirm/`, `password/`, and Admin-only `choir-creation/`. All unsafe requests retain CSRF protection. Identity includes email verification state and creation/library capabilities. Unverified users receive `verification_required` for protected data.
+
+`/api/v1/choirs/` lists accessible choirs, accepts authorized creation and exposes member/planner detail/settings. `directory/` is a paginated public summary; `lookup-code/` accepts a code by POST. `requests/` lists the caller’s applications or creates a request; cancellation, planner decisions, member changes and confirmed code regeneration have dedicated actions in the validated OpenAPI schema. Rosters expose usernames, not emails; outsiders never receive roster or planner identities.
+
+Supply `X-Choir-ID` on Mass collection/create/history and hymn usage requests. On shared hymn reads it selects usage counts, dates, filters and ordering. Missing context never yields aggregate global usage; the UI hides no-context statistics. Existing object URLs authorize against their owning choir. New Masses cannot be transferred by metadata writes. App Admins retain oversight, but usage is always for the selected choir.
+
+
+## October 24 verification sign-in revision
+
+`POST /api/v1/auth/verify-email/` accepts a valid single-use verification token with CSRF protection, including for an anonymous browser. It verifies the email, rotates the session and CSRF cookie, and returns authenticated identity. A different authenticated account is rejected without consuming the token or changing that session. Expired, disabled-account, changed-email, reused and reset-purpose tokens cannot create a session. GET remains non-mutating. Persistent per-token and deployment limits bound attempts. The frontend removes the fragment, submits once (including under React StrictMode), accepts identity and opens `/dashboard`. Reset/change-password success opens `/login` with a success message; failure stays on the form.

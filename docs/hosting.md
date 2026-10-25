@@ -1,5 +1,7 @@
 # Deploy Choralation: Render + Supabase
 
+**October 25 release:** [Simple accounts and owner-assisted recovery](simple-accounts-release.md) supersedes earlier registration/verification activation instructions. Gmail is retained for future use; both email features remain explicitly disabled. No Google submission or billing change is part of this release.
+
 **October 18, 2026 deployment result:** [Choralation is live](https://choralation.onrender.com). Commit `8f6a2b4` built and deployed successfully; public HTTPS readiness, application routes/assets, and anonymous-access checks passed. Private PDF storage configuration and authenticated persistence acceptance remain pending. See the [deployment verification report](render-deployment-verification-2026-10-18.md).
 
 **October 18, 2026 deployment investigation:** The existing [Choralation service](https://dashboard.render.com/web/srv-db78nlbbc2fs73e83qi0) has two failed startup attempts. The latest log rejected `DATABASE_URL`; the current saved value now has a PostgreSQL scheme, but has not been verified in a new deploy. Private S3 settings are also missing from the service environment. See the [analysis, repair plan, work log, and verification report](render-repair-report-2026-10-18.md). The October 13 preparation notes below retain their original context; live acceptance remains pending.
@@ -35,7 +37,7 @@ If `origin` already exists, inspect `git remote -v` and use the existing correct
 
 1. Create a Free project named `Choralation Testing`, in **Frankfurt / eu-central-1**. Save its database password privately.
 2. Disable the **Data API** in project API settings (or choose connection-string-only during creation). Django uses PostgreSQL directly and owns account/role checks; no Supabase frontend key or Supabase Auth integration is needed. [Official API security guide](https://supabase.com/docs/guides/api/securing-your-api)
-3. Open **Connect → Session pooler**. Copy its PostgreSQL URL on **5432**, not transaction mode on 6543. Replace the password placeholder with the URL-encoded password and append `?sslmode=require` (use `&sslmode=require` if the URL already has a query). Keep the supplied pooler hostname and `postgres.PROJECT_REF` username. [Connection guide](https://supabase.com/docs/guides/database/connecting-to-postgres)
+3. Open **Connect â†’ Session pooler**. Copy its PostgreSQL URL on **5432**, not transaction mode on 6543. Replace the password placeholder with the URL-encoded password and append `?sslmode=require` (use `&sslmode=require` if the URL already has a query). Keep the supplied pooler hostname and `postgres.PROJECT_REF` username. [Connection guide](https://supabase.com/docs/guides/database/connecting-to-postgres)
 4. Under Storage, create a bucket named **sheet-music** with **Public bucket disabled**. PDFs are served only through the authenticated Django download endpoint. Do not make the bucket public to resolve permission errors.
 5. In Storage S3 settings, obtain the S3 endpoint, region, access-key ID and secret. Copy the exact endpoint displayed by Supabase; do not guess its hostname. These credentials are powerful and must remain server-side. [S3 authentication](https://supabase.com/docs/guides/storage/s3/authentication)
 6. Keep the project reference and secrets in your password manager and provider settings, not Git or chat.
@@ -48,27 +50,27 @@ Both modes use the same Dockerfile, database and settings. You do not need two R
 
 ### Option A: deploy manually
 
-1. In Render, choose **New → Web Service**, connect your GitHub account and grant access to the private repository.
+1. In Render, choose **New â†’ Web Service**, connect your GitHub account and grant access to the private repository.
 2. Select repository `Choralation`, branch **main**, region **Frankfurt**, runtime **Docker**, and instance plan **Free**.
 3. Leave Root Directory empty. Set Dockerfile Path to **./Dockerfile** and Docker Build Context to **.**. Do not select the development `backend/Dockerfile`.
 4. Use the Dockerfile's default command. No separate build command is needed. Set the health-check path to **/health/ready/**.
 5. Set **Auto-Deploy: Off**. Enter the settings in section 4 before creating/deploying the service.
 6. Click **Create Web Service**. The image builds on Render, then startup runs migrations, provisions roles and creates missing classification defaults. No accounts or fictional hymns are automatically created.
 7. Once live, follow sections 5 and 6.
-8. For later changes, push the reviewed commit to `main`, check GitHub results, then choose **Manual Deploy → Deploy latest commit**. Render rebuilds that commit. Use Deploy a specific commit if you intentionally need a reviewed older revision.
+8. For later changes, push the reviewed commit to `main`, check GitHub results, then choose **Manual Deploy â†’ Deploy latest commit**. Render rebuilds that commit. Use Deploy a specific commit if you intentionally need a reviewed older revision.
 
 ### Option B: GitHub pipeline with automatic deployment
 
 1. Ensure the committed repository contains `.github/workflows/ci.yml`, `Dockerfile` and `render.yaml`.
-2. In Render, connect GitHub and select **New → Blueprint**. Choose the private repository and branch **main**, using the root `render.yaml`.
+2. In Render, connect GitHub and select **New â†’ Blueprint**. Choose the private repository and branch **main**, using the root `render.yaml`.
 3. Confirm **one free web service**, Frankfurt, and **no Render database or disk**. PostgreSQL and files belong to Supabase.
 4. Supply the secret settings when prompted. Supply your own `DJANGO_SECRET_KEY` of at least 50 characters using the generation command below; keep it stable on subsequent deployments. Render's automatic generator produces 44 characters and does not satisfy this app's validation. The Blueprint supplies other fixed settings.
 5. Confirm service settings show **Auto-Deploy: After CI Checks Pass**. The Blueprint uses `autoDeployTrigger: checksPass`. Native integration requires a connected GitHub account; using only a public repository URL is insufficient.
-6. Watch GitHub **Actions → Application checks**. It runs backend tests, migration/schema/lint checks, frontend checks/build, all browser projects, and a Linux Docker build/production smoke check. Its databases and file storage are disposable, not Supabase. No hosted secret or deployment hook is needed in GitHub Actions.
+6. Watch GitHub **Actions â†’ Application checks**. It runs backend tests, migration/schema/lint checks, frontend checks/build, all browser projects, and a Linux Docker build/production smoke check. Its databases and file storage are disposable, not Supabase. No hosted secret or deployment hook is needed in GitHub Actions.
 7. The initial Blueprint creation can deploy immediately; require the checks to pass before accepting the hosted app. Subsequent pushes/merges to `main` deploy only after checks pass. A failed check blocks auto-deploy; zero detected checks also blocks it. [Render deployment behavior](https://render.com/docs/deploys)
 8. Complete account and live acceptance steps below.
 
-Normal pipeline: **push/merge main → checks pass → Render builds that revision → startup migrations/defaults → readiness passes → app goes live**. Development branches run PR checks but do not deploy to this service. Do not add pipeline filters that skip all checks on a `main` commit intended for deployment.
+Normal pipeline: **push/merge main â†’ checks pass â†’ Render builds that revision â†’ startup migrations/defaults â†’ readiness passes â†’ app goes live**. Development branches run PR checks but do not deploy to this service. Do not add pipeline filters that skip all checks on a `main` commit intended for deployment.
 
 To enable the pipeline on an existing manually created service, keep that service and change Auto-Deploy to **After CI Checks Pass** after the workflow is present. Do not create a second service just to switch deployment modes.
 
@@ -100,7 +102,7 @@ For either deployment mode, generate the Django secret privately on your compute
 .\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(64))"
 ```
 
-Copy the output into Render's **Environment → DJANGO_SECRET_KEY** value, without additional quotes, and your ignored `.env.hosted` file. Keep it stable. Do not use Render's Generate button for this variable: its 44-character value is shorter than the required 50 characters. Do not paste the generated value into chat or Git. Database/S3 secrets never belong in frontend environment variables or GitHub Actions.
+Copy the output into Render's **Environment â†’ DJANGO_SECRET_KEY** value, without additional quotes, and your ignored `.env.hosted` file. Keep it stable. Do not use Render's Generate button for this variable: its 44-character value is shorter than the required 50 characters. Do not paste the generated value into chat or Git. Database/S3 secrets never belong in frontend environment variables or GitHub Actions.
 
 ## 5. Provision hosted accounts and fictional hymns (manual owner steps)
 

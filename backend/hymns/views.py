@@ -9,11 +9,11 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.parsers import JSONParser, MultiPartParser
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from accounts.permissions import AdminPermission, PlannerPermission
+from accounts.permissions import AdminPermission, PlannerPermission, VerifiedPermission
 from accounts.serializers import ErrorSerializer
+from choirs.access import request_choir
 from common.storage import StorageUnavailable
 from hymns import selectors, services
 from hymns.serializers import (
@@ -32,6 +32,17 @@ from masses.serializers import HymnUsageSerializer
 ERRORS = {400: ErrorSerializer, 403: ErrorSerializer, 404: ErrorSerializer, 409: ErrorSerializer}
 
 
+@extend_schema(
+    parameters=[
+        OpenApiParameter(
+            "X-Choir-ID",
+            int,
+            OpenApiParameter.HEADER,
+            required=False,
+            description="Selected choir for usage counts, dates and usage filters; membership is required when supplied.",
+        )
+    ]
+)
 @extend_schema_view(
     list=extend_schema(
         responses={200: HymnReadSerializer(many=True), **ERRORS},
@@ -81,7 +92,7 @@ class HymnViewSet(viewsets.GenericViewSet):
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_queryset(self):
-        return selectors.hymn_queryset()
+        return selectors.hymn_queryset(request_choir(self.request, required=False))
 
     def get_permissions(self):
         policy = (
@@ -89,12 +100,14 @@ class HymnViewSet(viewsets.GenericViewSet):
             if self.action == "destroy"
             else PlannerPermission
             if self.action in {"create", "partial_update"}
-            else IsAuthenticated
+            else VerifiedPermission
         )
         return [policy()]
 
     def list(self, request):
-        rows = selectors.library_queryset(request.query_params)
+        rows = selectors.library_queryset(
+            request.query_params, request_choir(request, required=False)
+        )
         page = self.paginate_queryset(rows)
         return self.get_paginated_response(self.get_serializer(page, many=True).data)
 
@@ -103,11 +116,14 @@ class HymnViewSet(viewsets.GenericViewSet):
 
     @extend_schema(
         responses={200: HymnUsageSerializer(many=True), **ERRORS},
-        parameters=[OpenApiParameter(name, str) for name in ("from", "to", "season", "q")],
+        parameters=[OpenApiParameter("X-Choir-ID", int, OpenApiParameter.HEADER, required=True)]
+        + [OpenApiParameter(name, str) for name in ("from", "to", "season", "q")],
     )
     @action(detail=True, methods=["get"])
     def usage(self, request, pk=None):
-        page = self.paginate_queryset(hymn_usage(self.get_object().pk, request.query_params))
+        page = self.paginate_queryset(
+            hymn_usage(self.get_object().pk, request.query_params, request_choir(request))
+        )
         return self.get_paginated_response(HymnUsageSerializer(page, many=True).data)
 
     def create(self, request):
@@ -118,6 +134,8 @@ class HymnViewSet(viewsets.GenericViewSet):
         return self.save(request, pk=int(pk))
 
     def save(self, request, pk=None, status=200):
+        # Reject an invalid context before persisting shared metadata or a PDF.
+        request_choir(request, required=False)
         data = request.data
         if request.content_type.startswith("multipart/form-data"):
             # JSON metadata keeps arrays/booleans typed; reject duplicate envelope parts.
@@ -204,7 +222,7 @@ class CategoryViewSet(viewsets.GenericViewSet):
         return self.model.objects.all()
 
     def get_permissions(self):
-        return [IsAuthenticated() if self.action in {"list", "retrieve"} else AdminPermission()]
+        return [VerifiedPermission() if self.action in {"list", "retrieve"} else AdminPermission()]
 
     def list(self, request):
         selectors.validate_query(request.query_params, {"is_active"})
@@ -214,7 +232,9 @@ class CategoryViewSet(viewsets.GenericViewSet):
         return Response(CategoryReadSerializer(rows, many=True).data)
 
     def retrieve(self, request, pk=None):
-        return Response(CategoryDetailSerializer(self.get_object()).data)
+        return Response(
+            CategoryDetailSerializer(self.get_object(), context={"request": request}).data
+        )
 
     def create(self, request):
         return self.save(request, status=201)

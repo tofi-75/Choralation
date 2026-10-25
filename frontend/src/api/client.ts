@@ -24,6 +24,9 @@ export class ApiError extends Error {
 }
 
 let csrfToken: string | null = null;
+export function choirHeaders(id?: number | null): RequestInit {
+  return id ? { headers: { 'X-Choir-ID': String(id) } } : {};
+}
 
 /** Reset on login/logout so a rotated or previous session token is never reused. */
 export function clearCsrfToken(): void {
@@ -46,6 +49,7 @@ export async function request<T>(
     throw new ApiError('Invalid API resource.', 'client_error', 0);
   }
   const method = options.method?.toUpperCase() ?? 'GET';
+  const choir = new Headers(options.headers).get('X-Choir-ID');
   const unsafe = !['GET', 'HEAD', 'OPTIONS'].includes(method);
   if (unsafe && !csrfToken) await bootstrapCsrf();
   const headers = new Headers(options.headers);
@@ -81,6 +85,22 @@ export async function request<T>(
   if (!response.ok) {
     const parsed = errorSchema.safeParse(body);
     if (parsed.success) {
+      if (resource !== '/auth/me/' && parsed.data.code === 'verification_required')
+        window.dispatchEvent(new Event('choralation:session-refresh'));
+      if (
+        resource !== '/auth/me/' &&
+        resource !== '/auth/config/' &&
+        parsed.data.code === 'not_authenticated'
+      )
+        window.dispatchEvent(new Event('choralation:session-expired'));
+      if (
+        choir !== null &&
+        [403, 404].includes(response.status) &&
+        !resource.startsWith('/choirs/') &&
+        !resource.startsWith('/auth/') &&
+        ['permission_denied', 'not_found'].includes(parsed.data.code)
+      )
+        window.dispatchEvent(new Event('choralation:choir-access'));
       if (parsed.data.code === 'csrf_failed') clearCsrfToken();
       throw new ApiError(parsed.data.detail, parsed.data.code, response.status, parsed.data.errors);
     }

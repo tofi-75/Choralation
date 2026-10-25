@@ -23,6 +23,8 @@ from django.contrib.auth import get_user_model  # noqa: E402
 from django.contrib.auth.models import Group  # noqa: E402
 from django.db import transaction  # noqa: E402
 
+from accounts.models import AccountProfile  # noqa: E402
+from choirs.models import Choir, Membership  # noqa: E402
 from hymns.models import Hymn  # noqa: E402
 from hymns.services import ReferencedRecord, delete_hymn  # noqa: E402
 from masses.models import Mass  # noqa: E402
@@ -47,20 +49,25 @@ with transaction.atomic():
         for role, name in zip(roles, names, strict=True):
             user = user_model.objects.create_user(username=name, password=password)
             user.groups.add(Group.objects.get(name=role))
+            choir = Choir.objects.get(name="Initial choir")
+            Membership.objects.create(
+                user=user, choir=choir, role="Member" if role == "Viewer" else "Planner"
+            )
+            AccountProfile.objects.create(user=user, can_create_choirs=role != "Viewer")
         print("This browser run's development accounts are ready.")
     elif sys.argv[1] == "cleanup":
         # Created_by records ownership of these temporary test artifacts only.
         actor = user_model.objects.get(username=names[0])
-        for mass in Mass.objects.filter(created_by__username__in=names):
+        for mass in Mass.objects.filter(created_by__username__startswith=f"e2e-{suffix}-"):
             # Only this run's owned records: reopen through the guarded service
             # before draft deletion, so finalized browser fixtures also clean up.
             if mass.status == "finalized":
                 mass = transition_mass(mass.pk, actor, str(mass.revision), reopen=True)
             delete_mass(mass.pk, actor, str(mass.revision))
         preserved = 0
-        for hymn_id in Hymn.objects.filter(created_by__username__in=names).values_list(
-            "id", flat=True
-        ):
+        for hymn_id in Hymn.objects.filter(
+            created_by__username__startswith=f"e2e-{suffix}-"
+        ).values_list("id", flat=True):
             # The service also removes this run's uploaded PDFs after commit.
             try:
                 delete_hymn(hymn_id, actor)
@@ -68,7 +75,8 @@ with transaction.atomic():
                 # Live manual testing may have selected a run-owned hymn. Preserve
                 # those protected records and selections; never delete another Mass.
                 preserved += 1
-        user_model.objects.filter(username__in=names).delete()
+        Choir.objects.filter(name__startswith=f"e2e-{suffix}-").delete()
+        user_model.objects.filter(username__startswith=f"e2e-{suffix}-").delete()
         print(
             "This browser run's unreferenced artifacts/accounts removed; other records preserved."
         )

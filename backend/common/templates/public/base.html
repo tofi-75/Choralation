@@ -1,0 +1,28 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Choralation helps church music teams organize hymns, prepare Mass programs and collaborate within choirs.">
+  <title>{{ title }} · Choralation</title>
+  <link rel="stylesheet" href="{% static 'public.css' %}">
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header class="site-header">
+    <a class="brand" href="/about"><span aria-hidden="true">♪</span> Choralation</a>
+    <nav aria-label="Main"><a href="/about">About</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a class="button" href="/login">Sign in</a></nav>
+  </header>
+  <main id="content" tabindex="-1">
+    <p class="eyebrow">Music, thoughtfully organized</p>
+    <h1>{{ title }}</h1>
+    {% block content %}{% endblock %}
+  </main>
+  <footer>
+    <p>Operated by Toufic Lattouf · Lebanon</p>
+    <p><a href="mailto:tofi.lattouf@gmail.com">tofi.lattouf@gmail.com</a></p>
+    <nav aria-label="Information"><a href="/about">About</a><a href="/privacy">Privacy policy</a><a href="/terms">Terms of use</a></nav>
+  </footer>
+</body>
+</html>

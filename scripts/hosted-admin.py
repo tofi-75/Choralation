@@ -64,15 +64,38 @@ def hosted_environment(file: Path) -> tuple[dict, str]:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("create-admin", "create-user", "seed-demo", "check"))
+    parser.add_argument(
+        "action",
+        choices=(
+            "create-admin",
+            "create-user",
+            "seed-demo",
+            "check",
+            "audit-accounts",
+            "recover-account",
+            "cleanup-accounts",
+            "change-password",
+        ),
+    )
+    parser.add_argument("--email")
+    parser.add_argument("--confirm-email-ownership", action="store_true")
     parser.add_argument("--username")
     parser.add_argument("--role", choices=("Admin", "Planner", "Viewer"), default="Viewer")
     parser.add_argument("--env-file", default=str(ROOT / ".env.hosted"))
     options = parser.parse_args()
     try:
         environment, host = hosted_environment(Path(options.env_file))
-        if options.action in {"create-user", "seed-demo"} and not options.username:
+        if (
+            options.action in {"create-user", "seed-demo", "recover-account", "change-password"}
+            and not options.username
+        ):
             raise ValueError("This action requires --username.")
+        if options.action == "recover-account" and (
+            not options.email or not options.confirm_email_ownership
+        ):
+            raise ValueError(
+                "Recovery requires --email and --confirm-email-ownership after independently verifying ownership."
+            )
         if (
             options.action == "seed-demo"
             and environment.get("ALLOW_HOSTED_DEMO_DATA", "false").lower() != "true"
@@ -88,6 +111,16 @@ def main():
         "create-user": ["create_app_user", options.username or "", "--role", options.role],
         "seed-demo": ["seed_demo_data", "--username", options.username or "", "--allow-hosted"],
         "check": ["check"],
+        "audit-accounts": ["audit_accounts"],
+        "recover-account": [
+            "recover_account",
+            options.username or "",
+            "--email",
+            options.email or "",
+            "--confirm-email-ownership",
+        ],
+        "cleanup-accounts": ["cleanup_account_security"],
+        "change-password": ["changepassword", options.username or ""],
     }
     # Admin/password prompts are inherited; neither passwords nor URLs are printed.
     result = subprocess.run(

@@ -1,16 +1,20 @@
+import { useChoirQuery } from '../choirs/useChoirQuery';
 /** Every finalized occurrence remains visible, including repeats and inactive sections. */
-import { useQuery } from '@tanstack/react-query';
+
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { fetchHymnUsage } from '../../api/masses';
 import { HistoryControls, HistoryPages } from '../masses/HistoryControls';
+import { useChoir } from '../choirs/ChoirProvider';
 
 export function HymnUsage({ id }: { id: number }) {
+  const { active } = useChoir();
   const [params, setParams] = useState(new URLSearchParams());
   const encoded = params.toString();
-  const history = useQuery({
+  const history = useChoirQuery({
     queryKey: ['hymn-usage', id, encoded],
-    queryFn: () => fetchHymnUsage(id, encoded),
+    queryFn: (choirId) => fetchHymnUsage(id, encoded, choirId),
+    enabled: Boolean(active),
   });
   const change = (key: string, value: string) => {
     const next = new URLSearchParams(params);
@@ -19,9 +23,10 @@ export function HymnUsage({ id }: { id: number }) {
     if (key !== 'page') next.delete('page');
     setParams(next);
   };
+  if (!active) return null;
   return (
     <section className="detail-section" aria-label="Hymn usage history">
-      <h2>Usage history</h2>
+      <h2>Usage in {active.name}</h2>
       <p className="tiny muted">
         Finalized selections only, including scheduled programs. Repeated selections appear
         separately.

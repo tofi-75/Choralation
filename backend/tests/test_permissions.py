@@ -3,6 +3,7 @@
 from types import SimpleNamespace
 
 import pytest
+from choir_fixtures import choir_member
 from django.contrib.auth.models import AnonymousUser, Group
 
 from accounts.permissions import AdminPermission, PlannerPermission, Role, role_for
@@ -27,6 +28,7 @@ def test_highest_role_and_capabilities(django_user_model, groups, staff, superus
         username="policy-user", is_staff=staff, is_superuser=superuser
     )
     user.groups.set(Group.objects.filter(name__in=groups))
+    choir_member(user)
     request = SimpleNamespace(user=user)
     assert role_for(user) == expected
     assert PlannerPermission().has_permission(request, None) == (

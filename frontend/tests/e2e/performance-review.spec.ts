@@ -1,21 +1,104 @@
+import { initialChoirId, selectInitialChoir } from './choir-context';
 /** Real sessions, private PDF canvas, saved reading order, and compact responsive layout. */
 import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 const suffix = process.env.E2E_USER_SUFFIX;
 const password = process.env.E2E_PASSWORD;
 if (!suffix || !password) throw new Error('Run through scripts/e2e.ps1.');
 async function login(page: Page) {
   await page.goto('/login');
-  await page.getByLabel('Username').fill(`e2e-${suffix}-planner`);
-  await page.getByLabel('Password').fill(password!);
+  await page.getByLabel('Email or username').fill(`e2e-${suffix}-planner`);
+  await page.getByLabel('Password', { exact: true }).fill(password!);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Masses', exact: true })).toBeVisible();
+  await selectInitialChoir(page);
 }
 async function choose(page: Page, group: string, value: string) {
   const field = page.getByRole('group', { name: group, exact: true });
   await field.getByRole('button', { name: /^Choose / }).click();
   await field.getByRole('checkbox', { name: value, exact: true }).check();
+}
+
+async function checkPdfZoom(viewer: Locator) {
+  const viewport = viewer.locator('.pdf-viewport');
+  const canvas = viewer.locator('canvas');
+  await expect(viewport).toHaveAttribute('aria-busy', 'false');
+  const fits = () =>
+    viewport.evaluate((element) => {
+      const page = element.querySelector('canvas')!.getBoundingClientRect();
+      return page.height <= element.clientHeight + 1 && page.width <= element.clientWidth + 1;
+    });
+  await expect.poll(fits).toBe(true);
+  const height = (await canvas.boundingBox())!.height;
+  await viewer.getByRole('button', { name: 'Zoom in', exact: true }).click();
+  await expect(viewer.getByLabel('Zoom relative to fit')).toHaveText('125%');
+  await expect.poll(async () => (await canvas.boundingBox())!.height).toBeGreaterThan(height * 1.2);
+  await expect(viewport).toHaveAttribute('aria-busy', 'false');
+  // Zoom changes the actual canvas, rather than clipping/shrinking it back to the container.
+  const pixels = await canvas.evaluate((element) => {
+    const page = element as HTMLCanvasElement;
+    return page.width * page.height;
+  });
+  expect(pixels).toBeLessThanOrEqual(8000000);
+  await viewer.getByRole('button', { name: 'Zoom out', exact: true }).click();
+  await expect(viewer.getByLabel('Zoom relative to fit')).toHaveText('100%');
+  await viewer.getByRole('button', { name: 'Fit to width', exact: true }).click();
+  await expect(viewer.getByRole('button', { name: 'Fit to height', exact: true })).toBeVisible();
+  await expect
+    .poll(() =>
+      viewport.evaluate((element) =>
+        Math.abs(
+          element.querySelector('canvas')!.getBoundingClientRect().width - element.clientWidth,
+        ),
+      ),
+    )
+    .toBeLessThan(2);
+  await viewer.getByRole('button', { name: 'Fit to height', exact: true }).click();
+  await expect.poll(fits).toBe(true);
+}
+
+async function swipePdf(page: Page, viewer: Locator, direction: 'left' | 'right' | 'down') {
+  const box = (await viewer.locator('.pdf-viewport').boundingBox())!;
+  const session = await page.context().newCDPSession(page);
+  const startX = box.x + box.width * (direction === 'left' ? 0.85 : 0.15);
+  const startY = box.y + box.height * 0.35;
+  try {
+    await session.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [{ x: startX, y: startY }],
+    });
+    await session.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [
+        {
+          x:
+            direction === 'down'
+              ? startX
+              : box.x + box.width * (direction === 'left' ? 0.15 : 0.85),
+          y: direction === 'down' ? startY + 70 : startY,
+        },
+      ],
+    });
+    await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  } finally {
+    await session.detach();
+  }
+}
+
+async function checkSideButtons(viewer: Locator) {
+  const previous = (await viewer
+    .getByRole('button', { name: 'Previous PDF page', exact: true })
+    .boundingBox())!;
+  const next = (await viewer
+    .getByRole('button', { name: 'Next PDF page', exact: true })
+    .boundingBox())!;
+  const viewport = (await viewer.locator('.pdf-viewport').boundingBox())!;
+  expect(previous.x + previous.width).toBeLessThanOrEqual(viewport.x);
+  expect(next.x).toBeGreaterThanOrEqual(viewport.x + viewport.width);
+  expect(
+    Math.abs(previous.y + previous.height / 2 - viewport.y - viewport.height / 2),
+  ).toBeLessThan(2);
 }
 
 test('Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation', async ({
@@ -77,10 +160,15 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
     page.getByRole('link', { name: title, exact: true }).filter({ visible: true }),
   ).toBeVisible();
   const headers = {
+    'X-Choir-ID': await initialChoirId(page),
     'X-CSRFToken': (await (await page.request.get('/api/v1/auth/csrf/')).json())
       .csrf_token as string,
   };
-  const lyric = await (await page.request.get(`/api/v1/hymns/${lyricId}/`)).json();
+  const lyric = await (
+    await page.request.get(`/api/v1/hymns/${lyricId}/`, {
+      headers: { 'X-Choir-ID': await initialChoirId(page) },
+    })
+  ).json();
   const payload = {
     title: `PDF ${suffix}-${info.project.name}`,
     language_id: lyric.language.id,
@@ -115,6 +203,7 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
       .locator('.pdf-sheet canvas')
       .evaluate((canvas) => (canvas as HTMLCanvasElement).height),
   ).toBeGreaterThan(0);
+  await checkPdfZoom(page.locator('.pdf-sheet'));
   await expect(page.getByText('PDF fallback lyrics', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Next PDF page', exact: true }).click();
   await expect(page.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();
@@ -124,6 +213,54 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   await expect(fullscreen.getByText('Loading sheet music…', { exact: true })).toHaveCount(0);
   await expect(fullscreen.locator('canvas')).toHaveAttribute('style', /width:/);
   await expect(fullscreen.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();
+  await checkPdfZoom(fullscreen);
+  await checkSideButtons(fullscreen);
+  await expect(
+    fullscreen.getByRole('button', { name: 'Next PDF page', exact: true }),
+  ).toBeDisabled();
+  await fullscreen.getByRole('button', { name: 'Previous PDF page', exact: true }).click();
+  await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
+  await expect(
+    fullscreen.getByRole('button', { name: 'Previous PDF page', exact: true }),
+  ).toBeDisabled();
+  const readingArea = fullscreen.locator('.pdf-viewport');
+  const clickSide = async (fraction: number) => {
+    const area = (await readingArea.boundingBox())!;
+    await readingArea.click({ position: { x: area.width * fraction, y: area.height / 2 } });
+  };
+  await clickSide(0.85);
+  await expect(fullscreen.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();
+  await clickSide(0.15);
+  await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
+  if (info.project.name.startsWith('mobile')) {
+    await swipePdf(page, fullscreen, 'left');
+    await expect(fullscreen.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();
+    await swipePdf(page, fullscreen, 'right');
+    await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
+    await swipePdf(page, fullscreen, 'down');
+    await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
+    await fullscreen.getByRole('button', { name: 'Zoom in', exact: true }).click();
+    await expect(readingArea).toHaveAttribute('aria-busy', 'false');
+    await swipePdf(page, fullscreen, 'left');
+    await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
+    await fullscreen.getByRole('button', { name: 'Zoom out', exact: true }).click();
+  }
+  await fullscreen.getByRole('button', { name: 'Next PDF page', exact: true }).click();
+  await expect(fullscreen.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();
+  const originalSize = page.viewportSize()!;
+  await page.setViewportSize({ width: 844, height: 390 });
+  await expect
+    .poll(() =>
+      fullscreen
+        .locator('.pdf-viewport')
+        .evaluate(
+          (element) =>
+            element.querySelector('canvas')!.getBoundingClientRect().height <=
+            element.clientHeight + 1,
+        ),
+    )
+    .toBe(true);
+  await page.setViewportSize(originalSize);
   if (await page.evaluate(() => document.fullscreenEnabled))
     await expect
       .poll(() =>
@@ -174,6 +311,15 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   await expect(focus.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
   await expect(focus.getByText('Loading sheet music…', { exact: true })).toHaveCount(0);
   await expect(focus.getByText('Screen kept awake', { exact: true })).toBeVisible();
+  await checkPdfZoom(focus);
+  await checkSideButtons(focus);
+  await focus.getByRole('button', { name: 'Next PDF page', exact: true }).click();
+  await expect(focus.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();
+  await expect(focus.getByText('Hymn 1 of 3', { exact: true })).toBeVisible();
+  // Keyboard page navigation on the PDF must not bubble to hymn navigation.
+  await page.keyboard.press('ArrowLeft');
+  await expect(focus.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
+  await expect(focus.getByText('Hymn 1 of 3', { exact: true })).toBeVisible();
   await focus
     .getByRole('button', { name: `Open ${pdf.title} PDF fullscreen`, exact: true })
     .click();

@@ -16,7 +16,9 @@ from hymns.models import Hymn, LiturgicalSeason, MassPlacement
 from hymns.selectors import hymn_queryset
 
 
-def random_picks(season_id: int, placement_ids: list[int], excluded_hymn_ids: list[int]) -> dict:
+def random_picks(
+    season_id: int, placement_ids: list[int], excluded_hymn_ids: list[int], *, choir_id=None
+) -> dict:
     """Use the whole eligible library, without repeats or library-page bias.
 
     A retained inactive season can still describe a draft. New placements must
@@ -61,7 +63,7 @@ def random_picks(season_id: int, placement_ids: list[int], excluded_hymn_ids: li
     for placement_id in order:
         assign(placement_id, set())
     matches = {placement_id: hymn_id for hymn_id, placement_id in owners.items()}
-    hymns = {hymn.pk: hymn for hymn in hymn_queryset().filter(pk__in=owners)}
+    hymns = {hymn.pk: hymn for hymn in hymn_queryset(choir_id).filter(pk__in=owners)}
     return {
         "picks": [
             {"placement_id": pk, "hymn": hymns[matches[pk]]}

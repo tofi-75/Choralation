@@ -7,6 +7,9 @@ import { useSession } from './features/auth/SessionProvider';
 import { AppShell } from './layouts/AppShell';
 import { LoginPage } from './pages/LoginPage';
 import { WorkspacePage } from './pages/WorkspacePage';
+import { AccountPages } from './pages/AccountPages';
+import { ChoirPages } from './pages/ChoirPages';
+import { ChoirProvider } from './features/choirs/ChoirProvider';
 
 // Load working screens on demand so phone sign-in does not download every editor.
 const LibraryPage = lazy(() =>
@@ -39,7 +42,16 @@ function ProtectedRoute() {
   const location = useLocation();
   if (!session.user)
     return <Navigate to="/login" replace state={{ expired: location.pathname !== '/' }} />;
+  if (session.user.verification_required) return <Navigate to="/verify-email" replace />;
   return <Outlet />;
+}
+
+function ChoirShell() {
+  return (
+    <ChoirProvider>
+      <AppShell />
+    </ChoirProvider>
+  );
 }
 
 export function App() {
@@ -50,8 +62,17 @@ export function App() {
     <Suspense fallback={<LoadingState />}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<AccountPages mode="register" />} />
+        <Route path="/verify-email" element={<AccountPages mode="verify" />} />
+        <Route path="/forgot-password" element={<AccountPages mode="forgot" />} />
+        <Route path="/reset-password" element={<AccountPages mode="reset" />} />
         <Route element={<ProtectedRoute />}>
-          <Route element={<AppShell />}>
+          <Route element={<ChoirShell />}>
+            <Route path="/account" element={<AccountPages mode="account" />} />
+            <Route path="/choirs" element={<ChoirPages mode="list" />} />
+            <Route path="/choirs/join" element={<ChoirPages mode="join" />} />
+            <Route path="/choirs/new" element={<ChoirPages mode="new" />} />
+            <Route path="/choirs/:id" element={<ChoirPages mode="detail" />} />
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<WorkspacePage />} />
             <Route path="/hymns" element={<LibraryPage />} />

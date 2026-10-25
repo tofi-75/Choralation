@@ -1,5 +1,19 @@
 @import 'tailwindcss';
 
+.public-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem;
+  font-size: 0.8rem;
+  color: #6b2334;
+}
+.public-links a {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
 /* Library layouts keep dense comparisons on desktop and readable cards on mobile. */
 .page-heading {
   display: flex;
@@ -506,6 +520,67 @@ input {
 input[aria-invalid='true'] {
   border-color: #a02232;
   margin-bottom: 0.4rem;
+}
+.password-control {
+  display: block;
+  position: relative;
+  margin-bottom: 1.3rem;
+  min-width: 0;
+}
+.password-control input {
+  margin-bottom: 0;
+  padding-right: 5rem;
+  font-family: ui-monospace, monospace;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+.password-control .password-previewing {
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  caret-color: #6b2334;
+}
+.password-mask {
+  position: absolute;
+  top: 50%;
+  left: 1rem;
+  right: 5rem;
+  transform: translateY(-50%);
+  overflow: hidden;
+  pointer-events: none;
+  font-family: ui-monospace, monospace;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #262626;
+  white-space: pre;
+}
+.password-mask > span {
+  display: block;
+}
+.password-toggle {
+  position: absolute;
+  right: 0.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 4.25rem;
+  min-height: 44px;
+  border-radius: 5px;
+  color: #6b2334;
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+.password-toggle:focus-visible {
+  outline: 2px solid #6b2334;
+}
+.password-control input::-ms-reveal {
+  display: none;
+}
+.field > label:has(+ .password-control) {
+  margin: 0;
+  font: inherit;
+}
+.field .password-control {
+  margin: 0;
 }
 .field-error {
   color: #8d192a;
@@ -2273,15 +2348,17 @@ input[aria-invalid='true'] {
 .pdf-sheet {
   min-width: 0;
   width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 .pdf-sheet canvas {
   display: block;
-  max-width: 100%;
   margin-inline: auto;
   background: white;
   border-radius: 4px;
 }
 .pdf-toolbar,
+.pdf-zoom,
 .pdf-pages {
   display: flex;
   align-items: center;
@@ -2294,9 +2371,92 @@ input[aria-invalid='true'] {
   min-height: 44px;
   flex-wrap: wrap;
 }
-.pdf-pages .button {
-  min-height: 36px;
+.pdf-pages .button,
+.pdf-zoom .button {
+  min-height: 44px;
   padding: 0.25rem 0.65rem;
+}
+.pdf-zoom {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+.pdf-zoom output {
+  min-width: 3.2rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.pdf-reader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  height: min(70dvh, 55rem);
+  min-height: 0;
+  min-width: 0;
+}
+.pdf-reader-with-navigation {
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  gap: 0.25rem;
+}
+.pdf-side-page {
+  align-self: center;
+  width: 44px;
+  min-height: 64px;
+  padding: 0;
+  font-size: 1.8rem;
+}
+.pdf-side-page[aria-disabled='true'] {
+  opacity: 0.4;
+  cursor: default;
+}
+.pdf-viewport {
+  position: relative;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-x pan-y pinch-zoom;
+  background: #eee8df;
+  border-radius: 4px;
+}
+.pdf-viewport[data-page-swipes='true'] {
+  touch-action: pan-y pinch-zoom;
+}
+.pdf-page-frame {
+  display: grid;
+  place-items: center;
+  width: max-content;
+  min-width: 100%;
+  min-height: 100%;
+}
+.pdf-loading {
+  position: absolute;
+  inset: 0 auto auto 0;
+  z-index: 1;
+  margin: 0;
+  padding: 0.5rem;
+  background: #fffdf9;
+}
+.focus-reading:has(.pdf-sheet) {
+  display: flex;
+  flex-direction: column;
+}
+.focus-reading:has(.pdf-viewport[data-zoomed='true']) {
+  touch-action: pan-x pan-y pinch-zoom;
+}
+.focus-material:has(.pdf-sheet),
+.focus-material > .pdf-sheet,
+.pdf-fullscreen-reading > .pdf-reader {
+  flex: 1;
+  min-height: 0;
+}
+.focus-material:has(.pdf-sheet) {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+.focus-material .pdf-reader {
+  flex: 1;
+  height: 0;
 }
 .external-score {
   display: inline-block;
@@ -2447,7 +2607,7 @@ input[aria-invalid='true'] {
 /* Expand the same private PDF without leaving the library or active Mass. */
 .pdf-preview {
   display: block;
-  width: 100%;
+  width: max-content;
   border: 0;
   padding: 0;
   background: transparent;
@@ -2479,10 +2639,118 @@ input[aria-invalid='true'] {
 .pdf-fullscreen-reading {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
   overscroll-behavior: contain;
-  touch-action: pan-y pinch-zoom;
+  touch-action: pan-x pan-y pinch-zoom;
   box-sizing: border-box;
   padding: 0 max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom))
     max(1rem, env(safe-area-inset-left));
+}
+
+/* Account and choir surfaces share the existing burgundy design tokens. */
+.account-page {
+  padding: clamp(1rem, 4vw, 3rem);
+  min-height: 70vh;
+}
+.account-card {
+  max-width: 36rem;
+  margin: 0 auto;
+}
+.account-card form,
+.choir-editor {
+  display: grid;
+  gap: 1rem;
+}
+.account-card h1 {
+  margin-block: 1rem;
+}
+.choir-selector {
+  min-width: 0;
+  max-width: 20rem;
+}
+.choir-selector select {
+  width: 100%;
+  max-width: 100%;
+  min-height: 2.75rem;
+}
+.choir-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+.choir-card,
+.member-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border, #e4d8cb);
+  border-radius: 0.75rem;
+}
+.choir-card h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  overflow-wrap: anywhere;
+}
+.choir-card p {
+  margin-block: 0.5rem;
+}
+.member-row {
+  flex-wrap: wrap;
+}
+.choir-code {
+  font-size: 1.5rem;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+}
+.choir-code-form {
+  display: flex;
+  align-items: end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.choir-code-form .field {
+  flex: 1;
+  min-width: 10rem;
+}
+.required-marker {
+  color: #702238;
+}
+@media (max-width: 600px) {
+  .choir-card {
+    align-items: start;
+    flex-direction: column;
+  }
+  .choir-selector {
+    max-width: 40vw;
+  }
+  .choir-selector select {
+    padding-inline: 0.5rem;
+  }
+}
+
+.page-heading > div:first-child {
+  min-width: 0;
+}
+.page-title {
+  overflow-wrap: anywhere;
+}
+.member-row > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 900px) {
+  .topbar {
+    flex-wrap: wrap;
+  }
+  .choir-selector {
+    order: 3;
+    flex-basis: 100%;
+    max-width: none;
+  }
+  .topbar .account-controls {
+    margin-left: auto;
+  }
 }

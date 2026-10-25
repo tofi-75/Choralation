@@ -1,19 +1,24 @@
+import { useChoirQuery } from '../features/choirs/useChoirQuery';
 /** The first screen puts the next saved program and recent repertoire within reach. */
-import { useQuery } from '@tanstack/react-query';
+
 import { Link } from 'react-router';
 import { fetchHymns } from '../api/library';
 import { fetchMasses } from '../api/masses';
 import { useSession } from '../features/auth/SessionProvider';
+import { useChoir } from '../features/choirs/ChoirProvider';
+import { ChoirRequired } from '../features/choirs/ChoirRequired';
 
 export function WorkspacePage() {
   const { user } = useSession();
-  const masses = useQuery({
+  const { active } = useChoir();
+  const masses = useChoirQuery({
     queryKey: ['masses', 'home'],
-    queryFn: () => fetchMasses('status=finalized&archived=false'),
+    queryFn: (choirId) => fetchMasses('status=finalized&archived=false', choirId),
+    enabled: Boolean(active),
   });
-  const hymns = useQuery({
+  const hymns = useChoirQuery({
     queryKey: ['hymns', 'home'],
-    queryFn: () => fetchHymns('ordering=newest_added'),
+    queryFn: (choirId) => fetchHymns('ordering=newest_added', choirId),
   });
   return (
     <>
@@ -32,36 +37,42 @@ export function WorkspacePage() {
         </div>
       </div>
       <section aria-label="Upcoming Masses" className="home-section">
-        <h2>Next Mass</h2>
-        {masses.isPending && <p role="status">Loading upcoming Masses…</p>}
-        {masses.error && (
-          <p role="alert">
-            Unable to load upcoming Masses.{' '}
-            <button className="text-button" onClick={() => void masses.refetch()}>
-              Try again
-            </button>
-          </p>
-        )}
-        {masses.data && !masses.data.count && (
-          <p className="notice">No upcoming saved Masses. Prepare a draft to get started.</p>
-        )}
-        <div className="mass-list upcoming-masses">
-          {masses.data?.results.slice(0, 4).map((mass, index) => (
-            <Link
-              key={mass.id}
-              className={`mass-card ${index === 0 ? 'next-mass' : ''}`}
-              to={`/masses/${mass.id}`}
-            >
-              {index === 1 && <span className="eyebrow">Coming up</span>}
-              <time dateTime={mass.date}>{mass.date}</time>
-              <h3 dir="auto">{mass.title}</h3>
-              <p className="tiny">
-                {mass.liturgical_season?.name ?? 'No season selected'} · {mass.selection_count}{' '}
-                hymns
+        {!active ? (
+          <ChoirRequired />
+        ) : (
+          <>
+            <h2>Next Mass</h2>
+            {masses.isPending && <p role="status">Loading upcoming Masses…</p>}
+            {masses.error && (
+              <p role="alert">
+                Unable to load upcoming Masses.{' '}
+                <button className="text-button" onClick={() => void masses.refetch()}>
+                  Try again
+                </button>
               </p>
-            </Link>
-          ))}
-        </div>
+            )}
+            {masses.data && !masses.data.count && (
+              <p className="notice">No upcoming saved Masses. Prepare a draft to get started.</p>
+            )}
+            <div className="mass-list upcoming-masses">
+              {masses.data?.results.slice(0, 4).map((mass, index) => (
+                <Link
+                  key={mass.id}
+                  className={`mass-card ${index === 0 ? 'next-mass' : ''}`}
+                  to={`/masses/${mass.id}`}
+                >
+                  {index === 1 && <span className="eyebrow">Coming up</span>}
+                  <time dateTime={mass.date}>{mass.date}</time>
+                  <h3 dir="auto">{mass.title}</h3>
+                  <p className="tiny">
+                    {mass.liturgical_season?.name ?? 'No season selected'} · {mass.selection_count}{' '}
+                    hymns
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </>
+        )}
       </section>
       <section className="home-section" aria-labelledby="new-hymns-heading">
         <div className="section-heading">

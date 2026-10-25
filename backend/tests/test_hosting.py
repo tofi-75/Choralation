@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 import pytest
 from botocore.exceptions import ClientError, EndpointConnectionError
+from choir_fixtures import choir_client, choir_member
 from django.contrib.auth.models import Group
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -16,7 +17,6 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import Client, override_settings
 from django.urls import clear_url_caches
-from rest_framework.test import APIClient
 
 from config.deployment import prepare_database
 from config.environment import read_environment
@@ -69,6 +69,15 @@ def production_routes(settings, tmp_path):
     [
         "/",
         "/login",
+        "/register",
+        "/verify-email",
+        "/forgot-password",
+        "/reset-password",
+        "/account",
+        "/choirs",
+        "/choirs/join",
+        "/choirs/new",
+        "/choirs/1",
         "/dashboard",
         "/history",
         "/hymns",
@@ -177,6 +186,7 @@ def test_hosted_demo_seeding_requires_both_opt_ins(settings, django_user_model):
     settings.DEBUG = False
     user = django_user_model.objects.create_user(username="hosted-demo")
     user.groups.add(Group.objects.get(name="Admin"))
+    choir_member(user)
     call_command("seed_initial_data", stdout=StringIO())
     settings.ALLOW_HOSTED_DEMO_DATA = False
     with pytest.raises(CommandError):
@@ -193,9 +203,10 @@ def test_hosted_demo_seeding_requires_both_opt_ins(settings, django_user_model):
 def test_cloud_storage_failures_are_retryable_without_partial_hymns(django_user_model):
     user = django_user_model.objects.create_user(username="storage-admin")
     user.groups.add(Group.objects.get(name="Admin"))
+    choir_member(user)
     language = Language.objects.create(name="Cloud", slug="cloud")
     placement = MassPlacement.objects.create(name="Cloud", slug="cloud")
-    api = APIClient()
+    api = choir_client()
     api.force_authenticate(user)
     from common.storage import StorageUnavailable
     from hymns.services import save_hymn
@@ -310,9 +321,10 @@ def test_production_login_csrf_and_private_pdf_survive_new_client(
         username="production-planner", password="Strong-Hosting-Password-692!"
     )
     user.groups.add(Group.objects.get(name="Planner"))
+    choir_member(user)
     language = Language.objects.create(name="Production", slug="production")
     placement = MassPlacement.objects.create(name="Production", slug="production")
-    api = APIClient(enforce_csrf_checks=True, HTTP_ORIGIN="https://testserver")
+    api = choir_client(enforce_csrf_checks=True, HTTP_ORIGIN="https://testserver")
     csrf = api.get("/api/v1/auth/csrf/", secure=True)
     token = csrf.data["csrf_token"]
     assert csrf.cookies["csrftoken"]["secure"]
@@ -343,13 +355,15 @@ def test_production_login_csrf_and_private_pdf_survive_new_client(
     assert response.status_code == 201
     hymn_id = response.data["id"]
     # A new request client/server handler retains DB sessions and persisted files.
-    resumed = APIClient(enforce_csrf_checks=True)
+    resumed = choir_client(enforce_csrf_checks=True)
     resumed.cookies = api.cookies
     download = resumed.get(f"/api/v1/hymns/{hymn_id}/sheet-music/", secure=True)
     assert download.status_code == 200
     assert b"".join(download.streaming_content) == pdf
     assert download["Cache-Control"] == "no-store"
-    assert APIClient().get(f"/api/v1/hymns/{hymn_id}/sheet-music/", secure=True).status_code == 403
+    assert (
+        choir_client().get(f"/api/v1/hymns/{hymn_id}/sheet-music/", secure=True).status_code == 403
+    )
     assert (
         resumed.patch(
             f"/api/v1/hymns/{hymn_id}/",

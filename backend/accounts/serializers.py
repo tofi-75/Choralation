@@ -19,7 +19,7 @@ class StrictSerializer(serializers.Serializer):
 
 
 class LoginSerializer(StrictSerializer):
-    username = serializers.CharField(max_length=150)
+    username = serializers.CharField(max_length=254)
     password = serializers.CharField(write_only=True, trim_whitespace=False)
 
 
@@ -27,6 +27,53 @@ class UserSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     username = serializers.CharField()
     role = serializers.ChoiceField(choices=[str(role) for role in Role])
+    email = serializers.EmailField(allow_null=True)
+    email_verified = serializers.BooleanField()
+    verification_required = serializers.BooleanField()
+    can_create_choirs = serializers.BooleanField()
+    can_edit_hymns = serializers.BooleanField()
+
+
+class RegistrationSerializer(StrictSerializer):
+    username = serializers.CharField(max_length=150)
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, trim_whitespace=False, max_length=256)
+    password_confirmation = serializers.CharField(
+        write_only=True, trim_whitespace=False, max_length=256
+    )
+
+    def validate(self, data):
+        if data["password"] != data["password_confirmation"]:
+            raise serializers.ValidationError(
+                {"password_confirmation": ["Passwords do not match."]}
+            )
+        return data
+
+
+class EmailSerializer(StrictSerializer):
+    email = serializers.EmailField()
+
+
+class TokenSerializer(StrictSerializer):
+    token = serializers.CharField(max_length=100)
+
+
+class ResetSerializer(TokenSerializer):
+    password = serializers.CharField(write_only=True, trim_whitespace=False, max_length=256)
+
+
+class PasswordSerializer(StrictSerializer):
+    current_password = serializers.CharField(write_only=True, trim_whitespace=False)
+    password = serializers.CharField(write_only=True, trim_whitespace=False, max_length=256)
+
+
+class MessageSerializer(serializers.Serializer):
+    detail = serializers.CharField()
+
+
+class ChoirCreationPermissionSerializer(StrictSerializer):
+    username = serializers.CharField(max_length=150)
+    can_create_choirs = serializers.BooleanField()
 
 
 class CsrfSerializer(serializers.Serializer):

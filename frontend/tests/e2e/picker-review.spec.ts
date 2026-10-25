@@ -1,3 +1,4 @@
+import { initialChoirId, selectInitialChoir } from './choir-context';
 /** Owner review: responsive metadata, neutral suitability and persisted mouse/touch drag. */
 import { expect, test } from '@playwright/test';
 const suffix = process.env.E2E_USER_SUFFIX;
@@ -8,10 +9,11 @@ test('Picker review: columns, compact controls, sidebar and drag keep identities
 }, info) => {
   test.setTimeout(120_000);
   await page.goto('/login');
-  await page.getByLabel('Username').fill(`e2e-${suffix}-planner`);
-  await page.getByLabel('Password').fill(password!);
+  await page.getByLabel('Email or username').fill(`e2e-${suffix}-planner`);
+  await page.getByLabel('Password', { exact: true }).fill(password!);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Masses', exact: true })).toBeVisible();
+  await selectInitialChoir(page);
   if (info.project.name === 'desktop') {
     const width = await page.locator('.page-content').evaluate((node) => node.clientWidth);
     await page.getByRole('button', { name: 'Collapse sidebar' }).click();
@@ -28,6 +30,7 @@ test('Picker review: columns, compact controls, sidebar and drag keep identities
   }
   if (info.project.name === 'desktop') await page.setViewportSize({ width: 899, height: 900 });
   const headers = {
+    'X-Choir-ID': await initialChoirId(page),
     'X-CSRFToken': (await (await page.request.get('/api/v1/auth/csrf/')).json())
       .csrf_token as string,
   };

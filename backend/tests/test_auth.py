@@ -1,6 +1,7 @@
 """Real session/CSRF tests against PostgreSQL, including anonymous unsafe requests."""
 
 import pytest
+from choir_fixtures import choir_member
 from django.contrib.auth.models import Group
 from django.test import Client
 
@@ -12,6 +13,7 @@ PASSWORD = "Fixture-only-Strong-Password-762!"
 def user(django_user_model):
     account = django_user_model.objects.create_user(username="planner", password=PASSWORD)
     account.groups.add(Group.objects.get(name="Planner"))
+    choir_member(account)
     return account
 
 
@@ -71,7 +73,12 @@ def test_login_identity_persists_and_csrf_rotates(csrf_client, user):
     old_cookie = csrf_client.cookies["csrftoken"].value
     response = sign_in(csrf_client, token=old_token)
     assert response.status_code == 200
-    assert response.json() == {"id": user.pk, "username": "planner", "role": "Planner"}
+    assert {key: response.json()[key] for key in ("id", "username", "role")} == {
+        "id": user.pk,
+        "username": "planner",
+        "role": "Planner",
+    }
+    assert response.json()["email_verified"] is False
     assert csrf_client.cookies["csrftoken"].value != old_cookie
     assert csrf_client.get("/api/v1/auth/me/").json() == response.json()
     assert "password" not in response.json()

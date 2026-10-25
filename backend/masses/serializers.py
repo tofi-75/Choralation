@@ -68,6 +68,7 @@ class SelectionReadSerializer(serializers.Serializer):
 
 class MassSummarySerializer(serializers.Serializer):
     id = serializers.IntegerField()
+    choir_id = serializers.IntegerField()
     date = serializers.DateField()
     title = serializers.CharField()
     liturgical_season = CategoryReadSerializer(allow_null=True)

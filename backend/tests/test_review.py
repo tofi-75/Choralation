@@ -4,10 +4,10 @@ import json
 from unittest.mock import patch
 
 import pytest
+from choir_fixtures import choir_client, choir_member
 from django.contrib.auth.models import Group
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError
-from rest_framework.test import APIClient
 
 from hymns.models import Hymn, Language, MassPlacement
 
@@ -23,8 +23,9 @@ def review_library(django_user_model, settings, tmp_path):
     for role in ("Admin", "Planner", "Viewer"):
         user = django_user_model.objects.create_user(username=f"review-{role.lower()}")
         user.groups.add(Group.objects.get(name=role))
+        choir_member(user)
         users[role] = user
-    api = APIClient()
+    api = choir_client()
     api.force_authenticate(users["Planner"])
     language = Language.objects.create(name="Review language", slug="review")
     placement = MassPlacement.objects.create(name="Review placement", slug="review")

@@ -90,7 +90,7 @@ function FocusSession({ selections: initialSelections }: { selections: Selection
         <div>
           <Dialog.Title>Focus mode</Dialog.Title>
           <Dialog.Description id="focus-help">
-            Swipe or use the arrows to move between hymns.
+            Swipe for hymns; PDF side arrows turn pages.
           </Dialog.Description>
         </div>
         <Dialog.Close className="button secondary focus-close" aria-label="Exit focus mode">

@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 
 import pytest
+from choir_fixtures import legacy_choir
 from django.db import close_old_connections, connection
 
 from masses.models import Mass
@@ -13,7 +14,7 @@ from masses.services import RevisionConflict, save_mass, transition_mass
 @pytest.mark.django_db(transaction=True)
 def test_two_writers_share_one_mass_revision(django_user_model):
     actor = django_user_model.objects.create_superuser(username="mass-race")
-    mass = Mass.objects.create(date="2026-10-07", title="Original")
+    mass = Mass.objects.create(choir=legacy_choir(), date="2026-10-07", title="Original")
     barrier = Barrier(2)
 
     def edit(title):
@@ -42,7 +43,7 @@ def test_two_writers_share_one_mass_revision(django_user_model):
 @pytest.mark.parametrize("race", ["save_finalize", "finalize_reopen"])
 def test_lifecycle_shares_save_lock_and_revision(django_user_model, race):
     actor = django_user_model.objects.create_superuser(username=f"lifecycle-{race}")
-    mass = Mass.objects.create(date="2026-10-07", title="Original")
+    mass = Mass.objects.create(choir=legacy_choir(), date="2026-10-07", title="Original")
     barrier = Barrier(2)
 
     def write(kind):

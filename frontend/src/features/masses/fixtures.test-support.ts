@@ -44,6 +44,7 @@ export const hymn: Hymn = {
   updated_by: 1,
 };
 export const mass: Mass = {
+  choir_id: 1,
   id: 1,
   title: 'Draft Mass',
   date: '2026-10-07',

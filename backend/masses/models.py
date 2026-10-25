@@ -9,6 +9,7 @@ from django.db import models
 
 
 class Mass(models.Model):
+    choir = models.ForeignKey("choirs.Choir", on_delete=models.PROTECT, related_name="masses")
     date = models.DateField(db_index=True)
     title = models.CharField(max_length=255)
     liturgical_season = models.ForeignKey(

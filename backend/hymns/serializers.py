@@ -45,7 +45,12 @@ class CategoryDetailSerializer(CategoryReadSerializer):
 
     @extend_schema_field(serializers.DictField(child=serializers.IntegerField()))
     def get_reference_counts(self, instance):
+        from accounts.permissions import Role, role_for
         from hymns.services import reference_counts
+
+        request = self.context.get("request")
+        if request and role_for(request.user) != Role.ADMIN:
+            return {}
 
         return reference_counts(instance)
 

@@ -1,5 +1,6 @@
+import { useChoirQuery } from '../choirs/useChoirQuery';
 /** Section-scoped choices; season/neutral preference is applied before pagination. */
-import { useQuery } from '@tanstack/react-query';
+
 import { useEffect, useRef, useState } from 'react';
 import { hasSeasonMismatch, seasonLabel } from './seasonSuitability';
 
@@ -79,7 +80,7 @@ export function HymnPicker({
     }, 250);
     return () => clearTimeout(timer);
   }, [q]);
-  const query = useQuery({
+  const query = useChoirQuery({
     queryKey: [
       'hymns',
       'picker',
@@ -92,7 +93,7 @@ export function HymnPicker({
       ordering,
       page,
     ],
-    queryFn: () =>
+    queryFn: (choirId) =>
       fetchHymns(
         new URLSearchParams({
           q: search,
@@ -103,6 +104,7 @@ export function HymnPicker({
           ...(language ? { languages: language } : {}),
           ...(genre ? { genres: genre } : {}),
         }).toString(),
+        choirId,
       ),
     enabled: Boolean(placement),
   });

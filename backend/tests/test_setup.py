@@ -3,6 +3,7 @@
 from io import StringIO
 
 import pytest
+from choir_fixtures import choir_member
 from django.contrib.auth.models import Group
 from django.core.exceptions import ImproperlyConfigured
 from django.core.management import call_command
@@ -16,6 +17,7 @@ from config.environment import boolean, load_environment
 def test_roles_can_be_provisioned_twice_without_losing_memberships(django_user_model):
     user = django_user_model.objects.create_user(username="membership")
     user.groups.add(Group.objects.get(name="Viewer"))
+    choir_member(user)
     for _ in range(2):
         call_command("provision_roles", stdout=StringIO())
     assert Group.objects.filter(name__in=["Admin", "Planner", "Viewer"]).count() == 3

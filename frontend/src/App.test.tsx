@@ -43,8 +43,10 @@ it('protects a direct workspace visit and associates required errors with inputs
   await screen.findByRole('heading', { name: 'Sign in to your workspace' });
   await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
   expect(await screen.findByText('Enter your username.')).toBeVisible();
-  expect(screen.getByLabelText('Username')).toHaveAttribute('aria-invalid', 'true');
-  expect(screen.getByLabelText('Username')).toHaveAccessibleDescription('Enter your username.');
+  expect(screen.getByLabelText('Email or username')).toHaveAttribute('aria-invalid', 'true');
+  expect(screen.getByLabelText('Email or username')).toHaveAccessibleDescription(
+    'Enter your username.',
+  );
 });
 
 it('preserves credentials after a failure and supports retry, login, and logout', async () => {
@@ -53,6 +55,18 @@ it('preserves credentials after a failure and supports retry, login, and logout'
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string) => {
+      if (url.endsWith('/choirs/'))
+        return Response.json([
+          {
+            id: 1,
+            name: 'Test choir',
+            description: '',
+            is_public: false,
+            show_member_count: true,
+            member_count: 1,
+            role: 'Planner',
+          },
+        ]);
       if (url.endsWith('/csrf/')) return Response.json({ csrf_token: 'masked-token' });
       if (url.endsWith('/login/')) {
         attempts += 1;
@@ -76,12 +90,12 @@ it('preserves credentials after a failure and supports retry, login, and logout'
     }),
   );
   renderApp();
-  await screen.findByLabelText('Username');
-  await userEvent.type(screen.getByLabelText('Username'), 'planner');
-  await userEvent.type(screen.getByLabelText('Password'), 'kept-secret');
+  await screen.findByLabelText('Email or username');
+  await userEvent.type(screen.getByLabelText('Email or username'), 'planner');
+  await userEvent.type(screen.getByLabelText('Password', { exact: true }), 'kept-secret');
   await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
   expect(await screen.findByRole('alert')).toHaveTextContent('Incorrect credentials.');
-  expect(screen.getByLabelText('Password')).toHaveValue('kept-secret');
+  expect(screen.getByLabelText('Password', { exact: true })).toHaveValue('kept-secret');
   await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
   expect(await screen.findByRole('heading', { name: 'Masses' })).toBeVisible();
   expect(screen.getByText('Planner', { selector: '.role-badge' })).toBeVisible();
@@ -105,20 +119,32 @@ it('shows retry when initial identity lookup fails rather than treating failure 
   renderApp();
   await screen.findByRole('button', { name: 'Try again' });
   await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
-  expect(await screen.findByLabelText('Username')).toBeVisible();
+  expect(await screen.findByLabelText('Email or username')).toBeVisible();
 });
 
 it('returns to login on session expiry and clears private cached data', async () => {
   let expired = false;
   vi.stubGlobal(
     'fetch',
-    vi.fn(async () =>
-      expired
-        ? Response.json(
-            { detail: 'Expired', code: 'not_authenticated', errors: {} },
-            { status: 403 },
-          )
-        : Response.json({ id: 2, username: 'viewer', role: 'Viewer' }),
+    vi.fn(async (url: string) =>
+      url.endsWith('/choirs/') && !expired
+        ? Response.json([
+            {
+              id: 1,
+              name: 'Test choir',
+              description: '',
+              is_public: false,
+              show_member_count: true,
+              member_count: 1,
+              role: 'Member',
+            },
+          ])
+        : expired
+          ? Response.json(
+              { detail: 'Expired', code: 'not_authenticated', errors: {} },
+              { status: 403 },
+            )
+          : Response.json({ id: 2, username: 'viewer', role: 'Viewer' }),
     ),
   );
   const client = renderApp('/dashboard');
@@ -126,7 +152,7 @@ it('returns to login on session expiry and clears private cached data', async ()
   client.setQueryData(['private-data'], { secret: 'do not retain after logout' });
   expired = true;
   await client.refetchQueries({ queryKey: ['session'] });
-  await waitFor(() => expect(screen.getByLabelText('Username')).toBeVisible());
+  await waitFor(() => expect(screen.getByLabelText('Email or username')).toBeVisible());
   // Session lookup returns null on expiry, so non-session data must be purged.
   expect(client.getQueryData(['private-data'])).toBeUndefined();
 });

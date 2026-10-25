@@ -100,7 +100,7 @@ it('desktop metadata columns toggle server ordering and preserve placement/seaso
   expect(screen.getAllByRole('columnheader')).toHaveLength(9);
   fireEvent.click(screen.getByRole('button', { name: 'Sort by Minutes' }));
   await waitFor(() =>
-    expect(fetchHymns).toHaveBeenLastCalledWith(expect.stringContaining('ordering=duration')),
+    expect(fetchHymns).toHaveBeenLastCalledWith(expect.stringContaining('ordering=duration'), null),
   );
   const params = new URLSearchParams(vi.mocked(fetchHymns).mock.lastCall![0]);
   expect(params.get('placements')).toBe('1');
@@ -108,7 +108,10 @@ it('desktop metadata columns toggle server ordering and preserve placement/seaso
   expect(params.get('page')).toBe('1');
   fireEvent.click(screen.getByRole('button', { name: 'Sort by Minutes' }));
   await waitFor(() =>
-    expect(fetchHymns).toHaveBeenLastCalledWith(expect.stringContaining('ordering=-duration')),
+    expect(fetchHymns).toHaveBeenLastCalledWith(
+      expect.stringContaining('ordering=-duration'),
+      null,
+    ),
   );
   expect(screen.getByRole('columnheader', { name: /Minutes/ })).toHaveAttribute(
     'aria-sort',

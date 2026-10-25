@@ -15,6 +15,7 @@ from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
+from accounts.models import AccountProfile
 from accounts.permissions import Role
 
 
@@ -52,4 +53,9 @@ class Command(BaseCommand):
         user.save()
         group, _ = Group.objects.get_or_create(name=options["role"])
         user.groups.add(group)
+        AccountProfile.objects.create(
+            user=user,
+            username_key=username.lower(),
+            can_create_choirs=options["role"] in {"Admin", "Planner"},
+        )
         self.stdout.write(self.style.SUCCESS(f"Created {username} with {group.name} access."))

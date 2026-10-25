@@ -1,3 +1,4 @@
+import { initialChoirId, selectInitialChoir } from './choir-context';
 /** Real M3 workflow: persisted order/notes, failures, conflicts and role boundaries. */
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
@@ -9,8 +10,8 @@ if (!suffix || !password) throw new Error('Run through dev.cmd e2e.');
 
 async function signIn(page: Page, role = 'Planner') {
   await page.goto('/');
-  await page.getByLabel('Username').fill(`e2e-${suffix}-${role.toLowerCase()}`);
-  await page.getByLabel('Password').fill(password!);
+  await page.getByLabel('Email or username').fill(`e2e-${suffix}-${role.toLowerCase()}`);
+  await page.getByLabel('Password', { exact: true }).fill(password!);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(
     page.getByRole('heading', {
@@ -21,7 +22,10 @@ async function signIn(page: Page, role = 'Planner') {
 }
 async function csrf(page: Page) {
   const response = await page.request.get('/api/v1/auth/csrf/');
-  return { 'X-CSRFToken': (await response.json()).csrf_token as string };
+  return {
+    'X-Choir-ID': await initialChoirId(page),
+    'X-CSRFToken': (await response.json()).csrf_token as string,
+  };
 }
 async function seedHymn(page: Page, title: string, placementName = 'Communion') {
   const languages = (await (await page.request.get('/api/v1/languages/')).json()) as {
@@ -542,10 +546,11 @@ test('Planner: multiple rows, reorder, retry, conflict review, and navigation gu
   await saved(page);
   const url = page.url();
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
-  await page.getByLabel('Username').fill(`e2e-${suffix}-viewer`);
-  await page.getByLabel('Password').fill(password!);
+  await page.getByLabel('Email or username').fill(`e2e-${suffix}-viewer`);
+  await page.getByLabel('Password', { exact: true }).fill(password!);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Masses', exact: true })).toBeVisible();
+  await selectInitialChoir(page);
   await page.goto(url);
   await expect(page).toHaveURL(url.replace(/\/edit$/, ''));
   await expect(page.getByRole('link', { name: 'Edit Mass', exact: true })).toHaveCount(0);

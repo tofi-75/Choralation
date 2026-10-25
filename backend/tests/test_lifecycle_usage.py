@@ -1,6 +1,7 @@
 """M4: lifecycle, literal occurrence filters, repeat counts and saved history."""
 
 import pytest
+from choir_fixtures import legacy_choir
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from test_masses import planning as planning_fixture
@@ -106,7 +107,11 @@ def usage(planning):
         ("2026-10-07", b, 1, "draft"),
     ]:
         record = Mass.objects.create(
-            date=day, title=f"Usage {day}", liturgical_season=season, status=state
+            choir=legacy_choir(),
+            date=day,
+            title=f"Usage {day}",
+            liturgical_season=season,
+            status=state,
         )
         for index in range(times):
             MassHymnSelection.objects.create(
@@ -197,7 +202,7 @@ def test_hymn_history_retains_inactive_rows_and_mass_history_preview(usage):
     assert api.get("/api/v1/hymns/999999/usage/").status_code == 404
     with CaptureQueriesContext(connection) as captured:
         masses = api.get("/api/v1/masses/history/?status=finalized&q=Usage")
-    assert len(captured) <= 5  # constant prefetches, never per-Mass lookups
+    assert len(captured) <= 10  # bounded verification/membership checks plus fixed prefetches
     assert masses.status_code == 200, masses.data
     assert [r["id"] for r in masses.data["results"]] == [
         records[1].pk,

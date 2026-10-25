@@ -1,3 +1,4 @@
+import { initialChoirId, selectInitialChoir } from './choir-context';
 /** Owner home/saved-program review with real sessions, persistence, and role gates. */
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
@@ -6,13 +7,15 @@ const password = process.env.E2E_PASSWORD;
 if (!suffix || !password) throw new Error('Run through scripts/e2e.ps1.');
 async function login(page: Page, role = 'Planner') {
   await page.goto('/login');
-  await page.getByLabel('Username').fill(`e2e-${suffix}-${role.toLowerCase()}`);
-  await page.getByLabel('Password').fill(password!);
+  await page.getByLabel('Email or username').fill(`e2e-${suffix}-${role.toLowerCase()}`);
+  await page.getByLabel('Password', { exact: true }).fill(password!);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Masses', exact: true })).toBeVisible();
+  await selectInitialChoir(page);
 }
 async function csrf(page: Page) {
   return {
+    'X-Choir-ID': await initialChoirId(page),
     'X-CSRFToken': (await (await page.request.get('/api/v1/auth/csrf/')).json())
       .csrf_token as string,
   };
@@ -47,7 +50,9 @@ test('Home and saved Mass actions: Ordinary Time, compact creation, phone confir
   await expect(page.getByRole('region', { name: 'Practice' })).toContainText('Coming soon');
   await page.screenshot({ path: info.outputPath('home.png'), fullPage: true });
   const upcoming = await (
-    await page.request.get('/api/v1/masses/?status=finalized&archived=false')
+    await page.request.get('/api/v1/masses/?status=finalized&archived=false', {
+      headers: { 'X-Choir-ID': await initialChoirId(page) },
+    })
   ).json();
   if (upcoming.count)
     await expect(page.locator('.next-mass')).toHaveAttribute(
@@ -109,7 +114,15 @@ test('Home and saved Mass actions: Ordinary Time, compact creation, phone confir
   await page.getByRole('button', { name: 'Confirm edit', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/masses/${id}/edit$`));
   await expect(page.getByRole('status').filter({ hasText: 'Saved' })).toBeVisible();
-  expect((await (await page.request.get(`/api/v1/hymns/${hymn.id}/`)).json()).usage_count).toBe(0);
+  expect(
+    (
+      await (
+        await page.request.get(`/api/v1/hymns/${hymn.id}/`, {
+          headers: { 'X-Choir-ID': await initialChoirId(page) },
+        })
+      ).json()
+    ).usage_count,
+  ).toBe(0);
   await page.getByRole('button', { name: 'Save draft', exact: true }).click();
   await finalize.click();
   if (touch) await page.getByRole('button', { name: 'Confirm finalization', exact: true }).click();
@@ -152,7 +165,11 @@ test('Home and saved Mass actions: Ordinary Time, compact creation, phone confir
   await page.getByRole('button', { name: 'Confirm deletion', exact: true }).click();
   await expect(page).toHaveURL(/\/masses$/);
   expect((await page.request.get(`/api/v1/masses/${id}/`)).status()).toBe(404);
-  const retained = await (await page.request.get(`/api/v1/hymns/${hymn.id}/`)).json();
+  const retained = await (
+    await page.request.get(`/api/v1/hymns/${hymn.id}/`, {
+      headers: { 'X-Choir-ID': await initialChoirId(page) },
+    })
+  ).json();
   expect(retained.id).toBe(hymn.id);
   expect(retained.usage_count).toBe(0);
 });

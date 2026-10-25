@@ -9,6 +9,7 @@ import { ApiError } from '../../api/client';
 import { deleteMass, transitionMass } from '../../api/masses';
 import type { Mass } from '../../api/masses';
 import { useSession } from '../auth/SessionProvider';
+import { useChoir } from '../choirs/ChoirProvider';
 import { PlannerIcon } from './PlannerIcon';
 
 type Action = 'finalize' | 'edit' | 'delete';
@@ -16,6 +17,7 @@ const impact =
   'Finalizing makes this program read-only and adds each hymn selection to usage counts.';
 export function MassLifecycle({ mass, unavailable }: { mass: Mass; unavailable: boolean }) {
   const { user } = useSession();
+  const { choirs, active } = useChoir();
   const client = useQueryClient();
   const navigate = useNavigate();
   const [review, setReview] = useState<{ action: Action; snapshot: Mass } | null>(null);
@@ -26,7 +28,8 @@ export function MassLifecycle({ mass, unavailable }: { mass: Mass; unavailable: 
   const cancel = useRef<HTMLButtonElement>(null);
   const notice = useId();
   const trigger = useRef<HTMLButtonElement | null>(null);
-  const canEdit = Boolean(user && user.role !== 'Viewer');
+  const canEdit =
+    user?.role === 'Admin' || choirs.some((c) => c.id === mass.choir_id && c.role === 'Planner');
   const canDelete = user?.role === 'Admin';
   const finalized = mass.status === 'finalized';
   if (!canEdit) return null;
@@ -60,7 +63,7 @@ export function MassLifecycle({ mass, unavailable }: { mass: Mass; unavailable: 
         await refreshUsage();
       } else {
         const saved = await transitionMass(snapshot, action === 'edit');
-        client.setQueryData(['mass', String(saved.id)], saved);
+        client.setQueryData(['mass', String(saved.id), active?.id ?? null], saved);
         setReview(null);
         await refreshUsage();
         if (action === 'edit') navigate(`/masses/${saved.id}/edit`);

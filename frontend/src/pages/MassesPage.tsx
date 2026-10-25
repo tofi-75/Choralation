@@ -1,5 +1,6 @@
+import { useChoirQuery } from '../features/choirs/useChoirQuery';
 /** Ready programs by default; URL-backed draft/search filters apply before pagination. */
-import { useQuery } from '@tanstack/react-query';
+
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 
@@ -7,8 +8,11 @@ import { fetchMasses } from '../api/masses';
 import { ArchivedHymns } from '../features/masses/ArchivedHymns';
 import { useSession } from '../features/auth/SessionProvider';
 import { useCategories } from '../features/hymns/queries';
+import { useChoir } from '../features/choirs/ChoirProvider';
+import { ChoirRequired } from '../features/choirs/ChoirRequired';
 
 export function MassesPage() {
+  const { active } = useChoir();
   const [params, setParams] = useSearchParams();
   // Save draft keeps the lifecycle at draft. Only explicit finalization makes
   // a program ready; never infer readiness from hymn count or archive date.
@@ -19,9 +23,10 @@ export function MassesPage() {
   if (status === 'finalized') requestParams.set('archived', String(archived));
   else requestParams.delete('archived');
   const queryString = requestParams.toString();
-  const query = useQuery({
+  const query = useChoirQuery({
     queryKey: ['masses', queryString],
-    queryFn: () => fetchMasses(queryString),
+    queryFn: (choirId) => fetchMasses(queryString, choirId),
+    enabled: Boolean(active),
   });
   const [filtersOpen, setFiltersOpen] = useState(() =>
     ['from', 'to', 'season'].some((key) => params.has(key)),
@@ -52,6 +57,7 @@ export function MassesPage() {
     if (key !== 'page') next.delete('page');
     setParams(next, { replace: true });
   }
+  if (!active) return <ChoirRequired />;
   return (
     <>
       <div className="page-heading">
@@ -83,7 +89,7 @@ export function MassesPage() {
               {archived ? 'Drafts' : 'Archived Masses'}
             </Link>
           )}
-          {user?.role !== 'Viewer' && (
+          {active.role === 'Planner' && (
             <Link ref={createButton} className="button primary" to="/masses/new">
               New Mass
             </Link>

@@ -3,12 +3,12 @@
 from io import StringIO
 
 import pytest
+from choir_fixtures import choir_client, choir_member
 from django.contrib.auth.models import Group
 from django.core.management import call_command
 from django.db import IntegrityError, connection, transaction
 from django.test import Client, override_settings
 from django.test.utils import CaptureQueriesContext
-from rest_framework.test import APIClient
 
 from hymns import selectors
 from hymns.admin import HymnForm
@@ -70,11 +70,12 @@ def library(django_user_model):
     for role in ("Admin", "Planner", "Viewer"):
         user = django_user_model.objects.create_user(username=role.lower())
         user.groups.add(Group.objects.get(name=role))
+        choir_member(user)
         users[role] = user
     categories = {}
     for kind, model in CATEGORY_TYPES.items():
         categories[kind] = model.objects.create(name=f"Test {kind}", slug=f"test-{kind}")
-    api = APIClient()
+    api = choir_client()
     api.force_authenticate(users["Planner"])
     payload = {
         "title": "ترنيمة القيامة",

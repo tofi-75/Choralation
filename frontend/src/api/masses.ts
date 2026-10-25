@@ -1,7 +1,7 @@
 /** Revision-guarded draft contracts; all saved responses are validated. */
 import { z } from 'zod';
 
-import { request } from './client';
+import { request, choirHeaders } from './client';
 import { categorySchema, hymnSchema } from './library';
 
 const warningSchema = z.object({
@@ -21,6 +21,7 @@ const selectionSchema = z.object({
   updated_at: z.string(),
 });
 const summarySchema = z.object({
+  choir_id: z.number().int().positive(),
   id: z.number(),
   date: z.string(),
   title: z.string(),
@@ -80,7 +81,7 @@ export function fetchRandomPicks(
   });
 }
 
-export function fetchMasses(query: string) {
+export function fetchMasses(query: string, choirId?: number | null) {
   return request(
     `/masses/${query ? `?${query}` : ''}`,
     z.object({
@@ -89,13 +90,18 @@ export function fetchMasses(query: string) {
       previous: z.string().nullable(),
       results: z.array(summarySchema.extend({ is_archived: z.boolean() })),
     }),
+    choirHeaders(choirId),
   );
 }
-export function fetchMass(id: string) {
-  return request(`/masses/${id}/`, massSchema);
+export function fetchMass(id: string, choirId?: number | null) {
+  return request(`/masses/${id}/`, massSchema, choirHeaders(choirId));
 }
-export function createMass(metadata: MassMetadata) {
-  return request('/masses/', massSchema, { method: 'POST', body: JSON.stringify(metadata) });
+export function createMass(metadata: MassMetadata, choirId?: number | null) {
+  return request('/masses/', massSchema, {
+    ...choirHeaders(choirId),
+    method: 'POST',
+    body: JSON.stringify(metadata),
+  });
 }
 /** Metadata and program requests share the same precondition and are serialized by the saver. */
 export function saveMass(id: number, revision: number, metadata: MassMetadata) {
@@ -128,7 +134,7 @@ export function transitionMass(mass: Mass, reopen: boolean) {
   });
 }
 
-export function fetchMassHistory(query: string) {
+export function fetchMassHistory(query: string, choirId?: number | null) {
   return request(
     `/masses/history/?${query}`,
     z.object({
@@ -150,10 +156,11 @@ export function fetchMassHistory(query: string) {
         }),
       ),
     }),
+    choirHeaders(choirId),
   );
 }
 
-export function fetchHymnUsage(id: number, query: string) {
+export function fetchHymnUsage(id: number, query: string, choirId?: number | null) {
   return request(
     `/hymns/${id}/usage/?${query}`,
     z.object({
@@ -175,5 +182,6 @@ export function fetchHymnUsage(id: number, query: string) {
         }),
       ),
     }),
+    choirHeaders(choirId),
   );
 }

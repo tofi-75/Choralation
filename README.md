@@ -1,5 +1,10 @@
 # Mass Hymn Picker
 
+> **October 25, 2026 — Simple accounts:** Registration opens Home immediately; email ownership remains unverified. Verification and emailed recovery are independently disabled. Owner-assisted recovery is available at tofi.lattouf@gmail.com. This supersedes earlier activation instructions. See [release, configuration and recovery](docs/simple-accounts-release.md). Hosted backup, exact-commit CI and deployment acceptance are release gates.
+
+> **October 20, 2026 — Accounts and choirs:** Self-service email verification, recovery, choir membership and choir-specific hymn counts supersede the shared-workspace rules below. See [account and choir setup](docs/accounts-and-choirs.md). Existing local data is preserved in Initial choir. Registration and mandatory legacy verification ship disabled pending owner email setup. Hosting checks: core flows accepted, records persist; PDF persistence and CI-gated deployment remain pending.
+
+
 > **October 19 UI update:** Home prioritizes upcoming Masses and new hymns. Saved, draft and archived lists are separate; finalized editing is confirmed for Planner/Admin and deletion is Admin-only. See [implementation and test evidence](docs/home-saved-masses-review.md).
 
 > **October 13, 2026 priority update:** Render + Supabase hosting preparation is the current delivery task; see [deployment guide](docs/hosting.md). All account/login/provider setup and publishing are manual owner steps deferred until later. Physical-phone acceptance moves from M4 to M5. Saved-Mass performance redesign and recommendations are deferred. Historical milestone statements below retain their original dates; hosted completion requires actual URL, persistence and pipeline verification.
@@ -201,3 +206,6 @@ Mass plans now opens on **Ready Masses**; switch to **Pending drafts** to find s
 ## Performance reading and UI refinements
 
 Saved Masses now offer **Focus mode** for PDF → lyrics → title reading, with touch/keyboard navigation and a screen-awake request on supported secure origins. Hymn detail leads with sheet music and lyrics; forms include optional Latin Characters Name (searchable), lyrics, tempo and default key. Apply the normal migrations after updating. See [implementation, acceptance and next UI improvements](docs/ui-performance-review.md), including deferred full Arabic translation and language settings. Physical-phone acceptance remains M5.
+
+
+Public information is served without sign-in or JavaScript at `/about`, `/privacy` and `/terms`. See [Gmail verification readiness](docs/google-verification.md) for the privacy-request runbook, local delivery acceptance, Google scope justification and remaining domain/owner release gates. The policy identifies Toufic Lattouf (Lebanon) and tofi.lattouf@gmail.com as the operator/contact. Google approval and hosted delivery are separate from local engineering checks.

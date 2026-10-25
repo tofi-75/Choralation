@@ -1,13 +1,14 @@
+import { useChoirQuery } from '../choirs/useChoirQuery';
 /** Expand one archived program on demand instead of loading every full program at once. */
-import { useQuery } from '@tanstack/react-query';
+
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { fetchMass } from '../../api/masses';
 export function ArchivedHymns({ id, count }: { id: number; count: number }) {
   const [open, setOpen] = useState(false);
-  const program = useQuery({
+  const program = useChoirQuery({
     queryKey: ['mass', String(id)],
-    queryFn: () => fetchMass(String(id)),
+    queryFn: (choirId) => fetchMass(String(id), choirId),
     enabled: open,
   });
   return (

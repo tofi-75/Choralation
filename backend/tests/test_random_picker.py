@@ -1,8 +1,8 @@
 """Random suggestions respect eligibility, maximize coverage, and never persist drafts."""
 
 import pytest
+from choir_fixtures import choir_client, choir_member, legacy_choir
 from django.contrib.auth.models import Group
-from rest_framework.test import APIClient
 
 from hymns.models import Hymn, Language, LiturgicalSeason, MassPlacement
 from masses.models import Mass, MassHymnSelection
@@ -14,7 +14,8 @@ pytestmark = pytest.mark.django_db
 def picking(django_user_model):
     user = django_user_model.objects.create_user(username="random-planner")
     user.groups.add(Group.objects.get(name="Planner"))
-    api = APIClient()
+    choir_member(user)
+    api = choir_client()
     api.force_authenticate(user)
     season = LiturgicalSeason.objects.create(name="Random season", slug="random")
     other = LiturgicalSeason.objects.create(name="Other random season", slug="other-random")
@@ -24,7 +25,11 @@ def picking(django_user_model):
         for i in range(3)
     ]
     mass = Mass.objects.create(
-        date="2026-10-11", title="Random test Mass", liturgical_season=season, created_by=user
+        choir=legacy_choir(),
+        date="2026-10-11",
+        title="Random test Mass",
+        liturgical_season=season,
+        created_by=user,
     )
 
     def hymn(title, slots, *, neutral=False, active=True, season_value=season):
@@ -139,6 +144,7 @@ def test_planner_admin_only_and_finalized_mass_rejected(picking):
     assert pick().status_code == 403
     api.force_authenticate(user)
     user.groups.set([Group.objects.get(name="Viewer")])
+    choir_member(user)
     assert pick().status_code == 403
     user.groups.set([Group.objects.get(name="Admin")])
     assert pick().status_code == 200

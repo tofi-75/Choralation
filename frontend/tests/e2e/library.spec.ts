@@ -29,8 +29,8 @@ async function choose(
 
 async function signIn(page: import('@playwright/test').Page, role: string) {
   await page.goto('/hymns');
-  await page.getByLabel('Username').fill(`e2e-${suffix}-${role.toLowerCase()}`);
-  await page.getByLabel('Password').fill(password!);
+  await page.getByLabel('Email or username').fill(`e2e-${suffix}-${role.toLowerCase()}`);
+  await page.getByLabel('Password', { exact: true }).fill(password!);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(
     page.getByRole('heading', {

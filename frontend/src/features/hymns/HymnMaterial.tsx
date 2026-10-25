@@ -14,7 +14,12 @@ export function HymnMaterial({ hymn, focus = false }: { hymn: Hymn; focus?: bool
     >
       {hymn.sheet_music_pdf && !failed ? (
         <Suspense fallback={<p role="status">Loading sheet music…</p>}>
-          <PdfSheet url={hymn.sheet_music_pdf.url} title={hymn.title} onFailure={onFailure} />
+          <PdfSheet
+            url={hymn.sheet_music_pdf.url}
+            title={hymn.title}
+            onFailure={onFailure}
+            focus={focus}
+          />
         </Suspense>
       ) : (
         <>

@@ -1,7 +1,7 @@
 /** Validated library contracts. Categories come from data, never numeric seed constants. */
 import { z } from 'zod';
 
-import { request } from './client';
+import { request, choirHeaders } from './client';
 
 export const categorySchema = z.object({
   id: z.number().int().positive(),
@@ -106,15 +106,15 @@ export async function fetchCategories(): Promise<Categories> {
   );
   return Object.fromEntries(entries) as Categories;
 }
-export function fetchHymns(query: string) {
-  return request(`/hymns/${query ? `?${query}` : ''}`, pageSchema);
+export function fetchHymns(query: string, choirId?: number | null) {
+  return request(`/hymns/${query ? `?${query}` : ''}`, pageSchema, choirHeaders(choirId));
 }
 /** Saved programs need configured empty sections as well as retained inactive ones. */
 export function fetchMassPlacements() {
   return request('/mass-placements/?is_active=all', z.array(categorySchema));
 }
-export function fetchHymn(id: string) {
-  return request(`/hymns/${id}/`, hymnSchema);
+export function fetchHymn(id: string, choirId?: number | null) {
+  return request(`/hymns/${id}/`, hymnSchema, choirHeaders(choirId));
 }
 /** Save metadata and an optional PDF in one request, preserving the form on failure. */
 export function saveHymn(input: HymnInput, id?: number, pdf?: File | null) {

@@ -1,16 +1,22 @@
+import { useChoirQuery } from '../features/choirs/useChoirQuery';
 /** Saved programs open as compact read-only views; editing is an explicit route. */
-import { useQuery } from '@tanstack/react-query';
+
 import { Link, useParams } from 'react-router';
 
 import { fetchMass } from '../api/masses';
 import { fetchMassPlacements } from '../api/library';
 import { MassFocusMode } from '../features/masses/MassFocusMode';
 import { MassLifecycle } from '../features/masses/MassLifecycle';
+import { useChoir } from '../features/choirs/ChoirProvider';
 
 export function MassViewPage() {
+  const choir = useChoir();
   const { id } = useParams();
-  const query = useQuery({ queryKey: ['mass', id], queryFn: () => fetchMass(id!) });
-  const sections = useQuery({
+  const query = useChoirQuery({
+    queryKey: ['mass', id],
+    queryFn: (choirId) => fetchMass(id!, choirId),
+  });
+  const sections = useChoirQuery({
     queryKey: ['categories', 'mass-placements'],
     queryFn: fetchMassPlacements,
   });
@@ -34,6 +40,18 @@ export function MassViewPage() {
       </section>
     );
   const mass = query.data;
+  if (choir.active?.id !== mass.choir_id)
+    return (
+      <section className="form-section">
+        <p>This Mass belongs to another choir you can access.</p>
+        <button
+          className="button primary"
+          onClick={() => void choir.select(mass.choir_id, `/masses/${id}`)}
+        >
+          Open this choir
+        </button>
+      </section>
+    );
   const selected = new Set(mass.program.map((row) => row.placement.id));
   // Configuration supplies empty sections. Merge saved references so selected
   // inactive sections remain readable, then follow configured display order.

@@ -23,6 +23,7 @@ function mount(
   empty = false,
   retainedInactive = false,
 ) {
+  choirFixture.role = role;
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string) =>
@@ -104,3 +105,19 @@ it.each([
   await screen.findByRole('heading', { level: 1 });
   expect(screen.queryByRole('link', { name: 'Edit Mass' })).not.toBeInTheDocument();
 });
+
+const choirFixture = vi.hoisted(() => ({ role: 'Planner' }));
+vi.mock('../features/choirs/ChoirProvider', () => ({
+  useChoir: () => ({
+    active: {
+      id: 1,
+      name: 'Test choir',
+      role: choirFixture.role === 'Viewer' ? 'Member' : 'Planner',
+    },
+    choirs: [
+      { id: 1, name: 'Test choir', role: choirFixture.role === 'Viewer' ? 'Member' : 'Planner' },
+    ],
+    select: async () => {},
+    refresh: async () => {},
+  }),
+}));
