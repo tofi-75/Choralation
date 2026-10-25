@@ -65,14 +65,17 @@ jobs:
           npm run lint
           npm run format:check
           npm run build
-      - name: Real browser suite
+      - name: Prepare browser tests
         run: |
           python backend/manage.py migrate --noinput
           python backend/manage.py seed_initial_data
           cd frontend
           npx playwright install --with-deps chromium
           cd ..
-          python scripts/ci-browser.py
+      - name: Password browser preflight
+        run: python scripts/ci-browser.py password-input.spec.ts --project=desktop
+      - name: Real browser suite
+        run: python scripts/ci-browser.py
       - name: Simple account browser flows
         env:
           E2E_SIMPLE_ACCOUNTS: "true"
