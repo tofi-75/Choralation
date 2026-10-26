@@ -44,6 +44,7 @@ def main():
         enforce_csrf_checks=True,
         HTTP_X_FORWARDED_PROTO="https",
         HTTP_ORIGIN="https://testserver",
+        HTTP_HOST="testserver",
     )
     client.force_login(user, backend="accounts.backends.EmailOrUsernameBackend")
     csrf = client.get("/api/v1/auth/csrf/").json()["csrf_token"]
@@ -65,7 +66,7 @@ def main():
             },
             HTTP_X_CSRFTOKEN=csrf,
         )
-        assert response.status_code == 201
+        assert response.status_code == 201, response.json()
         hymn = Hymn.all_objects.get(pk=response.json()["id"])
         assert hymn.publication_status == "private"
     else:
@@ -91,12 +92,12 @@ def main():
             content_type=f"multipart/form-data; boundary={BOUNDARY}",
             HTTP_X_CSRFTOKEN=csrf,
         )
-        assert response.status_code == 200
+        assert response.status_code == 200, response.json()
         hymn.refresh_from_db()
         assert hymn.sheet_music_pdf.name != key and not storages["default"].exists(key)
         key = hymn.sheet_music_pdf.name
     response = client.get(url + "sheet-music/")
-    assert response.status_code == 200
+    assert response.status_code == 200, response.json()
     actual = b"".join(response.streaming_content)
     response.close()
     assert hashlib.sha256(actual).hexdigest() == data["sha256"]

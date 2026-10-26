@@ -264,3 +264,28 @@ def test_failed_replacement_preserves_original_and_only_cleans_new_upload(
     assert hymn.sheet_music_pdf.name == old
     with hymn.sheet_music_pdf.open("rb") as file:
         assert file.read() == b"%PDF-1.4\noriginal\n%%EOF"
+
+
+@pytest.mark.django_db
+def test_container_probe_session_and_csrf_contract(settings, django_user_model):
+    from django.test import Client
+
+    settings.ACCOUNT_EMAIL_VERIFICATION_ENABLED = False
+    settings.DEBUG = False
+    settings.SESSION_COOKIE_SECURE = True
+    settings.CSRF_COOKIE_SECURE = True
+    settings.SECURE_SSL_REDIRECT = True
+    settings.SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    settings.ALLOWED_HOSTS = ["testserver"]
+    user = django_user_model.objects.create_user(username="probe-session-check")
+    client = Client(
+        enforce_csrf_checks=True,
+        HTTP_X_FORWARDED_PROTO="https",
+        HTTP_ORIGIN="https://testserver",
+        HTTP_HOST="testserver",
+    )
+    client.force_login(user, backend="accounts.backends.EmailOrUsernameBackend")
+    csrf = client.get("/api/v1/auth/csrf/").json()["csrf_token"]
+    assert client.get("/api/v1/auth/me/").status_code == 200
+    response = client.post("/api/v1/hymns/", {}, HTTP_X_CSRFTOKEN=csrf)
+    assert response.status_code == 400, response.json()
