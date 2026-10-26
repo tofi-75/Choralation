@@ -213,3 +213,5 @@ Public information is served without sign-in or JavaScript at `/about`, `/privac
 Local account and reader refinements add username availability, password strength feedback, compact PDF controls, immersive fullscreen, replacement previews and revised standard Mass sections. See [behavior, migration and missing-PDF recovery notes](docs/reader-and-account-refinements.md). These refinements have not been deployed yet.
 
 Regular members can save private hymns under **My hymns** and request planner approval before publication. Planners review them from **Choirs → Hymn submissions**. See [workflow, privacy boundary and migration/rollback notes](docs/member-hymn-submissions.md).
+
+PDF persistence repair: [durable PDF setup](docs/pdf-storage-setup.md).

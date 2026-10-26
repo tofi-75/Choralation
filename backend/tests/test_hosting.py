@@ -163,6 +163,8 @@ def test_storage_configuration_is_private_and_requires_complete_settings(monkeyp
     assert options["file_overwrite"] is False
     assert options["querystring_auth"] is True
     assert options["client_config"].connect_timeout == 5
+    assert options["client_config"].s3 == {"addressing_style": "path"}
+    assert options["client_config"].signature_version == "s3v4"
 
 
 def test_startup_stops_on_failed_migration_and_replays_in_order():
@@ -285,8 +287,13 @@ def test_render_settings_derive_host_and_keep_secure_cookies():
     environment.update(
         {
             "DJANGO_DEBUG": "false",
-            "DJANGO_STORAGE_BACKEND": "local",
             "RENDER_EXTERNAL_HOSTNAME": "choralation-test.onrender.com",
+            "DJANGO_STORAGE_BACKEND": "s3",
+            "AWS_STORAGE_BUCKET_NAME": "sheet-music",
+            "AWS_S3_ENDPOINT_URL": "https://test.storage.supabase.co/storage/v1/s3",
+            "AWS_S3_REGION_NAME": "eu-central-1",
+            "AWS_ACCESS_KEY_ID": "test-key",
+            "AWS_SECRET_ACCESS_KEY": "test-secret",
             "DJANGO_TRUST_PROXY_HTTPS": "true",
         }
     )

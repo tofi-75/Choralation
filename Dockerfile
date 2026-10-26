@@ -15,8 +15,8 @@ RUN python -m pip install -r requirements/production.txt && useradd --create-hom
 COPY backend/ ./
 COPY --from=frontend /build/dist /app/frontend/dist
 # Build-only dummy settings: collectstatic never needs cloud credentials or a database.
-RUN DJANGO_SECRET_KEY=build-only-placeholder-not-a-runtime-secret-0000000000000000000000 DJANGO_DEBUG=false ACCOUNT_EMAIL_VERIFICATION_ENABLED=false ACCOUNT_PASSWORD_RESET_ENABLED=false DATABASE_URL=postgresql://build:build@127.0.0.1/build DJANGO_STORAGE_BACKEND=local python manage.py collectstatic --noinput     && mkdir -p /app/media && chown appuser:appuser /app/media
-ENV DJANGO_MEDIA_ROOT=/app/media
+RUN DJANGO_SECRET_KEY=build-only-placeholder-not-a-runtime-secret-0000000000000000000000 DJANGO_DEBUG=false ACCOUNT_EMAIL_VERIFICATION_ENABLED=false ACCOUNT_PASSWORD_RESET_ENABLED=false DATABASE_URL=postgresql://build:build@127.0.0.1/build DJANGO_REQUIRE_DURABLE_STORAGE=false DJANGO_STORAGE_BACKEND=local python manage.py collectstatic --noinput     && mkdir -p /app/media && chown appuser:appuser /app/media
+ENV DJANGO_MEDIA_ROOT=/app/media DJANGO_REQUIRE_DURABLE_STORAGE=true
 USER appuser
 EXPOSE 10000
 CMD ["python", "-m", "config.deployment"]

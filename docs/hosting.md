@@ -1,5 +1,7 @@
 # Deploy Choralation: Render + Supabase
 
+**October 26 PDF storage repair:** The live service was missing `DJANGO_STORAGE_BACKEND`, so uploads used temporary Render files. Follow the [durable PDF setup and cutover guide](pdf-storage-setup.md) before any further deployment. Production now requires S3 and verifies actual write/read/cleanup before startup; owner settings and real cross-deployment acceptance remain required.
+
 **October 25 release:** [Simple accounts and owner-assisted recovery](simple-accounts-release.md) supersedes earlier registration/verification activation instructions. Gmail is retained for future use; both email features remain explicitly disabled. No Google submission or billing change is part of this release.
 
 **October 18, 2026 deployment result:** [Choralation is live](https://choralation.onrender.com). Commit `8f6a2b4` built and deployed successfully; public HTTPS readiness, application routes/assets, and anonymous-access checks passed. Private PDF storage configuration and authenticated persistence acceptance remain pending. See the [deployment verification report](render-deployment-verification-2026-10-18.md).

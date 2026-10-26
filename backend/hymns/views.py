@@ -8,6 +8,7 @@ from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema,
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.parsers import JSONParser, MultiPartParser
 from rest_framework.response import Response
 
@@ -19,6 +20,7 @@ from common.storage import StorageUnavailable
 from hymns import selectors, services
 from hymns.models import Hymn
 from hymns.serializers import (
+    AttachmentAuditPageSerializer,
     CategoryDetailSerializer,
     CategoryReadSerializer,
     CategoryReorderResponseSerializer,
@@ -32,6 +34,11 @@ from hymns.serializers import (
 )
 from masses.selectors import hymn_usage
 from masses.serializers import HymnUsageSerializer
+
+
+class AttachmentAuditPagination(PageNumberPagination):
+    page_size = 3
+
 
 ERRORS = {400: ErrorSerializer, 403: ErrorSerializer, 404: ErrorSerializer, 409: ErrorSerializer}
 
@@ -101,7 +108,35 @@ class HymnViewSet(viewsets.GenericViewSet):
         )
 
     def get_permissions(self):
-        return [VerifiedPermission()]
+        return [AdminPermission() if self.action == "attachment_audit" else VerifiedPermission()]
+
+    @extend_schema(responses={200: AttachmentAuditPageSerializer, 403: ErrorSerializer})
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="attachment-audit",
+        pagination_class=AttachmentAuditPagination,
+    )
+    def attachment_audit(self, request):
+        from hymns.storage_checks import attachment_status, audit_storage
+
+        selectors.validate_query(request.query_params, {"page"})
+        limit("attachment-audit", request.user.pk, 60, 3600)
+        rows = Hymn.all_objects.exclude(sheet_music_pdf="").order_by("id")
+        page = self.paginate_queryset(rows)
+        storage, backend = audit_storage()
+        results = [
+            {
+                "id": row.pk,
+                "title": row.title,
+                "filename": row.sheet_music_pdf_name,
+                "status": attachment_status(storage, row.sheet_music_pdf.name),
+            }
+            for row in page
+        ]
+        response = self.get_paginated_response(results)
+        response.data["storage_backend"] = backend
+        return response
 
     def list(self, request):
         rows = selectors.library_queryset(

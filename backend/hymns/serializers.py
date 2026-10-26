@@ -219,3 +219,18 @@ class HymnReadSerializer(serializers.ModelSerializer):
             "created_by",
             "updated_by",
         ]
+
+
+class AttachmentAuditSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    title = serializers.CharField()
+    filename = serializers.CharField()
+    status = serializers.ChoiceField(choices=["present", "missing", "inaccessible"])
+
+
+class AttachmentAuditPageSerializer(serializers.Serializer):
+    count = serializers.IntegerField()
+    next = serializers.URLField(allow_null=True)
+    previous = serializers.URLField(allow_null=True)
+    storage_backend = serializers.ChoiceField(choices=["s3", "local"])
+    results = AttachmentAuditSerializer(many=True)

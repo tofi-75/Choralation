@@ -108,23 +108,7 @@ jobs:
           python-version: "3.14.8"
       - name: Build production image
         run: docker build --tag choralation:ci .
-      - name: Start and verify production serving
-        run: |
-          docker run -d --name choralation-smoke --network host \
-            -e DJANGO_SECRET_KEY=ci-only-production-secret-00000000000000000000000000000000 \
-            -e DJANGO_DEBUG=false -e DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost \
-            -e DJANGO_TRUST_PROXY_HTTPS=true -e DJANGO_STORAGE_BACKEND=local \
-            -e MARONITE_FEED_ENABLED=false \
-            -e ACCOUNT_REGISTRATION_ENABLED=true \
-            -e ACCOUNT_EMAIL_VERIFICATION_ENABLED=false -e ACCOUNT_PASSWORD_RESET_ENABLED=false \
-            -e DATABASE_URL=postgresql://choralation:ci-only-password@127.0.0.1:5432/choralation_production_smoke \
-            -e PORT=10000 choralation:ci
-          python scripts/production-smoke.py http://127.0.0.1:10000
-          docker restart choralation-smoke
-          python scripts/production-smoke.py http://127.0.0.1:10000
-      - name: Container logs
-        if: always()
-        run: docker logs choralation-smoke
-      - name: Cleanup
-        if: always()
-        run: docker rm -f choralation-smoke || true
+      - name: Install production probe dependencies
+        run: python -m pip install -r backend/requirements/production.txt
+      - name: Verify PDFs across fresh application containers
+        run: python scripts/storage-container-check.py

@@ -22,8 +22,14 @@ def prepare_database(run=subprocess.run):
         )
 
 
+def prepare_storage(run=subprocess.run):
+    """Verify actual S3 read/write access before migrations or accepting traffic."""
+    run([sys.executable, str(BACKEND / "manage.py"), "check_storage"], check=True, cwd=BACKEND)
+
+
 def start():
     """Paid pre-deploy upgrades set RUN_STARTUP_MIGRATIONS=false."""
+    prepare_storage()
     if boolean("RUN_STARTUP_MIGRATIONS", True):
         prepare_database()
     port = int(os.environ.get("PORT", "10000"))
