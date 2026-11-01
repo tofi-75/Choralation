@@ -202,7 +202,7 @@ def test_hymn_history_retains_inactive_rows_and_mass_history_preview(usage):
     assert api.get("/api/v1/hymns/999999/usage/").status_code == 404
     with CaptureQueriesContext(connection) as captured:
         masses = api.get("/api/v1/masses/history/?status=finalized&q=Usage")
-    assert len(captured) <= 10  # bounded verification/membership checks plus fixed prefetches
+    assert len(captured) <= 11  # bounded membership/calendar lookups plus fixed prefetches
     assert masses.status_code == 200, masses.data
     assert [r["id"] for r in masses.data["results"]] == [
         records[1].pk,

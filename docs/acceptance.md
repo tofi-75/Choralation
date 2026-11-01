@@ -177,3 +177,16 @@ The first release CI run passed backend/frontend validation and Docker productio
 
 
 The second Linux run passed **104 browser scenarios**, including the PDF and responsive picker fixes. Its four password-test failures were traced to Playwright's installed `focusNode` implementation: synthetic typing intentionally resets an unfocused input's selection to zero. The test now explicitly moves to End, appends through keyboard input without refocusing, and checks the raw form value as well as the preview. All **8 focused password browser scenarios** passed locally. CI now runs an early desktop password preflight before the full browser suite; application account behavior is unchanged by this test correction.
+
+
+## November 1, 2026 — M6 local acceptance
+
+M6.1–M6.4 deliver the Admin-only five-type classification manager, stable IDs/slugs, descriptions, active/inactive filtering, keyboard/touch reorder with complete membership/version checks, reference-aware confirmations and protected deletion. Private/pending hymns and choir calendar overrides count as references. Retained inactive labels and existing seed-edit preservation remain supported. Inputs survive failed/stale saves and unsaved changes are guarded.
+
+M6.5 delivers member-readable, choir-Planner/Admin-editable Maronite/manual defaults, IANA timezones, versioned exact-date overrides and on-demand source preview. Overrides take precedence over the selected mode. Invalid/inactive choices are handled without rewriting saved Mass dates or seasons. Choir-local defaults and archive/usage-date presentation follow the selected choir. Direct Mass links retain the owning-choir guard.
+
+Validation: **419 backend tests**, **115 frontend unit tests**, Django checks, migration consistency, schema validation, Ruff, frontend type checking/lint/format, production build and actual proxy-HTTPS production-serving smoke checks passed. Full email-enabled browser validation passed **120 scenarios**, with eight expected mode skips; separate simple-account-mode validation passed **all eight**, for **128 verified scenarios** across desktop and 390/360/430px. Concurrent category edits and first calendar writes admit one successful writer and reject the stale one. Local tests use isolated data and captured/mock email, with no real sends.
+
+The normal local database was backed up and its archive listing checked before applying the additive calendar migration. Existing account/profile, choir/membership, hymn/PDF-reference, placement-link, Mass and selection fingerprints were unchanged. Development services are available on the normal local URL. Pending-source scans found no credential matches or excluded database/log/generated artifacts.
+
+**Hosted M6 release is not yet accepted:** obtain a fresh hosted database backup, complete exact-commit CI/deployment and authenticated hosted checks, and record the results. Render's November 1 read-only check confirmed automatic deployment is off; no compute, billing, scaling or automatic-deployment setting was changed. Physical-phone acceptance remains deferred. See [M6 guide and release gates](m6-settings.md).

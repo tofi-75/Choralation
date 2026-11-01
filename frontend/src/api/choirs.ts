@@ -3,6 +3,9 @@ import { request } from './client';
 
 export const choirSchema = z.object({
   id: z.number().int().positive(),
+  time_zone: z.string().optional(),
+  default_mass_date: z.string().optional(),
+  today: z.string().optional(),
   name: z.string(),
   description: z.string(),
   is_public: z.boolean(),

@@ -41,6 +41,8 @@ def main(origin):
         "/choirs/join",
         "/choirs/new",
         "/choirs/1",
+        "/choirs/1/calendar",
+        "/settings",
         "/dashboard",
         "/history",
         "/hymns/1",

@@ -335,7 +335,9 @@ class CategoryViewSet(viewsets.GenericViewSet):
         serializer = CategoryWriteSerializer(data=request.data, partial=pk is not None)
         serializer.is_valid(raise_exception=True)
         row = services.save_category(self.model, serializer.validated_data, request.user, pk)
-        return Response(CategoryDetailSerializer(row).data, status=status)
+        return Response(
+            CategoryDetailSerializer(row, context={"request": request}).data, status=status
+        )
 
     def destroy(self, request, pk=None):
         services.delete_category(self.model, self.get_object().pk, request.user)
@@ -349,6 +351,9 @@ class CategoryViewSet(viewsets.GenericViewSet):
         serializer = ReorderSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         rows = services.reorder_categories(
-            self.model, serializer.validated_data["ordered_ids"], request.user
+            self.model,
+            serializer.validated_data["ordered_ids"],
+            request.user,
+            serializer.validated_data.get("expected_versions"),
         )
         return Response({"results": CategoryReadSerializer(rows, many=True).data})

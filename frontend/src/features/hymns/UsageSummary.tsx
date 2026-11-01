@@ -40,8 +40,10 @@ export function UsageSummary({
   );
   const date = hymn.last_used_date && (
     <small className="muted" title={hymn.last_used_date}>
-      <time dateTime={hymn.last_used_date}>{usageDateLabel(hymn.last_used_date)}</time> ·{' '}
-      {hymn.last_used_date}
+      <time dateTime={hymn.last_used_date}>
+        {usageDateLabel(hymn.last_used_date, active.today)}
+      </time>{' '}
+      · {hymn.last_used_date}
     </small>
   );
   return (

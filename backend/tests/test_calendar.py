@@ -5,7 +5,7 @@ from io import BytesIO
 from unittest.mock import patch
 
 import pytest
-from choir_fixtures import choir_client
+from choir_fixtures import choir_client, choir_member
 from django.core.cache import cache
 from django.test import override_settings
 
@@ -83,7 +83,9 @@ def test_unusable_feed_uses_local_fallback(payload):
 def test_calendar_requires_auth_and_never_creates_or_reactivates_choices(django_user_model):
     api = choir_client()
     assert api.get("/api/v1/calendar/maronite/?date=2026-10-11").status_code == 403
-    api.force_authenticate(django_user_model.objects.create_user(username="calendar-viewer"))
+    user = django_user_model.objects.create_user(username="calendar-viewer")
+    choir_member(user)
+    api.force_authenticate(user)
     season, _ = LiturgicalSeason.objects.get_or_create(
         slug="holy-cross", defaults={"name": "Holy Cross"}
     )

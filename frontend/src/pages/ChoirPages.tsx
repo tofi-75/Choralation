@@ -197,6 +197,11 @@ export function ChoirPages({ mode }: { mode: 'list' | 'join' | 'new' | 'detail' 
           </h1>
         </div>
         <div className="form-actions">
+          {mode === 'detail' && saved && (
+            <Link className="button secondary" to={`/choirs/${saved.id}/calendar`}>
+              Choir calendar
+            </Link>
+          )}
           {mode === 'list' ? (
             <>
               <Link className="button secondary" to="/choirs/join">

@@ -58,3 +58,26 @@ class JoinCode(models.Model):
                 fields=["choir"], condition=models.Q(is_active=True), name="choir_one_active_code"
             )
         ]
+
+
+class CalendarSettings(models.Model):
+    choir = models.OneToOneField(Choir, on_delete=models.CASCADE, related_name="calendar_settings")
+    calendar = models.CharField(
+        max_length=12, choices=[("maronite", "Maronite"), ("manual", "Manual")], default="maronite"
+    )
+    time_zone = models.CharField(max_length=64, default="Asia/Beirut")
+    version = models.PositiveIntegerField(default=0)
+
+
+class CalendarOverride(models.Model):
+    choir = models.ForeignKey(Choir, on_delete=models.CASCADE, related_name="calendar_overrides")
+    date = models.DateField()
+    season = models.ForeignKey(
+        "hymns.LiturgicalSeason", on_delete=models.PROTECT, related_name="calendar_overrides"
+    )
+
+    class Meta:
+        ordering = ["date", "id"]
+        constraints = [
+            models.UniqueConstraint(fields=["choir", "date"], name="choir_calendar_date_unique")
+        ]

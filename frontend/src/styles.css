@@ -2893,3 +2893,91 @@ input[aria-invalid='true'] {
     font-size: 0.7rem;
   }
 }
+
+/* Shared administrative settings, compact controls and responsive lists. */
+.settings-page,
+.settings-calendar {
+  max-width: 64rem;
+  margin-inline: auto;
+}
+.settings-tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: 1.25rem 0;
+}
+.settings-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(8rem, 12rem);
+  gap: 1rem;
+  margin-block: 1rem;
+}
+.settings-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border, #dfd3c7);
+}
+.settings-row-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.settings-row-text > span {
+  display: block;
+  margin-top: 0.25rem;
+}
+.settings-row p {
+  margin: 0.35rem 0 0;
+}
+.settings-row-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.settings-row-actions .button {
+  padding: 0.45rem 0.65rem;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+}
+.settings-dialog {
+  max-height: 90dvh;
+  overflow: auto;
+}
+.settings-impact div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.settings-impact dt {
+  text-transform: capitalize;
+}
+.settings-calendar > .form-section {
+  margin-block: 1rem;
+}
+@media (max-width: 600px) {
+  .settings-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .settings-row-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+  .settings-filters {
+    grid-template-columns: 1fr;
+  }
+  .settings-tabs .button {
+    flex: 1 1 auto;
+  }
+  .settings-dialog {
+    width: calc(100vw - 2rem);
+  }
+}

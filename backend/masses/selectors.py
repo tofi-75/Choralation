@@ -8,6 +8,7 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
+from choirs.calendar_settings import choir_zone
 from hymns.models import LiturgicalSeason
 from hymns.selectors import hymn_queryset, validate_query
 from masses.models import Mass, MassHymnSelection
@@ -55,7 +56,7 @@ def mass_list(params: QueryDict, choir_id=None) -> QuerySet[Mass]:
         rows = rows.filter(Q(title__icontains=text) | Q(notes__icontains=text))
     # Evaluate one team-local day for the whole request. Archive is a date-based
     # list grouping, never a persisted lifecycle state or a write to old drafts.
-    today = timezone.localdate()
+    today = timezone.localdate(timezone=choir_zone(choir_id))
     if "archived" in params:
         if params["archived"] not in {"true", "false"}:
             raise ValidationError({"archived": ["Use true or false."]})

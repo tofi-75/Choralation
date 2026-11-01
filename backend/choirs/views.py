@@ -11,7 +11,8 @@ from accounts.security import limit
 from accounts.serializers import EmptySerializer
 from choirs import services
 from choirs.access import is_admin, require_choir, visible_choirs
-from choirs.models import Choir, JoinCode, JoinRequest, Membership
+from choirs.calendar_settings import calendar_context
+from choirs.models import CalendarSettings, Choir, JoinCode, JoinRequest, Membership
 from choirs.serializers import (
     ApplicationSerializer,
     ChoirDetailSerializer,
@@ -37,7 +38,14 @@ def summary(choir, user, *, outsider=False):
         .values_list("role", flat=True)
         .first()
     )
+    zone = (
+        CalendarSettings.objects.filter(choir=choir).values_list("time_zone", flat=True).first()
+        or "Asia/Beirut"
+        if not outsider
+        else None
+    )
     return {
+        **(calendar_context(zone) if zone else {}),
         "id": choir.pk,
         "name": choir.name,
         "description": choir.description,
@@ -61,8 +69,14 @@ def summaries(rows, user, *, outsider=False):
             Membership.objects.filter(user=user, choir__in=rows).values_list("choir_id", "role")
         )
     )
+    zones = (
+        dict(CalendarSettings.objects.filter(choir__in=rows).values_list("choir_id", "time_zone"))
+        if not outsider
+        else {}
+    )
     return [
         {
+            **(calendar_context(zones.get(c.pk, "Asia/Beirut")) if not outsider else {}),
             "id": c.pk,
             "name": c.name,
             "description": c.description,

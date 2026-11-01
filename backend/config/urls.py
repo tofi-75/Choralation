@@ -6,6 +6,7 @@ from django.urls import include, path, re_path
 from drf_spectacular.views import SpectacularAPIView
 from rest_framework.renderers import JSONRenderer
 
+from choirs.calendar_settings import CalendarOverrideView, CalendarSettingsView
 from common.frontend import frontend_page
 from common.public_pages import information
 from common.views import health_live, health_ready
@@ -15,7 +16,10 @@ urlpatterns = [
     re_path(r"^(?P<page>about|privacy|terms)/?$", information, name="public-information"),
     path("admin/", admin.site.urls),
     path("api/v1/auth/", include("accounts.urls")),
+    path("api/v1/choirs/<int:choir_id>/calendar/", CalendarSettingsView.as_view()),
+    path("api/v1/choirs/<int:choir_id>/calendar/overrides/", CalendarOverrideView.as_view()),
     path("api/v1/calendar/maronite/", MaroniteCalendarView.as_view(), name="maronite-calendar"),
+    path("api/v1/calendar/suggestion/", MaroniteCalendarView.as_view(), name="calendar-suggestion"),
     path("api/v1/", include("hymns.urls")),
     path("api/v1/", include("masses.urls")),
     path("api/v1/", include("choirs.urls")),
@@ -30,7 +34,7 @@ handler500 = "common.errors.server_error"
 if settings.SERVE_FRONTEND:
     urlpatterns.append(
         re_path(
-            r"^(?:|login|register|verify-email|forgot-password|reset-password|account|choirs(?:/(?:join|new|\d+))?|dashboard|history|hymns(?:/(?:mine|new|\d+(?:/edit)?))?|masses(?:/(?:new|history|\d+(?:/(?:edit|details))?))?)/?$",
+            r"^(?:|login|register|verify-email|forgot-password|reset-password|account|choirs(?:/(?:join|new|\d+(?:/calendar)?))?|settings|dashboard|history|hymns(?:/(?:mine|new|\d+(?:/edit)?))?|masses(?:/(?:new|history|\d+(?:/(?:edit|details))?))?)/?$",
             frontend_page,
         )
     )

@@ -19,7 +19,7 @@ export function NewMassPage() {
   const client = useQueryClient();
   const [pending, setPending] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
-  const [newDate, setNewDate] = useState(nearestSunday);
+  const [newDate, setNewDate] = useState(() => active?.default_mass_date ?? nearestSunday());
   const [newSeason, setNewSeason] = useState<number | null>(null);
   const [calendarPending, setCalendarPending] = useState(false);
   const changeDate = useCallback((day: string, season: number | null) => {

@@ -59,6 +59,7 @@ export function AppShell() {
             ['/history', 'Mass history', '◷'],
             ['/choirs', 'Choirs', '♧'],
             ['/account', 'Account', '○'],
+            ...(session.user?.role === 'Admin' ? [['/settings', 'Settings', '⚙']] : []),
           ].map(([path, label, icon]) => (
             <NavLink
               key={path}
@@ -90,6 +91,13 @@ export function AppShell() {
                   <Dialog.Title>Your workspace</Dialog.Title>
                   <Dialog.Description>Navigate your team's shared workspace.</Dialog.Description>
                   <nav aria-label="Mobile">
+                    {session.user?.role === 'Admin' && (
+                      <Dialog.Close asChild>
+                        <Link className="nav-item" to="/settings">
+                          Settings
+                        </Link>
+                      </Dialog.Close>
+                    )}
                     <Dialog.Close asChild>
                       <Link className="nav-item" to="/choirs">
                         Choirs

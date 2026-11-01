@@ -78,6 +78,8 @@ def production_routes(settings, tmp_path):
         "/choirs/join",
         "/choirs/new",
         "/choirs/1",
+        "/choirs/1/calendar",
+        "/settings",
         "/dashboard",
         "/history",
         "/hymns",

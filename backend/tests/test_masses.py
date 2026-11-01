@@ -319,7 +319,7 @@ def test_list_nearest_upcoming_then_archived_uses_team_midnight(planning, monkey
 def test_list_global_order_spans_pages_and_archive_filters(planning, monkeypatch):
     api, _, _, _, _, saved = planning
     today = date(2026, 10, 8)
-    monkeypatch.setattr("masses.selectors.timezone.localdate", lambda: today)
+    monkeypatch.setattr("masses.selectors.timezone.localdate", lambda **kwargs: today)
     for offset in range(1, 27):
         Mass.objects.create(
             choir=legacy_choir(), title=f"Upcoming {offset}", date=today + timedelta(days=offset)

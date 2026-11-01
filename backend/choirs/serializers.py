@@ -12,6 +12,9 @@ class ChoirWriteSerializer(StrictSerializer):
 
 
 class ChoirSerializer(serializers.ModelSerializer):
+    time_zone = serializers.CharField(read_only=True, required=False)
+    today = serializers.DateField(read_only=True, required=False)
+    default_mass_date = serializers.DateField(read_only=True, required=False)
     member_count = serializers.IntegerField(allow_null=True, read_only=True)
     role = serializers.CharField(allow_null=True, read_only=True)
 
@@ -25,6 +28,9 @@ class ChoirSerializer(serializers.ModelSerializer):
             "show_member_count",
             "member_count",
             "role",
+            "time_zone",
+            "default_mass_date",
+            "today",
         ]
 
 

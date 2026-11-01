@@ -9,7 +9,7 @@ import logging
 from uuid import uuid4
 
 from botocore.exceptions import BotoCoreError, ClientError
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, connection, models, transaction
 from django.db.models.deletion import ProtectedError
 from django.db.models.functions import Lower, Trim
 from django.utils import timezone
@@ -58,6 +58,20 @@ def locked_record(model: type[models.Model], pk: int):
         raise NotFound("This record no longer exists.") from error
 
 
+class SettingsConflict(APIException):
+    status_code = 409
+    default_code = "settings_conflict"
+    default_detail = "These settings changed. Refresh before saving your changes."
+
+
+def lock_categories(model):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT pg_advisory_xact_lock(hashtext(%s))",
+            ["category-settings:" + model._meta.label_lower],
+        )
+
+
 @transaction.atomic
 def save_category(model: type[models.Model], data: dict, actor, pk: int | None = None):
     """Create/update a category with an immutable slug; owns its transaction.
@@ -66,7 +80,12 @@ def save_category(model: type[models.Model], data: dict, actor, pk: int | None =
     stable slugs separately; ordinary creation retries actual slug collisions.
     """
     require_role(actor, Role.ADMIN)
+    lock_categories(model)
+    data = dict(data)
+    expected = data.pop("expected_updated_at", None)
     instance = locked_record(model, pk) if pk is not None else model()
+    if expected is not None and (pk is None or expected != instance.updated_at):
+        raise SettingsConflict()
     for name, value in data.items():
         setattr(instance, name, value)
     base = slugify(instance.name)[:150] or "category"
@@ -95,6 +114,7 @@ def save_category(model: type[models.Model], data: dict, actor, pk: int | None =
 def delete_category(model: type[models.Model], pk: int, actor) -> None:
     """Admin-only delete, rejecting every incoming relation before through-table cascade."""
     require_role(actor, Role.ADMIN)
+    lock_categories(model)
     instance = locked_record(model, pk)
     if any(reference_counts(instance).values()):
         raise ReferencedRecord()
@@ -105,10 +125,16 @@ def delete_category(model: type[models.Model], pk: int, actor) -> None:
 
 
 @transaction.atomic
-def reorder_categories(model: type[models.Model], ids: list[int], actor):
+def reorder_categories(model: type[models.Model], ids: list[int], actor, expected_versions=None):
     """Lock in ID order; require full membership and commit contiguous display order."""
     require_role(actor, Role.ADMIN)
+    lock_categories(model)
     rows = list(model.objects.select_for_update().order_by("id"))
+    if (
+        expected_versions is not None
+        and {str(row.pk): row.updated_at for row in rows} != expected_versions
+    ):
+        raise SettingsConflict()
     if len(ids) != len(set(ids)) or set(ids) != {row.pk for row in rows}:
         raise ValidationError(
             {"ordered_ids": ["Include every category exactly once, including inactive records."]}

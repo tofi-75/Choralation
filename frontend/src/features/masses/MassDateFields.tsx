@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { Category } from '../../api/library';
 import { fetchCalendar } from './calendar';
+import { useChoir } from '../choirs/ChoirProvider';
 import { PlannerIcon } from './PlannerIcon';
 
 export function MassDateFields({
@@ -22,6 +23,7 @@ export function MassDateFields({
   onChange: (date: string, season: number | null) => void;
   onPending: (pending: boolean) => void;
 }) {
+  const { active } = useChoir();
   const [pendingDate, setPendingDate] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
   const sequence = useRef(0);
@@ -33,13 +35,15 @@ export function MassDateFields({
       onPending(true);
       setNotice('');
       try {
-        const result = await fetchCalendar(day);
+        const result = await fetchCalendar(day, active?.id);
         if (token !== sequence.current) return;
         onChange(day, result.season_id);
         setNotice(
-          result.season_id
-            ? `Maronite · ${result.season_name}${result.day_title ? ` · ${result.day_title}` : ''}`
-            : `Maronite · ${result.season_name} is unavailable. Choose a season manually.`,
+          result.source === 'manual'
+            ? 'Manual calendar. Choose a season.'
+            : result.season_id
+              ? `${result.source === 'override' ? 'Choir override' : 'Maronite'} · ${result.season_name}${result.day_title ? ` · ${result.day_title}` : ''}`
+              : `${result.source === 'override' ? 'Choir override' : 'Maronite'} · ${result.season_name} is unavailable. Choose a season manually.`,
         );
       } catch {
         if (token !== sequence.current) return;
@@ -53,7 +57,7 @@ export function MassDateFields({
         }
       }
     },
-    [onChange, onPending],
+    [onChange, onPending, active?.id],
   );
   useEffect(() => {
     if (initialSuggestion && !initialRequested.current) {
@@ -122,7 +126,7 @@ export function MassDateFields({
       </label>
       {(pendingDate || notice) && (
         <p className="tiny calendar-notice full-width" role="status" dir="auto">
-          {pendingDate ? 'Selecting the Maronite season…' : notice}
+          {pendingDate ? 'Selecting the season…' : notice}
         </p>
       )}
     </>

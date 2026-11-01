@@ -23,6 +23,7 @@ class OptionalText(serializers.CharField):
 
 
 class CategoryWriteSerializer(StrictSerializer):
+    expected_updated_at = serializers.DateTimeField(required=False)
     name = serializers.CharField(max_length=150)
     description = OptionalText()
     display_order = serializers.IntegerField(min_value=0, required=False)
@@ -60,6 +61,7 @@ class CategoryReorderResponseSerializer(serializers.Serializer):
 
 
 class ReorderSerializer(StrictSerializer):
+    expected_versions = serializers.DictField(child=serializers.DateTimeField(), required=False)
     ordered_ids = serializers.ListField(child=serializers.IntegerField(min_value=1))
 
 

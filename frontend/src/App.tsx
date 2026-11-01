@@ -12,6 +12,12 @@ import { ChoirPages } from './pages/ChoirPages';
 import { ChoirProvider } from './features/choirs/ChoirProvider';
 
 // Load working screens on demand so phone sign-in does not download every editor.
+const SettingsPage = lazy(() =>
+  import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })),
+);
+const CalendarSettingsPage = lazy(() =>
+  import('./pages/CalendarSettingsPage').then((m) => ({ default: m.CalendarSettingsPage })),
+);
 const LibraryPage = lazy(() =>
   import('./pages/LibraryPage').then((module) => ({ default: module.LibraryPage })),
 );
@@ -72,6 +78,8 @@ export function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<ChoirShell />}>
             <Route path="/account" element={<AccountPages mode="account" />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/choirs/:id/calendar" element={<CalendarSettingsPage />} />
             <Route path="/choirs" element={<ChoirPages mode="list" />} />
             <Route path="/choirs/join" element={<ChoirPages mode="join" />} />
             <Route path="/choirs/new" element={<ChoirPages mode="new" />} />

@@ -1,3 +1,5 @@
+> **November 1, 2026:** M6 classification/calendar settings are implemented locally; see [M6 delivery and release gates](m6-settings.md). Earlier milestones below are historical planning records. Core hosted flows, records and private PDF persistence were subsequently verified; physical-phone acceptance and automatic-deployment acceptance remain deferred. M6 hosted migration/release still requires its fresh backup and final release checks.
+
 # Delivery backlog and accountability
 
 > **October 20, 2026 — Accounts and choirs:** Self-service email verification, recovery, choir membership and choir-specific hymn counts supersede the shared-workspace rules below. See [account and choir setup](accounts-and-choirs.md). Existing local data is preserved in Initial choir. Registration and mandatory legacy verification ship disabled pending owner email setup. Hosting checks: core flows accepted, records persist; PDF persistence and CI-gated deployment remain pending.
@@ -118,15 +120,15 @@ Hosting configuration and the manual/pipeline guide are prepared; actual provide
 
 ## M6 — Self-service categories
 
-**Depends on:** M5. **Acceptance scenarios:** A14–A15. **Pilot evidence:** All five category managers work; rename/reorder/deactivate preserves history.
+**Sequencing:** owner authorized M6 while physical-phone M5 acceptance remains deferred. **Acceptance scenarios:** A14–A15. **Pilot evidence:** All five category managers work; rename/reorder/deactivate preserves history.
 
 | Ticket | Responsibility | Depends on | Deliverable/check |
 | --- | --- | --- | --- |
-| M6.1 Settings | Frontend | M2 category API; M5 gate | Shared manager/forms for five types |
+| M6.1 Settings | Frontend | M2 category API; owner sequencing override | Shared manager/forms for five types |
 | M6.2 Reordering | Backend/frontend | M6.1 | Atomic reorder; keyboard/touch controls; full membership validation |
 | M6.3 Impact feedback | Backend/frontend | M6.1 | Reference counts, delete rejection, deactivation confirmation |
 | M6.4 Integration | Frontend/quality | M6.1–M6.3 | Active choices refresh, saved inactive labels remain, seed replay |
-| M6.5 Calendar settings | Backend/frontend | M6.1; Maronite date adapter | Select calendar/timezone; edit local season/date overrides with preview; expose provider/refresh status; preserve saved plans. Requested October 8; see [calendar notes](calendar.md). |
+| M6.5 Calendar settings | Backend/frontend | M6.1; Maronite date adapter | Implemented locally: Maronite/manual, choir IANA timezone, exact-date overrides and on-demand source preview; preserve saved plans. See M6 release gates. Requested October 8; see [calendar notes](calendar.md). |
 
 ## M7 — Complete version 1
 

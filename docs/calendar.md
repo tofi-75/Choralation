@@ -37,8 +37,14 @@ Rules come from the [Maronite Inter-Eparchial Music Commission's norms](https://
 | Pentecost | Pentecost Sunday | September 14 |
 | Holy Cross | September 14 | First Sunday of November |
 
-Birth includes consecration/renewal and announcements, following the Commission's grouping. This planning fallback is not a full Ordo: eparchial exceptions, feast precedence, readings, evening/vigil boundaries and local transfer rules require manual overrides. Settings will later accommodate local practice.
+Birth includes consecration/renewal and announcements, following the Commission's grouping. This planning fallback is not a full Ordo: eparchial exceptions, feast precedence, readings, evening/vigil boundaries and local transfer rules require manual overrides. Choir-specific date overrides accommodate local practice.
 
-## Future Settings
+## Choir calendar settings — M6
 
-**M6.5 Calendar settings:** select the tradition/calendar and team timezone; edit season ranges/local observance overrides with date preview; expose source/refresh status; preserve saved plans. Define permissions and range precedence before implementation. The Settings editor is recorded, not implemented in this increment.
+Open **Choirs → your choir → Choir calendar**. Members can read; choir Planners and Admins can edit. Choose **Maronite** for automatic suggestions or **Manual season selection** for no automatic season. Choose an IANA timezone; Asia/Beirut is the default for existing and new choirs. Default dates, archive boundaries, usage-date labels and the provider horizon follow that choir's day. Changing settings never rewrites a saved Mass date or season.
+
+An exact-date override wins over both modes. Choose an active season for a date in 1900–2199; one override per choir/date can be replaced or removed. Removing it restores the selected mode. A deactivated season remains labelled in existing overrides and Masses but is not suggested for new selections. Calendar overrides also prevent deletion of their referenced season. No broad date-range editor or additional liturgical traditions are included in M6.
+
+**Preview a date** queries saved settings and displays the season and source. `override` and `manual` use no external service. Maronite mode keeps the documented Evangelizo/local fallback behavior and never blocks saving a deliberate manual season. A preview is fetched when requested; it is not a background provider-health monitor or a complete diocesan Ordo.
+
+Calendar settings use a shared version for defaults and overrides. If another planner saves first, reload saved settings and reapply your change. Unsaved edits are guarded on navigation/reload/sign-out. Settings and dependent queries refresh after successful saves, and choir switches retain isolated cache keys.
