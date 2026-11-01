@@ -87,10 +87,10 @@ function CategoryManager({ kind }: { kind: CategoryKind }) {
     setNotice('');
     try {
       await work();
+      await refresh();
       setEdit(undefined);
       setAction(null);
       setOrder(null);
-      await refresh();
       setNotice('Settings saved.');
     } catch (e) {
       setError(settingsError(e));

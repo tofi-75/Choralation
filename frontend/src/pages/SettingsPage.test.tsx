@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { beforeEach, expect, it, vi } from 'vitest';
@@ -144,4 +144,44 @@ it('shows members read-only settings without mutation actions', async () => {
   expect(screen.getByRole('combobox', { name: 'Calendar' })).toBeDisabled();
   expect(screen.queryByRole('button', { name: 'Save calendar settings' })).not.toBeInTheDocument();
   expect(screen.queryByLabelText('Override date')).not.toBeInTheDocument();
+});
+
+it('returns keyboard focus after a save waits for refreshed categories', async () => {
+  let finish!: (rows: (typeof row)[]) => void;
+  mocks.list.mockResolvedValueOnce([row]).mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  mocks.save.mockResolvedValue(row);
+  const user = userEvent.setup();
+  mount();
+  const trigger = await screen.findByRole('button', { name: 'Edit Traditional' });
+  await user.click(trigger);
+  await user.click(screen.getByRole('button', { name: 'Save category' }));
+  await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(2));
+  // Allow the dialog's asynchronous focus cleanup to run while the refresh is pending.
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 30));
+  });
+  await act(async () => {
+    finish([row]);
+  });
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  await waitFor(() => expect(trigger).toHaveFocus());
+});
+
+it('protects an unfinished override from unrelated settings saves', async () => {
+  const user = userEvent.setup();
+  mount('/choirs/7/calendar');
+  const defaults = await screen.findByRole('combobox', { name: 'Calendar' });
+  fireEvent.change(screen.getByLabelText('Override date'), { target: { value: '2027-03-28' } });
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Override season' }), '3');
+  expect(defaults).toBeDisabled();
+  expect(screen.getByLabelText('Override date')).toHaveValue('2027-03-28');
+  expect(screen.getByRole('button', { name: 'Save date override' })).toBeEnabled();
+  await user.click(screen.getByRole('button', { name: 'Clear override draft' }));
+  expect(defaults).toBeEnabled();
+  expect(screen.getByLabelText('Override date')).toHaveValue('');
 });

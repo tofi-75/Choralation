@@ -84,7 +84,8 @@ function CalendarEditor({
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
   const dirty = calendar !== data.calendar || zone !== data.time_zone;
-  useUnsavedSettings(dirty || Boolean(date || season));
+  const overrideDirty = Boolean(date || season);
+  useUnsavedSettings(dirty || overrideDirty);
   async function run(work: () => ReturnType<typeof saveCalendarSettings>) {
     setPending(true);
     setError('');
@@ -104,6 +105,11 @@ function CalendarEditor({
       <section className="form-section">
         <h2>Calendar defaults</h2>
         {!editable && <p className="notice">Your choir planners manage these settings.</p>}
+        {overrideDirty && (
+          <p className="notice">
+            Save or clear your date override before changing defaults or removing another override.
+          </p>
+        )}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -116,7 +122,7 @@ function CalendarEditor({
             <label className="field">
               Calendar
               <select
-                disabled={!editable || pending}
+                disabled={!editable || pending || overrideDirty}
                 value={calendar}
                 onChange={(e) => setCalendar(e.target.value as CalendarSettings['calendar'])}
               >
@@ -127,7 +133,7 @@ function CalendarEditor({
             <label className="field">
               Timezone
               <select
-                disabled={!editable || pending}
+                disabled={!editable || pending || overrideDirty}
                 value={zone}
                 onChange={(e) => setZone(e.target.value)}
               >
@@ -141,13 +147,13 @@ function CalendarEditor({
           </div>
           {editable && (
             <div className="form-actions">
-              <button className="button primary" disabled={pending || !dirty}>
+              <button className="button primary" disabled={pending || !dirty || overrideDirty}>
                 Save calendar settings
               </button>
               <button
                 type="button"
                 className="button secondary"
-                disabled={pending || !dirty}
+                disabled={pending || !dirty || overrideDirty}
                 onClick={() => {
                   setCalendar(data.calendar);
                   setZone(data.time_zone);
@@ -179,7 +185,7 @@ function CalendarEditor({
                 {editable && (
                   <button
                     className="button secondary"
-                    disabled={pending || dirty}
+                    disabled={pending || dirty || overrideDirty}
                     onClick={() => {
                       if (window.confirm(`Remove the override for ${row.date}?`))
                         void run(() => saveCalendarOverride(id, row.date, null, data.version));
@@ -244,9 +250,22 @@ function CalendarEditor({
                 </select>
               </label>
             </div>
-            <button className="button primary" disabled={pending || dirty || !date || !season}>
-              Save date override
-            </button>
+            <div className="form-actions">
+              <button className="button primary" disabled={pending || dirty || !date || !season}>
+                Save date override
+              </button>
+              <button
+                type="button"
+                className="button secondary"
+                disabled={pending || !overrideDirty}
+                onClick={() => {
+                  setDate('');
+                  setSeason('');
+                }}
+              >
+                Clear override draft
+              </button>
+            </div>
           </form>
         )}
       </section>
