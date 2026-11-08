@@ -389,7 +389,7 @@ test('Planner: multiple rows, reorder, retry, conflict review, and navigation gu
   await page.getByLabel('Title', { exact: true }).fill(programTitle);
   await page
     .getByRole('combobox', { name: 'Liturgical season', exact: true })
-    .selectOption({ label: 'Easter' });
+    .selectOption({ label: 'Resurrection' });
   await page.locator('#create-mass').getByRole('button', { name: 'Next', exact: true }).click();
   await expect(page).toHaveURL(/\/masses\/\d+\/edit$/);
   await saved(page);
@@ -409,7 +409,7 @@ test('Planner: multiple rows, reorder, retry, conflict review, and navigation gu
   await page.reload();
   await editSelection(page, second);
   await expect(page.getByRole('region', { name: 'Confirmed Mass details' })).toContainText(
-    '2026-10-07 · Easter',
+    '2026-10-07 · Resurrection',
   );
   const communion = page.getByRole('region', { name: 'Communion', exact: true });
   await expect(communion.getByRole('listitem').first()).toContainText(second);

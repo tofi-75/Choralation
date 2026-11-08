@@ -53,7 +53,7 @@ test('Planner: create Unicode hymn, save recovery, URL filters, refresh, and edi
   await page.getByRole('combobox', { name: /^Language/ }).selectOption({ label: 'Arabic' });
   await choose(page, 'Genres', ['Traditional']);
   await choose(page, 'Suitable placements', ['Communion', 'Thanksgiving']);
-  await choose(page, 'Suitable seasons', ['Easter']);
+  await choose(page, 'Suitable seasons', ['Resurrection']);
   await choose(page, 'Tags', tags);
   await page.getByText('More hymn details').click();
   await page.getByRole('textbox', { name: 'Alternate title' }).fill('ܩܠܐ');
@@ -161,7 +161,7 @@ test('Planner: create Unicode hymn, save recovery, URL filters, refresh, and edi
   await choose(filterRegion, 'Genres', ['Traditional']);
   await choose(filterRegion, 'Placements', ['Communion']);
   await choose(filterRegion, 'Languages', ['Arabic']);
-  await choose(filterRegion, 'Seasons', ['Easter']);
+  await choose(filterRegion, 'Seasons', ['Resurrection']);
   await choose(filterRegion, 'Tags', tags);
   if (testInfo.project.name.startsWith('mobile'))
     await page.getByRole('button', { name: 'Show results', exact: true }).click();

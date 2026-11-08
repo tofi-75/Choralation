@@ -113,7 +113,12 @@ test('choir calendar preview, overrides, version conflicts and read-only member 
 }, info) => {
   test.setTimeout(90000);
   await login(page, 'planner');
-  const choir = (await (await page.request.get('/api/v1/choirs/')).json())[0];
+  const created = await page.request.post('/api/v1/choirs/', {
+    headers: { 'X-CSRFToken': await csrf(page) },
+    data: { name: `e2e-${suffix}-calendar-${info.project.name}`, is_public: false },
+  });
+  expect(created.status()).toBe(201);
+  const choir = await created.json();
   const url = `/choirs/${choir.id}/calendar`;
   const api = `/api/v1/choirs/${choir.id}/calendar/`;
   await page.goto(url);
@@ -128,13 +133,13 @@ test('choir calendar preview, overrides, version conflicts and read-only member 
   await page.getByLabel('Override date', { exact: true }).fill('2027-03-28');
   await page
     .getByRole('combobox', { name: 'Override season', exact: true })
-    .selectOption({ label: 'Easter' });
+    .selectOption({ label: 'Resurrection' });
   await page.getByRole('button', { name: 'Save date override', exact: true }).click();
   await expect(page.locator('.settings-row').filter({ hasText: '2027-03-28' })).toBeVisible();
   await page.getByLabel('Preview date', { exact: true }).fill('2027-03-28');
   await page.getByRole('button', { name: 'Preview suggestion', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Source: override' })).toContainText(
-    'Easter',
+    'Resurrection',
   );
   await page.reload();
   await expect(page.getByRole('combobox', { name: 'Timezone', exact: true })).toHaveValue(
@@ -144,6 +149,21 @@ test('choir calendar preview, overrides, version conflicts and read-only member 
   try {
     const member = await memberContext.newPage();
     await login(member, 'viewer');
+    const detail = await (await page.request.get(`/api/v1/choirs/${choir.id}/`)).json();
+    const join = await member.request.post('/api/v1/choirs/requests/', {
+      headers: { 'X-CSRFToken': await csrf(member) },
+      data: { choir_id: choir.id, code: detail.code },
+    });
+    expect(join.status()).toBe(201);
+    const { id: requestId } = await join.json();
+    const approved = await page.request.post(
+      `/api/v1/choirs/${choir.id}/requests/${requestId}/decide/`,
+      {
+        headers: { 'X-CSRFToken': await csrf(page) },
+        data: { status: 'approved' },
+      },
+    );
+    expect(approved.status()).toBe(204);
     await member.goto(url);
     await expect(member.getByText('Your choir planners manage these settings.')).toBeVisible();
     await expect(member.getByRole('combobox', { name: 'Calendar', exact: true })).toBeDisabled();
@@ -179,7 +199,7 @@ test('choir calendar preview, overrides, version conflicts and read-only member 
     true,
   );
   await page.screenshot({ path: info.outputPath('choir-calendar.png'), fullPage: true });
-  // Restore defaults for subsequent profiles and the complete regression suite.
+  // Verify the planner can switch back to automatic suggestions.
   await page.getByRole('combobox', { name: 'Calendar', exact: true }).selectOption('maronite');
   await page.getByRole('combobox', { name: 'Timezone', exact: true }).selectOption('Asia/Beirut');
   await page.getByRole('button', { name: 'Save calendar settings', exact: true }).click();
