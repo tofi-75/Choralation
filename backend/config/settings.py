@@ -128,6 +128,7 @@ if SERVE_FRONTEND:
 elif not DEBUG:
     MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
 WHITENOISE_ALLOW_ALL_ORIGINS = False
+WHITENOISE_MIMETYPES = {".webmanifest": "application/manifest+json"}
 FILE_UPLOAD_MAX_MEMORY_SIZE = 1024 * 1024
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_PASSWORD_VALIDATORS = [

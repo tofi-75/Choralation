@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { Link, useBeforeUnload, useNavigate, useParams } from 'react-router';
+import { HymnPageActions } from '../features/hymns/HymnPageActions';
 
 import { ApiError } from '../api/client';
 import { saveHymn, textFields } from '../api/library';
@@ -286,7 +287,14 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
         <Link className="text-button" to="/hymns">
           ← Library
         </Link>
-        <h1 className="page-title">{hymn ? 'Edit hymn' : 'Add hymn'}</h1>
+        <div className="page-heading hymn-page-heading">
+          <h1 className="page-title">{hymn ? 'Edit hymn' : 'Add hymn'}</h1>
+          {!hymn && (
+            <HymnPageActions
+              confirmLeave={() => !dirty || window.confirm('Discard unsaved hymn changes?')}
+            />
+          )}
+        </div>
       </div>
       {privateMode && (
         <p className="notice">

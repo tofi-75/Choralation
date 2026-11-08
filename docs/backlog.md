@@ -13,6 +13,36 @@
 
 Follow the [development plan](../DEVELOPMENT_PLAN.md) for complete milestone gates and estimates, [architecture](architecture.md) for resolved choices, and [API contract](api.md) for payload/error details. A work package is split into smaller tickets when it exceeds one or two working days.
 
+## November 8, 2026 follow-ups
+
+### Bug fixes implemented locally
+
+- **Mass creation date field on phones.** Match the date card to the size of the liturgical season field at the same phone width. Check that the date field fits within its card and that neither the card nor its contents cover nearby sections.
+- **Liturgical season choices.** Use the eight approved groups in order and align automatic Mass suggestions with them. Map the older default categories and their existing references as described in [App season groups](calendar.md#app-season-groups).
+- **Main menu order.** Show **Home**, **Hymns** (rename **Hymn library**), **Mass plans**, **Mass History**, and **Choirs**, in that order. Place **Settings** and **Account** in a separate group at the bottom and respect their existing access rules.
+- **Hymn actions on phones.** Place **My hymns** and **Add hymn** side by side on both the Hymns page and the Add hymn page.
+- **Scroll position after saving a hymn.** After a successful **Save hymn**, start at the top of the destination page. In the current standalone flow, that page is the saved hymn’s detail page.
+
+### Features to work on now
+
+#### Create a missing hymn from a draft Mass
+
+1. When a non-empty search in a section’s **Add hymn** picker finishes with zero matches across the active shared library, show **Hymn not found, add hymn?**. If placement, language, or genre filters hid a match, offer to show those results.
+2. Before opening the existing hymn creation form, wait for pending draft edits to save. If saving fails, keep the user in the planner with its existing recovery controls. Carry the draft, choir, and section as return context, and use the search text as an editable title suggestion. Canceling the form returns to the same section and search.
+3. After **Save hymn**, return to the same section of the latest draft and check the saved hymn for placement mismatch, season mismatch, and duplicate selection. If there are no warnings, append the hymn and autosave. If there are warnings, offer **Add anyway** and **Cancel choice** before changing the program. Canceling the choice keeps the new hymn in the library.
+4. If the Mass was finalized, the section became inactive, or edit access changed, tell the user the hymn was saved and explain why it could not be added. Apply the return action once so refreshing or revisiting it through browser history cannot add another copy.
+
+Verify the round trip with pending draft edits, insertion into the originating section, warning confirmation and cancellation, filtered search matches, save failures, and refresh or history replay.
+
+#### Use the full phone display in fullscreen
+
+The local implementation requests native fullscreen for PDF reading and phone Mass Focus. Verify on physical iOS and Android phones and record how each behaves when native fullscreen is unavailable. See [phone fullscreen behavior](reader-and-account-refinements.md#phone-fullscreen-follow-up).
+
+### Features for later
+
+- **Database storage and hymn load time.** Minimize database storage across all record types while targeting a load time under one second for every hymn, at minimum for its PDF. Define how load time will be measured, the test conditions, and storage tradeoffs when this work is discussed.
+- **Hymn search.** Improve matching and result ranking for searches in the hymn’s language and for queries across languages. Define the language pairs, expected matches, and search quality criteria when this work is scheduled.
+
 ## M0 completed packages
 
 | Ticket | Responsibility | Evidence |

@@ -1,10 +1,12 @@
 /** Same-origin private PDFs, one bounded canvas at a time; no document scripts. */
 import * as Dialog from '@radix-ui/react-dialog';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { MouseEvent } from 'react';
 import { flushSync } from 'react-dom';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import { useReaderFullscreen } from './useReaderFullscreen';
 
 GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -30,6 +32,7 @@ export default function PdfSheet({
   const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
   const [page, setPage] = useState(1);
   const [expanded, setExpanded] = useState(false);
+  const [portalContainer, setPortalContainer] = useState<Element | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [localFit, setLocalFit] = useState<PdfFit>('height');
   const fit = preferredFit ?? localFit;
@@ -54,7 +57,15 @@ export default function PdfSheet({
   }, [expanded]);
   const [zoom, setZoom] = useState(1);
   const [rendering, setRendering] = useState(true);
-  const fullscreenRoot = useRef<HTMLDivElement>(null);
+  const changeExpanded = useCallback((open: boolean) => {
+    setRendering(true);
+    setExpanded(open);
+  }, []);
+  const closeFullscreen = useCallback(() => changeExpanded(false), [changeExpanded]);
+  const { rootRef: fullscreenRoot, requestFullscreen } = useReaderFullscreen(
+    expanded,
+    closeFullscreen,
+  );
   const previewButton = useRef<HTMLButtonElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
   const ignoreClickUntil = useRef(0);
@@ -88,37 +99,17 @@ export default function PdfSheet({
       </button>
     );
   }
-  function openFullscreen() {
+  function openFullscreen(event: MouseEvent<HTMLButtonElement>) {
+    const nativeRoot = document.fullscreenElement;
     // Commit the target before requesting the browser API, within the click gesture.
     flushSync(() => {
-      setRendering(true);
-      setExpanded(true);
+      // A dialog portaled outside a fullscreen Focus reader would be behind it.
+      setPortalContainer(nativeRoot?.contains(event.currentTarget) ? nativeRoot : null);
+      changeExpanded(true);
       setControlsVisible(true);
     });
-    try {
-      void fullscreenRoot.current?.requestFullscreen?.().catch(() => {});
-    } catch {
-      /* The viewport dialog remains available when native fullscreen is blocked. */
-    }
+    requestFullscreen();
   }
-  useEffect(() => {
-    if (!expanded) return;
-    const root = fullscreenRoot.current;
-    let entered = false;
-    const change = () => {
-      if (document.fullscreenElement === root) entered = true;
-      else if (entered) {
-        setRendering(true);
-        setExpanded(false);
-      }
-    };
-    document.addEventListener('fullscreenchange', change);
-    return () => {
-      document.removeEventListener('fullscreenchange', change);
-      if (root && document.fullscreenElement === root)
-        void document.exitFullscreen().catch(() => {});
-    };
-  }, [expanded]);
   useEffect(() => {
     const element = container;
     if (!element) return;
@@ -402,19 +393,13 @@ export default function PdfSheet({
     </>
   );
   return (
-    <Dialog.Root
-      open={expanded}
-      onOpenChange={(open) => {
-        setRendering(true);
-        setExpanded(open);
-      }}
-    >
+    <Dialog.Root open={expanded} onOpenChange={changeExpanded}>
       {!expanded && (
         <div className="pdf-sheet" data-controls-visible="true">
           {content}
         </div>
       )}
-      <Dialog.Portal>
+      <Dialog.Portal container={portalContainer}>
         {expanded && (
           <>
             <Dialog.Overlay className="dialog-overlay" />

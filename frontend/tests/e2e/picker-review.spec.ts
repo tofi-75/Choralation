@@ -40,7 +40,7 @@ test('Picker review: columns, compact controls, sidebar and drag keep identities
     ['languages', 'liturgical-seasons', 'mass-placements', 'genres', 'tags'].map(categories),
   );
   const season = seasons.find((row) => row.name === 'Holy Cross')!;
-  const other = seasons.find((row) => row.name === 'Advent')!;
+  const other = seasons.find((row) => row.name === 'Advent & Christmas')!;
   const placement = placements.find((row) => row.name === 'Communion')!;
   const prefix = `Picker controls review ${suffix}-${info.project.name}`;
   const titles = ['A neutral', 'B matching', 'C different', 'D neutral'].map(
@@ -164,7 +164,7 @@ test('Picker review: columns, compact controls, sidebar and drag keep identities
     await picker.getByRole('button', { name: `Choose ${titles[index]}`, exact: true }).click();
     if (index === 2) {
       await expect(picker.getByRole('region', { name: 'Selection warnings' })).toContainText(
-        'Classified for Advent; this Mass is Holy Cross.',
+        'Classified for Advent & Christmas; this Mass is Holy Cross.',
       );
       await picker.getByRole('button', { name: 'Add anyway' }).click();
     }

@@ -306,9 +306,9 @@ def test_pagination_same_titles_and_query_count(library):
 @pytest.mark.parametrize("kind", list(CATEGORY_TYPES))
 def test_category_crud_unique_names_immutable_slugs_reorder_and_protection(library, kind):
     api, users, categories, payload = library
-    seeded_ids = list(
-        CATEGORY_TYPES[kind].objects.exclude(pk=categories[kind].pk).values_list("pk", flat=True)
-    )
+    seeded = CATEGORY_TYPES[kind].objects.exclude(pk=categories[kind].pk)
+    seeded_ids = list(seeded.values_list("pk", flat=True))
+    active_seeded_count = seeded.filter(is_active=True).count()
     create(api, payload)
     url = f"/api/v1/{kind}/"
     assert api.post(url, {"name": "Another"}, format="json").status_code == 403
@@ -326,7 +326,7 @@ def test_category_crud_unique_names_immutable_slugs_reorder_and_protection(libra
         == slug
     )
     assert api.patch(f"{url}{pk}/", {"slug": "changed"}, format="json").status_code == 400
-    assert len(api.get(url).data) == len(seeded_ids) + 1
+    assert len(api.get(url).data) == active_seeded_count + 1
     assert len(api.get(f"{url}?is_active=all").data) == len(seeded_ids) + 2
     assert api.post(f"{url}reorder/", {"ordered_ids": [pk]}, format="json").status_code == 400
     ordered = api.post(

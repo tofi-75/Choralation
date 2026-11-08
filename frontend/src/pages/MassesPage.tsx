@@ -156,12 +156,14 @@ export function MassesPage() {
                 onChange={(event) => filter('season', event.target.value)}
               >
                 <option value="">All seasons</option>
-                {categories.data?.['liturgical-seasons'].map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {row.name}
-                    {!row.is_active && ' (inactive)'}
-                  </option>
-                ))}
+                {categories.data?.['liturgical-seasons']
+                  .filter((row) => row.is_active || String(row.id) === params.get('season'))
+                  .map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {row.name}
+                      {!row.is_active && ' (inactive)'}
+                    </option>
+                  ))}
               </select>
             </label>
           </div>

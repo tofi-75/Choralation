@@ -8,7 +8,7 @@ New Mass forms default to the **nearest Sunday in either direction**, including 
 
 Creating a plan or changing its date requests `GET /api/v1/calendar/maronite/?date=YYYY-MM-DD`. Date and suggested season are applied together. Users can override/clear the season; late responses cannot replace newer choices. Opening an existing plan preserves its saved date/season.
 
-The endpoint requires sign-in, accepts 1900–2199, and never creates/reactivates categories. A missing/inactive suggested category returns a null ID and prompts manual selection. The additive migration adds seven missing Maronite choices while preserving existing IDs, labels and hymn/Mass links; Pentecost is reused. Original Roman categories remain available for existing classifications and manual overrides.
+The endpoint requires sign-in and accepts dates from 1900 through 2199. A missing or inactive suggested category returns a null ID and prompts manual selection. See [App season groups](#app-season-groups) for the eight default choices.
 
 ## Public API
 
@@ -28,16 +28,15 @@ Rules come from the [Maronite Inter-Eparchial Music Commission's norms](https://
 
 | Season | Inclusive start | End before |
 | --- | --- | --- |
-| Birth of Our Lord | First Sunday of November | January 6 |
-| Epiphany | January 6 | Easter minus 70 days |
-| Commemorations | Easter minus 70 days | Cana Sunday (Easter minus 49 days) |
-| Great Lent | Cana Sunday | Palm Sunday (Easter minus 7 days) |
-| Passion Week | Palm Sunday | Resurrection Sunday |
+| Advent & Christmas | First Sunday of November | January 6 |
+| Epiphany | January 6 | Cana Sunday (Easter minus 49 days) |
+| Lent | Cana Sunday (Easter minus 49 days) | Palm Sunday (Easter minus 7 days) |
+| Passion | Palm Sunday (Easter minus 7 days) | Resurrection Sunday |
 | Resurrection | Gregorian Easter Sunday | Pentecost (Easter plus 49 days) |
 | Pentecost | Pentecost Sunday | September 14 |
 | Holy Cross | September 14 | First Sunday of November |
 
-Birth includes consecration/renewal and announcements, following the Commission's grouping. This planning fallback is not a full Ordo: eparchial exceptions, feast precedence, readings, evening/vigil boundaries and local transfer rules require manual overrides. Choir-specific date overrides accommodate local practice.
+Advent & Christmas includes Consecration, Renewal, the Announcements, and the Christmas Eve and Nativity liturgies. Epiphany includes the three pre-Lenten Commemorations. Ordinary Time is a manual choice because the Maronite date rules cover the year. Choir-specific date overrides accommodate eparchial exceptions, local feast transfers, and evening and vigil boundaries.
 
 ## Choir calendar settings — M6
 
@@ -48,3 +47,26 @@ An exact-date override wins over both modes. Choose an active season for a date 
 **Preview a date** queries saved settings and displays the season and source. `override` and `manual` use no external service. Maronite mode keeps the documented Evangelizo/local fallback behavior and never blocks saving a deliberate manual season. A preview is fetched when requested; it is not a background provider-health monitor or a complete diocesan Ordo.
 
 Calendar settings use a shared version for defaults and overrides. If another planner saves first, reload saved settings and reapply your change. Unsaved edits are guarded on navigation/reload/sign-out. Settings and dependent queries refresh after successful saves, and choir switches retain isolated cache keys.
+
+## App season groups
+
+The approved default order is **Advent & Christmas**, **Epiphany**, **Lent**, **Passion**, **Resurrection**, **Pentecost**, **Holy Cross**, and **Ordinary Time**. Ordinary Time continues to mark hymns suitable for any season.
+
+The season migration combines the old Birth of Our Lord, Advent, and Christmas categories into Advent & Christmas. It folds Commemorations into Epiphany, Great Lent into Lent, Holy Week and Passion Week into Passion, and Easter into Resurrection. It moves existing hymn links, saved Mass season assignments, and choir date overrides to the resulting categories. Retired categories are inactive. Coordinator-created categories outside those groups keep their settings. Restoring the old individual assignments requires a backup from before the migration.
+
+## Maronite calendar references
+
+The Maronite Eparchy of Australia groups the year into six major seasons by including the commemorations with Epiphany and Passion Week with Great Lent. The *Qurbono* lists the Passion separately. Beirut's liturgical resources present both the commemorations and Passion Week as distinct sections. The table follows the Australian eparchy's six broad groups. [Australian eparchy overview](https://maronite.org.au/product/the-maronite-liturgical-year-website-resource/) · [Qurbono](https://www.stmaron.org/qurbono) · [Maronite Archdiocese of Beirut](https://maronitearchdiocesebeirut.org/الروزنامة/)
+
+| Main season | Sundays and principal celebrations |
+| --- | --- |
+| Glorious Birth | Consecration and Renewal of the Church at the start of the liturgical year. Then come the Announcement to Zechariah, Annunciation to Mary, Visitation to Elizabeth, Birth of John the Baptist, Revelation to Joseph, and Genealogy of Jesus. The Christmas portion includes the Nativity, Praises of Mary, the Circumcision on January 1, and Finding in the Temple before Epiphany. |
+| Epiphany and Commemorations | The Lord's baptism on January 6 and the Sundays after Epiphany. The final three Sundays before Lent commemorate the priests, the righteous and just, and the faithful departed. |
+| Great Lent and Passion Week | Cana Sunday opens Lent, followed by the Sundays of the Leper, the Hemorrhaging Woman, the Prodigal Son, the Paralytic, and the Blind Man. Lazarus Saturday precedes Hosanna (Palm) Sunday. Passion Week includes the Thursday of the Mysteries, Good Friday, and Saturday of the Light. |
+| Resurrection | Easter Sunday, New Sunday, the other Sundays of Resurrection, and the Ascension on Thursday and its following Sunday. The season runs up to Pentecost. |
+| Pentecost | Pentecost Sunday, Trinity Sunday the following week, and the Sundays and weekday services up to the Exaltation of the Holy Cross. |
+| Holy Cross | Exaltation of the Holy Cross on September 14 and the Sundays after it, up to the opening of the next liturgical year. |
+
+See the [Maronite Inter-Eparchial Music Commission's norms](https://maronitemusic.org/liturgical-year?id=20) for service rules and the [Beirut 2026–27 calendar](https://maronitearchdiocesebeirut.org/wp-content/uploads/2026/10/Calendrier-Liturgique-Version-2026-2027.pdf) for the dated observances and readings in Arabic.
+
+In Beirut's 2026 calendar, the Consecration is November 1, the Renewal is November 8, and the Announcement to Zechariah is November 15. December 24 has its own Christmas Eve observance, and the feast of the Nativity is December 25. A Nativity vigil can be celebrated on the evening of December 24. [Beirut 2026–27 calendar](https://maronitearchdiocesebeirut.org/wp-content/uploads/2026/10/Calendrier-Liturgique-Version-2026-2027.pdf) · [Australian eparchy decree on feast days and vigils](https://maronite.org.au/wp-content/uploads/2025/09/Maronite-Days-of-Obligation-Feast-Days_Revised.pdf)

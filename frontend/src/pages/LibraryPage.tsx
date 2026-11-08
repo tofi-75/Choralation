@@ -7,6 +7,7 @@ import { Link, useSearchParams } from 'react-router';
 
 import { categoryKinds, fetchHymns } from '../api/library';
 import { CategorySelect } from '../features/hymns/CategorySelect';
+import { HymnPageActions } from '../features/hymns/HymnPageActions';
 import { CategoryChips } from '../features/hymns/HymnSummary';
 import { useCategories } from '../features/hymns/queries';
 import { UsageSummary } from '../features/hymns/UsageSummary';
@@ -54,16 +55,24 @@ export function LibraryPage() {
   }
   const filters = categories.data && (
     <div className="filter-grid">
-      {categoryKinds.map(([kind, label]) => (
-        <CategorySelect
-          key={kind}
-          label={label}
-          choices={categories.data[kind]}
-          includeInactive
-          value={(params.get(filterNames[kind]) ?? '').split(',').filter(Boolean).map(Number)}
-          onChange={(ids) => change(filterNames[kind], ids.join(','))}
-        />
-      ))}
+      {categoryKinds.map(([kind, label]) => {
+        const value = (params.get(filterNames[kind]) ?? '').split(',').filter(Boolean).map(Number);
+        const choices = categories.data[kind];
+        return (
+          <CategorySelect
+            key={kind}
+            label={label}
+            choices={
+              kind === 'liturgical-seasons'
+                ? choices.filter((row) => row.is_active || value.includes(row.id))
+                : choices
+            }
+            includeInactive
+            value={value}
+            onChange={(ids) => change(filterNames[kind], ids.join(','))}
+          />
+        );
+      })}
       <label className="field">
         Active status
         <select
@@ -110,20 +119,13 @@ export function LibraryPage() {
   );
   return (
     <>
-      <div className="page-heading">
+      <div className="page-heading hymn-page-heading">
         <div>
           <p className="eyebrow">Your shared repertoire</p>
           <h1 className="page-title">Hymn library</h1>
           <p className="muted library-intro">Find hymns for your next gathering.</p>
         </div>
-        <div className="form-actions">
-          <Link className="button secondary" to="/hymns/mine">
-            My hymns
-          </Link>
-          <Link className="button primary" to="/hymns/new">
-            Add hymn
-          </Link>
-        </div>
+        <HymnPageActions />
       </div>
       <section className="library-controls" aria-label="Search and filters">
         <div className="search-row">

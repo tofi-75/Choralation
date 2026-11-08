@@ -1,8 +1,11 @@
 /** A read-only performance session; each selection retains its program position. */
 import * as Dialog from '@radix-ui/react-dialog';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { Ref } from 'react';
+import { flushSync } from 'react-dom';
 import type { Mass } from '../../api/masses';
 import { HymnMaterial } from '../hymns/HymnMaterial';
+import { useReaderFullscreen } from '../hymns/useReaderFullscreen';
 
 import type { PdfFit } from '../hymns/PdfSheet';
 
@@ -63,7 +66,13 @@ function useScreenAwake() {
   return { status, retry: () => request.current() };
 }
 
-function FocusSession({ selections: initialSelections }: { selections: Selection[] }) {
+function FocusSession({
+  selections: initialSelections,
+  rootRef,
+}: {
+  selections: Selection[];
+  rootRef: Ref<HTMLDivElement>;
+}) {
   // Keep the reading sequence stable if another session edits/refetches the Mass.
   const [selections] = useState(initialSelections);
   const [index, setIndex] = useState(0);
@@ -76,6 +85,7 @@ function FocusSession({ selections: initialSelections }: { selections: Selection
   return (
     <Dialog.Content
       className="mass-focus"
+      ref={rootRef}
       aria-describedby="focus-help"
       onKeyDown={(event) => {
         if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
@@ -174,16 +184,27 @@ function FocusSession({ selections: initialSelections }: { selections: Selection
 
 export function MassFocusMode({ selections }: { selections: Selection[] }) {
   const [open, setOpen] = useState(false);
+  const closeFocus = useCallback(() => setOpen(false), []);
+  const { rootRef, requestFullscreen } = useReaderFullscreen(open, closeFocus);
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
-      <Dialog.Trigger className="button secondary focus-trigger" disabled={!selections.length}>
+      <Dialog.Trigger
+        className="button secondary focus-trigger"
+        disabled={!selections.length}
+        onClick={(event) => {
+          if (!window.matchMedia?.('(any-pointer: coarse)').matches) return;
+          event.preventDefault();
+          flushSync(() => setOpen(true));
+          requestFullscreen();
+        }}
+      >
         Focus mode
       </Dialog.Trigger>
       <Dialog.Portal>
         {open && (
           <>
             <Dialog.Overlay className="dialog-overlay" />
-            <FocusSession selections={selections} />
+            <FocusSession selections={selections} rootRef={rootRef} />
           </>
         )}
       </Dialog.Portal>

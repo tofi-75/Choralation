@@ -8,12 +8,51 @@ import { PublicLinks } from '../components/PublicLinks';
 import { useSession } from '../features/auth/SessionProvider';
 import { useChoir } from '../features/choirs/ChoirProvider';
 
+const mainLinks = [
+  ['/dashboard', 'Home', '⌂'],
+  ['/hymns', 'Hymns', '♫'],
+  ['/masses', 'Mass plans', '▤'],
+  ['/history', 'Mass History', '◷'],
+  ['/choirs', 'Choirs', '♧'],
+];
+
 export function AppShell() {
   const session = useSession();
   const choir = useChoir();
   const [collapsed, setCollapsed] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
+  const accountLinks = [
+    ...(session.user?.role === 'Admin' ? [['/settings', 'Settings', '⚙']] : []),
+    ['/account', 'Account', '○'],
+  ];
+
+  function desktopLink([path, label, icon]: string[]) {
+    return (
+      <NavLink
+        key={path}
+        className={({ isActive }) => `nav-item ${isActive ? 'current' : ''}`}
+        to={path}
+        aria-label={label}
+        title={collapsed ? label : undefined}
+      >
+        <span className="sidebar-nav-icon" aria-hidden="true">
+          {icon}
+        </span>
+        <span className="sidebar-nav-label">{label}</span>
+      </NavLink>
+    );
+  }
+
+  function mobileLink([path, label]: string[]) {
+    return (
+      <Dialog.Close asChild key={path}>
+        <NavLink className={({ isActive }) => `nav-item ${isActive ? 'current' : ''}`} to={path}>
+          {label}
+        </NavLink>
+      </Dialog.Close>
+    );
+  }
 
   async function logout() {
     if (!window.dispatchEvent(new Event('choralation:before-signout', { cancelable: true })))
@@ -52,28 +91,8 @@ export function AppShell() {
           </Link>
         </div>
         <nav id="desktop-navigation" aria-label="Main">
-          {[
-            ['/dashboard', 'Home', '⌂'],
-            ['/hymns', 'Hymn library', '♫'],
-            ['/masses', 'Mass plans', '▤'],
-            ['/history', 'Mass history', '◷'],
-            ['/choirs', 'Choirs', '♧'],
-            ['/account', 'Account', '○'],
-            ...(session.user?.role === 'Admin' ? [['/settings', 'Settings', '⚙']] : []),
-          ].map(([path, label, icon]) => (
-            <NavLink
-              key={path}
-              className={({ isActive }) => `nav-item ${isActive ? 'current' : ''}`}
-              to={path}
-              aria-label={label}
-              title={collapsed ? label : undefined}
-            >
-              <span className="sidebar-nav-icon" aria-hidden="true">
-                {icon}
-              </span>
-              <span className="sidebar-nav-label">{label}</span>
-            </NavLink>
-          ))}
+          <div>{mainLinks.map(desktopLink)}</div>
+          <div className="account-nav-group">{accountLinks.map(desktopLink)}</div>
         </nav>
         <div className="sidebar-footer">
           <p>Music for every gathering.</p>
@@ -87,47 +106,12 @@ export function AppShell() {
               <Dialog.Trigger className="button secondary">Menu</Dialog.Trigger>
               <Dialog.Portal>
                 <Dialog.Overlay className="dialog-overlay" />
-                <Dialog.Content className="dialog-content">
+                <Dialog.Content className="dialog-content workspace-menu">
                   <Dialog.Title>Your workspace</Dialog.Title>
                   <Dialog.Description>Navigate your team's shared workspace.</Dialog.Description>
                   <nav aria-label="Mobile">
-                    {session.user?.role === 'Admin' && (
-                      <Dialog.Close asChild>
-                        <Link className="nav-item" to="/settings">
-                          Settings
-                        </Link>
-                      </Dialog.Close>
-                    )}
-                    <Dialog.Close asChild>
-                      <Link className="nav-item" to="/choirs">
-                        Choirs
-                      </Link>
-                    </Dialog.Close>
-                    <Dialog.Close asChild>
-                      <Link className="nav-item" to="/account">
-                        Account
-                      </Link>
-                    </Dialog.Close>
-                    <Dialog.Close asChild>
-                      <Link className="nav-item" to="/history">
-                        Mass history
-                      </Link>
-                    </Dialog.Close>
-                    <Dialog.Close asChild>
-                      <Link className="nav-item" to="/masses">
-                        Mass plans
-                      </Link>
-                    </Dialog.Close>
-                    <Dialog.Close asChild>
-                      <Link className="nav-item" to="/hymns">
-                        Hymn library
-                      </Link>
-                    </Dialog.Close>
-                    <Dialog.Close asChild>
-                      <Link className="nav-item" to="/dashboard">
-                        Home
-                      </Link>
-                    </Dialog.Close>
+                    <div>{mainLinks.map(mobileLink)}</div>
+                    <div className="account-nav-group">{accountLinks.map(mobileLink)}</div>
                   </nav>
                   <Dialog.Close className="button secondary">Close menu</Dialog.Close>
                 </Dialog.Content>

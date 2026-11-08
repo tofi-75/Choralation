@@ -1,5 +1,7 @@
 # Mass Hymn Picker — Development and Delivery Plan
 
+> **November 8, 2026:** See the [current backlog follow-ups](docs/backlog.md#november-8-2026-follow-ups) for requested fixes, the draft Mass hymn creation and phone fullscreen features, and later storage and search work.
+
 > **October 25, 2026 — Simple accounts:** Registration opens Home immediately; email ownership remains unverified. Verification and emailed recovery are independently disabled. Owner-assisted recovery is available at tofi.lattouf@gmail.com. This supersedes earlier activation instructions. See [release, configuration and recovery](docs/simple-accounts-release.md). Hosted backup, exact-commit CI and deployment acceptance are release gates.
 
 > **October 20, 2026 — Accounts and choirs:** Self-service email verification, recovery, choir membership and choir-specific hymn counts supersede the shared-workspace rules below. See [account and choir setup](docs/accounts-and-choirs.md). Existing local data is preserved in Initial choir. Registration and mandatory legacy verification ship disabled pending owner email setup. Hosting checks: core flows accepted, records persist; PDF persistence and CI-gated deployment remain pending.

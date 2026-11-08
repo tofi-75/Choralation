@@ -49,6 +49,32 @@ test('Home and saved Mass actions: Ordinary Time, compact creation, phone confir
   await expect(page.getByRole('link', { name: prefix, exact: true })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Practice' })).toContainText('Coming soon');
   await page.screenshot({ path: info.outputPath('home.png'), fullPage: true });
+  if (info.project.name.startsWith('mobile')) {
+    await page.getByRole('button', { name: 'Menu', exact: true }).click();
+    const menu = page.getByRole('navigation', { name: 'Mobile' });
+    await expect(menu.getByRole('link')).toHaveText([
+      'Home',
+      'Hymns',
+      'Mass plans',
+      'Mass History',
+      'Choirs',
+      'Account',
+    ]);
+    await menu.getByRole('link', { name: 'Hymns', exact: true }).click();
+    for (const destination of ['Hymn library', 'Add hymn']) {
+      await expect(page.getByRole('heading', { name: destination, exact: true })).toBeVisible();
+      const actions = page.locator('.hymn-page-actions');
+      const mine = (await actions
+        .getByRole('link', { name: 'My hymns', exact: true })
+        .boundingBox())!;
+      const add = actions.getByRole('link', { name: 'Add hymn', exact: true });
+      const addBox = (await add.boundingBox())!;
+      expect(mine.y).toBeCloseTo(addBox.y, 0);
+      expect(mine.x + mine.width).toBeLessThan(addBox.x);
+      if (destination === 'Hymn library') await add.click();
+    }
+    await page.goto('/dashboard');
+  }
   const upcoming = await (
     await page.request.get('/api/v1/masses/?status=finalized&archived=false', {
       headers: { 'X-Choir-ID': await initialChoirId(page) },
@@ -66,6 +92,14 @@ test('Home and saved Mass actions: Ordinary Time, compact creation, phone confir
   const fieldBox = (await page.locator('.mass-date-field').boundingBox())!;
   expect(dateBox.width).toBeLessThanOrEqual(fieldBox.width);
   expect(dateBox.width).toBeLessThanOrEqual(208);
+  if (info.project.name.startsWith('mobile')) {
+    const seasonBox = (await page
+      .getByRole('combobox', { name: 'Liturgical season', exact: true })
+      .boundingBox())!;
+    expect(dateBox.width).toBeCloseTo(seasonBox.width, 0);
+    expect(dateBox.height).toBeCloseTo(seasonBox.height, 0);
+    expect(dateBox.x + dateBox.width).toBeLessThan(seasonBox.x);
+  }
   await expect(page.locator('.date-calendar-icon svg')).toBeVisible();
   await date.fill('2099-10-11');
   await expect(page.getByRole('button', { name: 'Next', exact: true })).toBeEnabled();

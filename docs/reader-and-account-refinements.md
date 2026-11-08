@@ -43,3 +43,9 @@ The main **Choirs** page now includes a **Join requests** inbox above the choir 
 A **Manage choir** link on each managed choir card opens its detail page, where the existing requests/settings remain available. **Use choir** changes active choir context separately. The inbox supports pagination, explicit refresh, periodic refresh and updates after decisions; authorization is enforced again by existing decision services. No new database migration is needed. Backend choir/privacy/concurrency checks (29 tests), all frontend tests (105), schema validation, migration consistency and production build pass.
 
 The real Admin inbox flow passed on desktop and 390/360/430-pixel phone profiles: an Admin outside the private choirs approved one request, declined another, checked the resulting memberships and opened Manage choir. Local backend reloaded; hosted deployment remains pending.
+
+### Phone fullscreen follow-up
+
+On touch devices, opening Mass Focus requests native fullscreen. A PDF expanded inside native Mass Focus uses that same fullscreen surface. Closing the PDF returns to the current hymn. Both readers keep controls clear of screen cutouts and the home indicator.
+
+When the browser declines native fullscreen, the reader fills the available viewport. On iPhone Safari, adding Choralation to the Home Screen lets it open without Safari’s address and tab bars. The system can still show its status bar and home indicator. [WebKit Home Screen web apps](https://webkit.org/blog/13878/) · [WebKit fullscreen support issue](https://bugs.webkit.org/show_bug.cgi?id=206854)

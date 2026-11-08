@@ -18,14 +18,14 @@ from django.core.cache import cache
 from django.utils import timezone
 
 MARONITE_SEASONS = {
-    "birth-of-our-lord": "Birth of Our Lord",
+    "advent-christmas": "Advent & Christmas",
     "epiphany": "Epiphany",
-    "commemorations": "Commemorations",
-    "great-lent": "Great Lent",
-    "passion-week": "Passion Week",
+    "lent": "Lent",
+    "passion": "Passion",
     "resurrection": "Resurrection",
     "pentecost": "Pentecost",
     "holy-cross": "Holy Cross",
+    "ordinary-time": "Ordinary Time",
 }
 FEED_URL = "https://feed.evangelizo.org/v2/reader.php"
 
@@ -51,15 +51,13 @@ def local_season(day: date) -> str:
     november = date(day.year, 11, 1)
     consecration = november + timedelta(days=(6 - november.weekday()) % 7)
     if day < date(day.year, 1, 6) or day >= consecration:
-        return "birth-of-our-lord"
-    if day < easter - timedelta(days=70):
-        return "epiphany"
+        return "advent-christmas"
     if day < easter - timedelta(days=49):
-        return "commemorations"
+        return "epiphany"
     if day < easter - timedelta(days=7):
-        return "great-lent"
+        return "lent"
     if day < easter:
-        return "passion-week"
+        return "passion"
     if day < easter + timedelta(days=49):
         return "resurrection"
     if day < date(day.year, 9, 14):
@@ -101,7 +99,7 @@ def title_season(title: str) -> str | None:
     normalized = re.sub(r"[\u064b-\u065f\u0670\u0640]", "", title)
     for slug, words in (
         (
-            "passion-week",
+            "passion",
             (
                 "أسبوع الآلام",
                 "اسبوع الالام",
@@ -114,11 +112,10 @@ def title_season(title: str) -> str | None:
         ("holy-cross", ("بعد عيد الصليب", "زمن الصليب", "عيد ارتفاع الصليب")),
         ("pentecost", ("العنصرة",)),
         ("resurrection", ("القيامة", "الأحد الجديد")),
-        ("great-lent", ("الصوم", "عرس قانا")),
-        ("commemorations", ("الكهنة", "الأبرار والصديقين", "الموتى المؤمنين")),
-        ("epiphany", ("الدنح",)),
+        ("lent", ("الصوم", "عرس قانا")),
+        ("epiphany", ("الدنح", "أحد الكهنة", "الأبرار والصديقين", "الموتى المؤمنين")),
         (
-            "birth-of-our-lord",
+            "advent-christmas",
             (
                 "الميلاد",
                 "تقديس البيعة",

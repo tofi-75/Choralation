@@ -312,6 +312,7 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   ).toBeVisible();
   await page.getByRole('button', { name: 'Save hymn', exact: true }).click();
   await expect(page.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
   const massResponse = await page.request.post('/api/v1/masses/', {
     headers,
     data: {
@@ -346,6 +347,13 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   ).toBe('center');
   await page.getByRole('button', { name: 'Focus mode', exact: true }).click();
   const focus = page.getByRole('dialog', { name: 'Focus mode', exact: true });
+  const nativeFocus = await page.evaluate(
+    () => document.fullscreenEnabled && matchMedia('(any-pointer: coarse)').matches,
+  );
+  if (nativeFocus)
+    await expect
+      .poll(() => page.evaluate(() => document.fullscreenElement?.className))
+      .toBe('mass-focus');
   await expect(focus.getByRole('heading', { name: pdf.title, exact: true })).toBeVisible();
   await expect(focus.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
   await expect(focus.getByText('Loading sheet music…', { exact: true })).toHaveCount(0);
@@ -368,6 +376,11 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   await fullscreen.getByRole('button', { name: 'Exit PDF fullscreen', exact: true }).click();
   await expect(fullscreen).toHaveCount(0);
   await expect(focus.getByText('Hymn 1 of 4', { exact: true })).toBeVisible();
+  if (nativeFocus) {
+    expect(await page.evaluate(() => document.fullscreenElement?.className)).toBe('mass-focus');
+    await focus.getByRole('button', { name: 'Exit focus mode', exact: true }).click();
+    await expect.poll(() => page.evaluate(() => document.fullscreenElement === null)).toBe(true);
+  }
   // Browsers without the Fullscreen API still get a full-viewport reading dialog.
   await page.evaluate(() => {
     Object.defineProperty(HTMLElement.prototype, 'requestFullscreen', {
@@ -375,6 +388,10 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
       value: () => Promise.reject(new Error('Fullscreen disabled for test')),
     });
   });
+  if (nativeFocus) {
+    await page.getByRole('button', { name: 'Focus mode', exact: true }).click();
+    await focus.getByRole('button', { name: 'Fit to width', exact: true }).click();
+  }
   await focus
     .getByRole('button', { name: `Open ${pdf.title} PDF fullscreen`, exact: true })
     .click();

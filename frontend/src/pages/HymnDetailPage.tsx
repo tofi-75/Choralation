@@ -1,6 +1,6 @@
 /** Saved metadata, actual finalized usage/history, and Admin confirmations. */
 import * as Dialog from '@radix-ui/react-dialog';
-import { useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 
 import { deleteHymn, setHymnActive, textFields } from '../api/library';
@@ -20,6 +20,10 @@ export function HymnDetailPage() {
   const refresh = useRefreshLibrary();
   const navigate = useNavigate();
   const location = useLocation();
+  const savedJustNow = location.state?.saved === true;
+  useLayoutEffect(() => {
+    if (savedJustNow) window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [location.key, savedJustNow]);
   const [action, setAction] = useState<'active' | 'delete' | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
