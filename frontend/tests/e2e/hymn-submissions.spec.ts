@@ -81,9 +81,12 @@ test('member PDF stays private, receives feedback and becomes shared only after 
       .getByRole('textbox', { name: 'Feedback (optional)' })
       .fill('Please check the key.');
     await planner.getByRole('button', { name: 'Request changes', exact: true }).click();
+    const feedbackNotice = planner.getByRole('dialog', { name: 'Notification' });
     await expect(
-      planner.getByText('Changes requested. The hymn remains private.', { exact: true }),
+      feedbackNotice.getByText('Changes requested. The hymn remains private.', { exact: true }),
     ).toBeVisible();
+    await feedbackNotice.getByRole('button', { name: 'Dismiss', exact: true }).click();
+    await expect(feedbackNotice).toHaveCount(0);
     await page.reload();
     await expect(
       page.getByText('Planner feedback: Please check the key.', { exact: true }),

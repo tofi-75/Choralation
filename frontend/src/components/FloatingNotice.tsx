@@ -6,11 +6,13 @@ export function FloatingNotice({
   dismiss,
   error,
   actions,
+  dismissOnOutsideInteraction = true,
 }: {
   children: ReactNode;
   dismiss: () => void;
   error?: boolean;
   actions?: ReactNode;
+  dismissOnOutsideInteraction?: boolean;
 }) {
   return (
     <Dialog.Root
@@ -25,6 +27,9 @@ export function FloatingNotice({
           className="dialog-content floating-notice"
           onOpenAutoFocus={(event) => event.preventDefault()}
           onCloseAutoFocus={(event) => event.preventDefault()}
+          onInteractOutside={(event) => {
+            if (!dismissOnOutsideInteraction) event.preventDefault();
+          }}
         >
           <Dialog.Title>{error ? 'Something went wrong' : 'Notification'}</Dialog.Title>
           <Dialog.Description asChild>
