@@ -78,6 +78,7 @@ export function ChoirPages({ mode }: { mode: 'list' | 'join' | 'new' | 'detail' 
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [dismissedReviewKey, setDismissedReviewKey] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<{
     title: string;
     description: string;
@@ -231,13 +232,15 @@ export function ChoirPages({ mode }: { mode: 'list' | 'join' | 'new' | 'detail' 
           )}
         </div>
       </div>
-      {mode === 'list' && ['approved', 'declined'].includes(hymnReview ?? '') && (
-        <FloatingNotice dismiss={() => navigate(location.pathname, { replace: true, state: null })}>
-          {hymnReview === 'approved'
-            ? 'Hymn approved and published.'
-            : 'Changes requested. The hymn remains private.'}
-        </FloatingNotice>
-      )}
+      {mode === 'list' &&
+        dismissedReviewKey !== location.key &&
+        ['approved', 'declined'].includes(hymnReview ?? '') && (
+          <FloatingNotice dismiss={() => setDismissedReviewKey(location.key)}>
+            {hymnReview === 'approved'
+              ? 'Hymn approved and published.'
+              : 'Changes requested. The hymn remains private.'}
+          </FloatingNotice>
+        )}
       {error && (
         <FloatingNotice error dismiss={() => setError('')}>
           {error}
