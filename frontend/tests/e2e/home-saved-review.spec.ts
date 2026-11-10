@@ -1,4 +1,4 @@
-import { initialChoirId, selectInitialChoir } from './choir-context';
+import { continueMassCreation, initialChoirId, selectInitialChoir } from './choir-context';
 /** Owner home/saved-program review with real sessions, persistence, and role gates. */
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
@@ -58,8 +58,19 @@ test('Home and saved Mass actions: Ordinary Time, compact creation, phone confir
       'Mass plans',
       'Mass History',
       'Choirs',
-      'Account',
+      'Settings',
     ]);
+    const home = menu.getByRole('link', { name: 'Home', exact: true });
+    await expect(home).toHaveAttribute('aria-current', 'page');
+    await expect(home).toHaveCSS('background-color', 'rgb(241, 229, 229)');
+    let previousBottom = 0;
+    for (const link of await menu.getByRole('link').all()) {
+      await expect(link).toHaveCSS('display', 'block');
+      const row = (await link.boundingBox())!;
+      expect(row.height).toBeGreaterThanOrEqual(44);
+      expect(row.y).toBeGreaterThanOrEqual(previousBottom);
+      previousBottom = row.y + row.height;
+    }
     await menu.getByRole('link', { name: 'Hymns', exact: true }).click();
     for (const destination of ['Hymn library', 'Add hymn']) {
       await expect(page.getByRole('heading', { name: destination, exact: true })).toBeVisible();
@@ -108,8 +119,7 @@ test('Home and saved Mass actions: Ordinary Time, compact creation, phone confir
     .selectOption(String(cross.id));
   await page.getByText('Title and notes (optional)', { exact: true }).click();
   await page.getByLabel('Title', { exact: true }).fill(prefix);
-  page.on('dialog', (dialog) => void dialog.accept());
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await continueMassCreation(page);
   await expect(page).toHaveURL(/\/masses\/\d+\/edit$/);
   const id = Number(page.url().split('/').at(-2));
   const shuffle = page.getByRole('button', { name: 'Random hymns', exact: true });
@@ -122,21 +132,9 @@ test('Home and saved Mass actions: Ordinary Time, compact creation, phone confir
   await page.getByRole('button', { name: 'Add hymn to Communion', exact: true }).click();
   await page.getByLabel('Search hymns', { exact: true }).fill(prefix);
   await page.getByRole('button', { name: `Choose ${prefix}`, exact: true }).click();
-  await expect(page.getByRole('region', { name: 'Selection warnings' })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Save draft', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Selection warnings' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Save Mass', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/masses/${id}$`));
-  const finalize = page.getByRole('button', { name: 'Finalize Mass', exact: true });
-  const touch = await page.evaluate(() => matchMedia('(max-width: 760px), (hover: none)').matches);
-  if (!touch) {
-    await finalize.hover();
-    await expect(page.getByRole('tooltip')).toContainText('usage counts');
-  }
-  await finalize.click();
-  if (touch) {
-    await expect(page.getByRole('dialog')).toContainText('read-only');
-    await expect(page.getByText('Saved draft', { exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Confirm finalization', exact: true }).click();
-  }
   await expect(page.getByText('Finalized Mass program', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Reopen draft' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Delete Mass', exact: true })).toHaveCount(0);
@@ -157,9 +155,7 @@ test('Home and saved Mass actions: Ordinary Time, compact creation, phone confir
       ).json()
     ).usage_count,
   ).toBe(0);
-  await page.getByRole('button', { name: 'Save draft', exact: true }).click();
-  await finalize.click();
-  if (touch) await page.getByRole('button', { name: 'Confirm finalization', exact: true }).click();
+  await page.getByRole('button', { name: 'Save Mass', exact: true }).click();
   await expect(page.getByText('Finalized Mass program', { exact: true })).toBeVisible();
   await page.screenshot({ path: info.outputPath('saved-mass-actions.png'), fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { beforeEach, expect, it, vi } from 'vitest';
 
+import { ConfirmationProvider } from '../components/ConfirmationProvider';
 import { clearCsrfToken } from '../api/client';
 import { textFields } from '../api/library';
 import type { Category } from '../api/library';
@@ -98,14 +99,16 @@ function mount(
   );
   render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={[edit ? '/hymns/1/edit' : '/hymns/new']}>
-        <SessionProvider>
-          <Routes>
-            <Route path="/hymns/new" element={<HymnFormPage />} />
-            <Route path="/hymns/:id/edit" element={<HymnFormPage />} />
-          </Routes>
-        </SessionProvider>
-      </MemoryRouter>
+      <ConfirmationProvider>
+        <MemoryRouter initialEntries={[edit ? '/hymns/1/edit' : '/hymns/new']}>
+          <SessionProvider>
+            <Routes>
+              <Route path="/hymns/new" element={<HymnFormPage />} />
+              <Route path="/hymns/:id/edit" element={<HymnFormPage />} />
+            </Routes>
+          </SessionProvider>
+        </MemoryRouter>
+      </ConfirmationProvider>
     </QueryClientProvider>,
   );
   return writes;
@@ -235,9 +238,9 @@ it('keeps polyphony voices, numeric duration, and PDF values on a failed save', 
   await userEvent.type(screen.getByRole('textbox', { name: 'Voice 1' }), 'Soprano');
   await userEvent.click(screen.getByRole('button', { name: 'Add voice' }));
   await userEvent.type(screen.getByRole('textbox', { name: 'Voice 2' }), 'Alto');
-  const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
   await userEvent.click(screen.getByRole('checkbox', { name: 'Polyphony (multiple voices)' }));
-  expect(confirm).toHaveBeenCalled();
+  const dialog = await screen.findByRole('dialog', { name: 'Confirm action' });
+  await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
   expect(screen.getByRole('textbox', { name: 'Voice 2' })).toHaveValue('Alto');
   await userEvent.upload(
     screen.getByLabelText('Sheet music PDF'),
@@ -321,8 +324,9 @@ it('protects a member’s unsaved hymn when changing choir or signing out', asyn
   mount('Viewer');
   const title = await screen.findByRole('textbox', { name: /^Title/ });
   await userEvent.type(title, 'Unsaved private hymn');
-  vi.spyOn(window, 'confirm').mockReturnValue(false);
-  const event = new Event('choralation:before-signout', { cancelable: true });
-  expect(window.dispatchEvent(event)).toBe(false);
+  const { confirmWorkspaceExit } = await import('../components/workspaceExit');
+  const confirm = vi.fn().mockResolvedValue(false);
+  await expect(confirmWorkspaceExit(confirm)).resolves.toBe(false);
+  expect(confirm).toHaveBeenCalledWith('Discard unsaved hymn changes?', 'Discard changes');
   expect(title).toHaveValue('Unsaved private hymn');
 });

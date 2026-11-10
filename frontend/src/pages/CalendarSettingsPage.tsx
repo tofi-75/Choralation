@@ -11,6 +11,8 @@ import {
 import type { CalendarSettings } from '../api/settings';
 import { useCategories } from '../features/hymns/queries';
 import { fetchCalendar } from '../features/masses/calendar';
+import { useConfirmation } from '../components/ConfirmationProvider';
+import { FloatingNotice } from '../components/FloatingNotice';
 import { useUnsavedSettings } from '../components/useUnsavedSettings';
 
 export function CalendarSettingsPage() {
@@ -48,9 +50,7 @@ export function CalendarSettingsPage() {
         unchanged.
       </p>
       {saved && (
-        <p className="notice" role="status">
-          Calendar settings saved.
-        </p>
+        <FloatingNotice dismiss={() => setSaved(false)}>Calendar settings saved.</FloatingNotice>
       )}
       <CalendarEditor
         key={`${id}-${query.data.version}`}
@@ -74,6 +74,7 @@ function CalendarEditor({
   onSaved: () => void;
 }) {
   const client = useQueryClient();
+  const confirm = useConfirmation();
   const categories = useCategories();
   const [calendar, setCalendar] = useState(data.calendar);
   const [zone, setZone] = useState(data.time_zone);
@@ -186,8 +187,8 @@ function CalendarEditor({
                   <button
                     className="button secondary"
                     disabled={pending || dirty || overrideDirty}
-                    onClick={() => {
-                      if (window.confirm(`Remove the override for ${row.date}?`))
+                    onClick={async () => {
+                      if (await confirm(`Remove the override for ${row.date}?`, 'Remove override'))
                         void run(() => saveCalendarOverride(id, row.date, null, data.version));
                     }}
                   >
@@ -303,32 +304,43 @@ function CalendarEditor({
         </p>
       </section>
       {error && (
-        <div className="notice error">
-          <p role="alert">{error}</p>
-          <button
-            className="button secondary"
-            disabled={pending}
-            onClick={async () => {
-              if (!window.confirm('Reload saved settings and discard unsaved changes?')) return;
-              setPending(true);
-              try {
-                const saved = await getCalendarSettings(id);
-                setCalendar(saved.calendar);
-                setZone(saved.time_zone);
-                setDate('');
-                setSeason('');
-                setError('');
-                client.setQueryData(['choir-calendar', id], saved);
-              } catch (e) {
-                setError(settingsError(e));
-              } finally {
-                setPending(false);
-              }
-            }}
-          >
-            Reload saved settings
-          </button>
-        </div>
+        <FloatingNotice
+          error
+          dismiss={() => setError('')}
+          actions={
+            <button
+              className="button secondary"
+              disabled={pending}
+              onClick={async () => {
+                if (
+                  !(await confirm(
+                    'Reload saved settings and discard unsaved changes?',
+                    'Reload settings',
+                  ))
+                )
+                  return;
+                setPending(true);
+                try {
+                  const saved = await getCalendarSettings(id);
+                  setCalendar(saved.calendar);
+                  setZone(saved.time_zone);
+                  setDate('');
+                  setSeason('');
+                  setError('');
+                  client.setQueryData(['choir-calendar', id], saved);
+                } catch (e) {
+                  setError(settingsError(e));
+                } finally {
+                  setPending(false);
+                }
+              }}
+            >
+              Reload saved settings
+            </button>
+          }
+        >
+          {error}
+        </FloatingNotice>
       )}
     </div>
   );

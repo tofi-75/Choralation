@@ -5,12 +5,14 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { useQueryClient } from '@tanstack/react-query';
 import { useId, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { FloatingNotice } from '../../components/FloatingNotice';
 import { ApiError } from '../../api/client';
 import { deleteMass, transitionMass } from '../../api/masses';
 import type { Mass } from '../../api/masses';
 import { useSession } from '../auth/SessionProvider';
 import { useChoir } from '../choirs/ChoirProvider';
 import { PlannerIcon } from './PlannerIcon';
+import { refreshMassUsage } from './refreshMassUsage';
 
 type Action = 'finalize' | 'edit' | 'delete';
 const impact =
@@ -34,20 +36,7 @@ export function MassLifecycle({ mass, unavailable }: { mass: Mass; unavailable: 
   const finalized = mass.status === 'finalized';
   if (!canEdit) return null;
   const disabled = unavailable || pending || stale;
-  async function refreshUsage() {
-    await Promise.all(
-      [
-        'mass',
-        'masses',
-        'mass-history',
-        'hymns',
-        'hymn',
-        'hymn-usage',
-        'dashboard',
-        'recommendations',
-      ].map((key) => client.invalidateQueries({ queryKey: [key] })),
-    );
-  }
+
   async function confirm(action: Action, snapshot: Mass) {
     if (busy.current || disabled || !canEdit || (action === 'delete' && !canDelete)) return;
     busy.current = true;
@@ -60,12 +49,12 @@ export function MassLifecycle({ mass, unavailable }: { mass: Mass; unavailable: 
         setReview(null);
         navigate('/masses', { replace: true });
         client.removeQueries({ queryKey: ['mass', String(snapshot.id)] });
-        await refreshUsage();
+        await refreshMassUsage(client);
       } else {
         const saved = await transitionMass(snapshot, action === 'edit');
         client.setQueryData(['mass', String(saved.id), active?.id ?? null], saved);
         setReview(null);
-        await refreshUsage();
+        await refreshMassUsage(client);
         if (action === 'edit') navigate(`/masses/${saved.id}/edit`);
       }
     } catch (failure) {
@@ -81,7 +70,7 @@ export function MassLifecycle({ mass, unavailable }: { mass: Mass; unavailable: 
             : 'Unable to update this Mass. Try again.',
       );
       if (conflict) setReview(null);
-      await refreshUsage();
+      await refreshMassUsage(client);
     } finally {
       busy.current = false;
       setPending(false);
@@ -146,9 +135,9 @@ export function MassLifecycle({ mass, unavailable }: { mass: Mass; unavailable: 
         )}
       </div>
       {!review && error && (
-        <p className="notice error lifecycle-error" role="alert">
+        <FloatingNotice error dismiss={() => setError(null)}>
           {error}
-        </p>
+        </FloatingNotice>
       )}
       {stale && (
         <button

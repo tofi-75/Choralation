@@ -1,4 +1,4 @@
-import { initialChoirId, selectInitialChoir } from './choir-context';
+import { continueMassCreation, initialChoirId, selectInitialChoir } from './choir-context';
 /** M4 real-backend weekly workflow, cache refresh, stale review and retained edits. */
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
@@ -22,26 +22,14 @@ async function csrf(page: Page) {
       .csrf_token as string,
   };
 }
-async function startFinalize(page: Page) {
-  await page.getByRole('button', { name: 'Finalize Mass', exact: true }).click();
-  if (await page.evaluate(() => matchMedia('(max-width: 760px), (hover: none)').matches))
-    await page
-      .getByRole('dialog')
-      .getByRole('button', { name: 'Confirm finalization', exact: true })
-      .click();
+async function saveMass(page: Page) {
+  await page.getByRole('button', { name: 'Save Mass', exact: true }).click();
 }
-async function confirm(page: Page, name: string) {
-  if (name === 'Finalize Mass') {
-    await startFinalize(page);
-    await expect(page.getByText('Finalized Mass program', { exact: true })).toBeVisible();
-  } else {
-    await page.getByRole('button', { name: 'Edit Mass', exact: true }).click();
-    await page
-      .getByRole('dialog')
-      .getByRole('button', { name: 'Confirm edit', exact: true })
-      .click();
-    await expect(page).toHaveURL(/\/edit$/);
-  }
+
+async function reopen(page: Page) {
+  await page.getByRole('button', { name: 'Edit Mass', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Confirm edit', exact: true }).click();
+  await expect(page).toHaveURL(/\/edit$/);
   await expect(page.getByRole('dialog')).toHaveCount(0);
 }
 
@@ -65,17 +53,18 @@ test('Weekly workflow: create hymn, draft, finalize, usage/history, reopen and r
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
   const hymnId = Number(page.url().split('/').pop());
   await expect(page.getByText('Never used', { exact: true })).toBeVisible();
-  page.on('dialog', (dialog) => void dialog.accept());
   await page.goto('/masses');
   await page.getByRole('link', { name: 'New Mass', exact: true }).click();
-  await page.getByLabel('Date', { exact: true }).fill('2099-10-11');
+  await page
+    .getByLabel('Date', { exact: true })
+    .fill(info.project.name === 'desktop' ? '2097-10-11' : '2097-10-12');
   await expect(page.getByRole('button', { name: 'Next', exact: true })).toBeEnabled();
   await page
     .locator('#create-mass')
     .getByText('Title and notes (optional)', { exact: true })
     .click();
   await page.locator('#create-mass').getByLabel('Title', { exact: true }).fill(plan);
-  await page.locator('#create-mass').getByRole('button', { name: 'Next', exact: true }).click();
+  await continueMassCreation(page);
   await expect(page).toHaveURL(/\/masses\/\d+\/edit$/);
   const massId = Number(page.url().split('/').at(-2));
   for (let index = 0; index < 2; index++) {
@@ -83,11 +72,9 @@ test('Weekly workflow: create hymn, draft, finalize, usage/history, reopen and r
     const picker = page.locator('.inline-hymn-picker');
     await picker.getByLabel('Search hymns').fill(title);
     await picker.getByRole('button', { name: `Choose ${title}`, exact: true }).click();
-    if (index) await picker.getByRole('button', { name: 'Add anyway', exact: true }).click();
+    if (index) await page.getByRole('button', { name: 'Add anyway', exact: true }).click();
   }
-  await page.getByRole('button', { name: 'Save draft', exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/masses/${massId}$`));
-  // A failed transition leaves the saved program available and can be retried.
+  // A failed transition leaves the editor and autosaved program available.
   await page.route(`**/masses/${massId}/finalize/`, async (route) => {
     await route.fulfill({
       status: 503,
@@ -96,11 +83,11 @@ test('Weekly workflow: create hymn, draft, finalize, usage/history, reopen and r
     });
     await page.unroute(`**/masses/${massId}/finalize/`);
   });
-  await startFinalize(page);
+  await saveMass(page);
   await expect(page.getByRole('alert')).toHaveText('Temporary failure');
-  if (await page.getByRole('dialog').count())
-    await page.getByRole('dialog').getByRole('button', { name: 'Cancel' }).click();
-  await startFinalize(page);
+  await expect(page).toHaveURL(new RegExp(`/masses/${massId}/edit$`));
+  await page.getByRole('button', { name: 'Dismiss' }).click();
+  await saveMass(page);
   await expect(page.getByText('Finalized Mass program', { exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Edit Mass', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Reopen draft', exact: true })).toHaveCount(0);
@@ -136,9 +123,9 @@ test('Weekly workflow: create hymn, draft, finalize, usage/history, reopen and r
     .click();
   await page.getByLabel('Search Mass plans').fill(plan);
   await page.locator('.mass-card').filter({ hasText: plan }).getByRole('link').first().click();
-  await confirm(page, 'Edit Mass');
+  await reopen(page);
   await page.goto(`/masses/${massId}`);
-  await expect(page.getByRole('link', { name: 'Edit Mass', exact: true })).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/masses/${massId}/edit$`));
   await page.goto(`/hymns?q=${encodeURIComponent(title)}&never_used=true`);
   await expect(
     page.getByRole('link', { name: title, exact: true }).filter({ visible: true }),
@@ -151,7 +138,8 @@ test('Weekly workflow: create hymn, draft, finalize, usage/history, reopen and r
       .getByRole('link', { name: plan, exact: true }),
   ).toHaveCount(0);
   await page.goto(`/masses/${massId}`);
-  await confirm(page, 'Finalize Mass');
+  await saveMass(page);
+  await expect(page.getByText('Finalized Mass program', { exact: true })).toBeVisible();
   const usage = await (
     await page.request.get(`/api/v1/hymns/${hymnId}/`, {
       headers: { 'X-Choir-ID': await initialChoirId(page) },
@@ -174,19 +162,17 @@ test('Stale finalization notice and background finalization preserve editor work
   });
   const mass = await response.json();
   await page.goto(`/masses/${mass.id}`);
-  await expect(page.getByRole('button', { name: 'Finalize Mass', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Save Mass', exact: true })).toBeEnabled();
   await page.request.patch(`/api/v1/masses/${mass.id}/`, {
     headers: { ...(await csrf(page)), 'X-Expected-Mass-Revision': String(mass.revision) },
     data: { notes: 'Another planner saved' },
   });
-  await startFinalize(page);
-  await expect(page.getByRole('alert')).toContainText('This Mass changed.');
-  await expect(page.getByRole('button', { name: 'Finalize Mass', exact: true })).toBeDisabled();
-  await expect(page.getByRole('dialog')).toHaveCount(0);
-  await expect(page.getByText('Another planner saved', { exact: true })).toBeVisible();
-  await page
-    .getByRole('button', { name: "I've reviewed the refreshed program", exact: true })
-    .click();
+  await saveMass(page);
+  await expect(page.getByRole('alert')).toBeVisible();
+  await page.getByRole('button', { name: 'Dismiss' }).click();
+  await expect(page.getByText('Another planner saved', { exact: false }).first()).toBeVisible();
+  await page.getByRole('button', { name: 'Discard local edits and reload' }).click();
+  await page.getByRole('button', { name: 'Load saved version' }).click();
   const editor = await context.newPage();
   await editor.goto(`/masses/${mass.id}/edit`);
   await editor.getByRole('button', { name: '← Back to Mass details' }).click();
@@ -204,7 +190,8 @@ test('Stale finalization notice and background finalization preserve editor work
   await editor.getByRole('textbox', { name: /^Mass notes/ }).fill('Keep my local notes');
   await expect(editor.getByText('Unable to save', { exact: true })).toBeVisible();
   await page.bringToFront();
-  await confirm(page, 'Finalize Mass');
+  await saveMass(page);
+  await expect(page.getByText('Finalized Mass program', { exact: true })).toBeVisible();
   await editor.bringToFront();
   await editor.evaluate(() => window.dispatchEvent(new Event('visibilitychange')));
   await expect(

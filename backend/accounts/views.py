@@ -19,6 +19,7 @@ from rest_framework.views import APIView
 from accounts.permissions import Role, role_for, verified_access
 from accounts.security import limit
 from accounts.serializers import (
+    ChoirPreferenceSerializer,
     CsrfSerializer,
     EmptySerializer,
     ErrorSerializer,
@@ -26,6 +27,7 @@ from accounts.serializers import (
     UserSerializer,
 )
 from accounts.services import profile_for
+from choirs.access import require_choir
 
 
 def public_user(user) -> dict:
@@ -43,6 +45,7 @@ def public_user(user) -> dict:
         "can_create_choirs": role == Role.ADMIN or profile.can_create_choirs,
         "can_edit_hymns": role in {Role.ADMIN, Role.PLANNER},
         "can_add_hymns": has_access,
+        "default_choir_id": profile.default_choir_id,
     }
 
 
@@ -92,6 +95,16 @@ class MeView(APIView):
     @extend_schema(responses={200: UserSerializer, 403: ErrorSerializer})
     def get(self, request):
         """Return authenticated identity; never silently turn an expired session into Viewer."""
+        return Response(public_user(request.user))
+
+    @extend_schema(request=ChoirPreferenceSerializer, responses={200: UserSerializer})
+    def patch(self, request):
+        serializer = ChoirPreferenceSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        choir_id = serializer.validated_data["default_choir_id"]
+        profile = profile_for(request.user)
+        profile.default_choir = require_choir(request.user, choir_id) if choir_id else None
+        profile.save(update_fields=["default_choir"])
         return Response(public_user(request.user))
 
 

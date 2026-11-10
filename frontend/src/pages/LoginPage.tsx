@@ -2,12 +2,13 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
-import { Link, Navigate, useLocation } from 'react-router';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router';
 import { z } from 'zod';
 
 import { fetchAuthConfig, signIn } from '../api/auth';
 import { ApiError } from '../api/client';
 import { useSession } from '../features/auth/SessionProvider';
+import { FloatingNotice } from '../components/FloatingNotice';
 import { PasswordInput } from '../components/PasswordInput';
 import { PublicLinks } from '../components/PublicLinks';
 
@@ -20,6 +21,7 @@ type Credentials = z.infer<typeof credentialsSchema>;
 export function LoginPage() {
   const session = useSession();
   const location = useLocation();
+  const navigate = useNavigate();
   const config = useQuery({ queryKey: ['auth-config'], queryFn: fetchAuthConfig });
   const [failure, setFailure] = useState<string | null>(null);
   const {
@@ -98,15 +100,19 @@ export function LoginPage() {
           <p className="eyebrow">Welcome back</p>
           <h2 id="login-title">Sign in to your workspace</h2>
           <p className="muted">Sign in with your email or username.</p>
-          {passwordUpdated && (
-            <p className="notice" role="status">
-              Password updated. Sign in with your new password.
-            </p>
-          )}
-          {expired && (
-            <p className="notice" role="status">
-              Your session ended. Sign in again to continue.
-            </p>
+          {(passwordUpdated || expired) && (
+            <FloatingNotice
+              dismiss={() => {
+                navigate(location.pathname, {
+                  replace: true,
+                  state: { ...location.state, expired: false, passwordUpdated: false },
+                });
+              }}
+            >
+              {passwordUpdated
+                ? 'Password updated. Sign in with your new password.'
+                : 'Your session ended. Sign in again to continue.'}
+            </FloatingNotice>
           )}
           <form onSubmit={handleSubmit(submit)} noValidate>
             <label htmlFor="username">Email or username</label>
@@ -138,9 +144,9 @@ export function LoginPage() {
               </p>
             )}
             {failure && (
-              <p className="notice error" role="alert">
+              <FloatingNotice error dismiss={() => setFailure(null)}>
                 {failure}
-              </p>
+              </FloatingNotice>
             )}
             <button className="button primary full-width" type="submit" disabled={isSubmitting}>
               {isSubmitting ? 'Signing in…' : 'Sign in'}

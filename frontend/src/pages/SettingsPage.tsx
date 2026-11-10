@@ -1,6 +1,13 @@
 import { useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Navigate } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
+import { setDefaultChoir } from '../api/auth';
+import type { User } from '../api/auth';
+import { useChoir } from '../features/choirs/ChoirProvider';
+import { AccountPages } from './AccountPages';
+import { useConfirmation } from '../components/ConfirmationProvider';
+import { confirmWorkspaceExit } from '../components/workspaceExit';
+import { FloatingNotice } from '../components/FloatingNotice';
 import * as Dialog from '@radix-ui/react-dialog';
 import { categoryKinds } from '../api/library';
 import type { Category, CategoryKind } from '../api/library';
@@ -14,16 +21,135 @@ import {
   settingsError,
 } from '../api/settings';
 import { useSession } from '../features/auth/SessionProvider';
+import { ManagerRequests, useManagerQueue } from '../features/auth/ManagerRequests';
 import { useUnsavedSettings } from '../components/useUnsavedSettings';
 
 export function SettingsPage() {
   const { user } = useSession();
-  const [kind, setKind] = useState<CategoryKind>('genres');
-  if (user?.role !== 'Admin') return <Navigate to="/dashboard" replace />;
+  const [params] = useSearchParams();
+  const admin = user?.role === 'Admin';
+  const managerQueue = useManagerQueue(1, admin);
+  const pendingManagers = managerQueue.data?.count;
+  const requested = params.get('tab');
+  const tab =
+    requested === 'account' || requested === 'choir' || (admin && requested === 'manager-requests')
+      ? requested
+      : admin
+        ? 'classifications'
+        : 'choir';
+  const tabs = [
+    { key: 'choir', label: 'Choir', url: '/settings?tab=choir' },
+    { key: 'account', label: 'Account', url: '/settings?tab=account' },
+    ...(admin
+      ? [
+          {
+            key: 'manager-requests',
+            label: `Manager requests${pendingManagers ? ` (${pendingManagers})` : ''}`,
+            url: '/settings?tab=manager-requests',
+          },
+          { key: 'classifications', label: 'Classifications', url: '/settings' },
+        ]
+      : []),
+  ];
   return (
     <div className="settings-page">
-      <p className="eyebrow">Application administration</p>
       <h1 className="page-title">Settings</h1>
+      <nav className="settings-tabs" aria-label="Settings tabs">
+        {tabs.map(({ key, label, url }) => (
+          <Link
+            key={key}
+            className={tab === key ? 'button primary' : 'button secondary'}
+            to={url}
+            aria-current={tab === key ? 'page' : undefined}
+          >
+            {label}
+          </Link>
+        ))}
+      </nav>
+      {tab === 'account' ? (
+        <AccountPages mode="account" />
+      ) : tab === 'choir' ? (
+        <ChoirPreference />
+      ) : tab === 'manager-requests' ? (
+        <ManagerRequests />
+      ) : (
+        <Classifications />
+      )}
+    </div>
+  );
+}
+
+function ChoirPreference() {
+  const { user } = useSession();
+  const { choirs } = useChoir();
+  const client = useQueryClient();
+  const current = user?.default_choir_id ?? null;
+  const [choice, setChoice] = useState<number | null>(
+    () => choirs.find((choir) => choir.id === current)?.id ?? null,
+  );
+  const [pending, setPending] = useState(false);
+  const [feedback, setFeedback] = useState<{ message: string; error?: boolean } | null>(null);
+  return (
+    <form
+      className="form-section form-grid"
+      aria-label="Choir preferences"
+      onSubmit={async (event) => {
+        event.preventDefault();
+        if (pending || choice === current) return;
+        setPending(true);
+        try {
+          const saved = await setDefaultChoir(choice);
+          await client.cancelQueries({ queryKey: ['session'] });
+          client.setQueryData<User | null>(['session'], (identity) =>
+            identity?.id === saved.id
+              ? { ...identity, default_choir_id: saved.default_choir_id }
+              : identity,
+          );
+          setFeedback({ message: 'Default choir saved.' });
+        } catch (error) {
+          setFeedback({ message: settingsError(error), error: true });
+        } finally {
+          setPending(false);
+        }
+      }}
+    >
+      <label className="field">
+        Default choir
+        <select
+          value={choice ?? ''}
+          disabled={pending}
+          onChange={(event) => setChoice(event.target.value ? Number(event.target.value) : null)}
+        >
+          <option value="">No preference</option>
+          {choirs.map((choir) => (
+            <option key={choir.id} value={choir.id}>
+              {choir.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <p className="muted full-width">
+        Used when you open the workspace in a tab without an active choir selection.
+      </p>
+      <div className="form-actions">
+        <button className="button primary" disabled={pending || choice === current}>
+          Save default choir
+        </button>
+      </div>
+      {feedback && (
+        <FloatingNotice error={feedback.error} dismiss={() => setFeedback(null)}>
+          {feedback.message}
+        </FloatingNotice>
+      )}
+    </form>
+  );
+}
+
+function Classifications() {
+  const confirm = useConfirmation();
+  const [kind, setKind] = useState<CategoryKind>('genres');
+  return (
+    <>
       <p>
         Classifications are shared by every choir. Changes preserve existing hymn and Mass links.
       </p>
@@ -33,12 +159,8 @@ export function SettingsPage() {
             key={key}
             className={`button ${kind === key ? 'primary' : 'secondary'}`}
             aria-pressed={kind === key}
-            onClick={() => {
-              if (
-                kind !== key &&
-                window.dispatchEvent(new Event('choralation:before-signout', { cancelable: true }))
-              )
-                setKind(key);
+            onClick={async () => {
+              if (kind !== key && (await confirmWorkspaceExit(confirm))) setKind(key);
             }}
           >
             {key === 'mass-placements' ? 'Mass sections' : label}
@@ -46,10 +168,11 @@ export function SettingsPage() {
         ))}
       </nav>
       <CategoryManager key={kind} kind={kind} />
-    </div>
+    </>
   );
 }
 function CategoryManager({ kind }: { kind: CategoryKind }) {
+  const confirm = useConfirmation();
   const client = useQueryClient();
   const focusTarget = useRef<HTMLElement | null>(null);
   const query = useQuery({
@@ -105,8 +228,11 @@ function CategoryManager({ kind }: { kind: CategoryKind }) {
     setDescription(row?.description ?? '');
     setError('');
   }
-  function close() {
-    if (!pending && (!dirty || window.confirm('Discard your unsaved settings changes?'))) {
+  async function close() {
+    if (
+      !pending &&
+      (!dirty || (await confirm('Discard your unsaved settings changes?', 'Discard changes')))
+    ) {
       setEdit(undefined);
       setError('');
     }
@@ -148,8 +274,14 @@ function CategoryManager({ kind }: { kind: CategoryKind }) {
       <button
         className="button secondary"
         disabled={pending}
-        onClick={() => {
-          if (!dirty || window.confirm('Reloading discards unsaved settings changes. Continue?')) {
+        onClick={async () => {
+          if (
+            !dirty ||
+            (await confirm(
+              'Reloading discards unsaved settings changes. Continue?',
+              'Reload settings',
+            ))
+          ) {
             setEdit(undefined);
             setAction(null);
             setOrder(null);
@@ -180,15 +312,11 @@ function CategoryManager({ kind }: { kind: CategoryKind }) {
           {query.error.message} <button onClick={() => void query.refetch()}>Retry</button>
         </p>
       )}
-      {notice && (
-        <p className="notice" role="status">
-          {notice}
-        </p>
-      )}
+      {notice && <FloatingNotice dismiss={() => setNotice('')}>{notice}</FloatingNotice>}
       {error && edit === undefined && !action && (
-        <p className="notice error" role="alert">
+        <FloatingNotice error dismiss={() => setError('')}>
           {error}
-        </p>
+        </FloatingNotice>
       )}
       {filtered && <p className="tiny">Clear search and choose All to change category order.</p>}
       <ol className="settings-list">

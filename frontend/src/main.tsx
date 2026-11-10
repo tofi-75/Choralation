@@ -4,6 +4,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router';
 
+import { ConfirmationProvider } from './components/ConfirmationProvider';
 import { App } from './App';
 import { SessionProvider } from './features/auth/SessionProvider';
 import './styles.css';
@@ -16,7 +17,9 @@ createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={client}>
       <SessionProvider>
-        <RouterProvider router={router} useTransitions={false} />
+        <ConfirmationProvider>
+          <RouterProvider router={router} useTransitions={false} />
+        </ConfirmationProvider>
       </SessionProvider>
     </QueryClientProvider>
   </StrictMode>,

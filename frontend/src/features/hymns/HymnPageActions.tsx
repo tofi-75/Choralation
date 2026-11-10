@@ -1,13 +1,16 @@
-import { Link, NavLink } from 'react-router';
+import { Link, NavLink, useNavigate } from 'react-router';
 
-export function HymnPageActions({ confirmLeave }: { confirmLeave?: () => boolean }) {
+export function HymnPageActions({ confirmLeave }: { confirmLeave?: () => Promise<boolean> }) {
+  const navigate = useNavigate();
   return (
     <div className="hymn-page-actions">
       <Link
         className="button secondary"
         to="/hymns/mine"
-        onClick={(event) => {
-          if (confirmLeave && !confirmLeave()) event.preventDefault();
+        onClick={async (event) => {
+          if (!confirmLeave) return;
+          event.preventDefault();
+          if (await confirmLeave()) navigate('/hymns/mine');
         }}
       >
         My hymns

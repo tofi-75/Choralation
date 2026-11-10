@@ -3,6 +3,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 
+import { FloatingNotice } from '../components/FloatingNotice';
 import { deleteHymn, setHymnActive, textFields } from '../api/library';
 import { useSession } from '../features/auth/SessionProvider';
 import { HymnSubmissionPanel } from '../features/hymns/HymnSubmissionPanel';
@@ -114,10 +115,10 @@ export function HymnDetailPage() {
           </Link>
         )}
       </div>
-      {Boolean((location.state as { saved?: boolean } | null)?.saved) && (
-        <p className="notice" role="status">
+      {savedJustNow && (
+        <FloatingNotice dismiss={() => navigate(location.pathname, { replace: true, state: null })}>
           Hymn saved.
-        </p>
+        </FloatingNotice>
       )}
       {!saved.is_active && (
         <p className="notice">This hymn is inactive. Its saved information is retained.</p>

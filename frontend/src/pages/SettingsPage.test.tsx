@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { ConfirmationProvider } from '../components/ConfirmationProvider';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { ApiError } from '../api/client';
@@ -72,7 +73,9 @@ function mount(path = '/settings') {
         })
       }
     >
-      <RouterProvider router={router} />
+      <ConfirmationProvider>
+        <RouterProvider router={router} />
+      </ConfirmationProvider>
     </QueryClientProvider>,
   );
   return router;
@@ -95,8 +98,8 @@ it('preserves edited text on a stale save and blocks deleting linked categories'
   await user.click(screen.getByRole('button', { name: 'Save category' }));
   await screen.findByRole('alert');
   expect(screen.getByRole('textbox', { name: /^Name/ })).toHaveValue('New traditional');
-  vi.spyOn(window, 'confirm').mockReturnValue(true);
   await user.click(screen.getByRole('button', { name: 'Cancel' }));
+  await user.click(await screen.findByRole('button', { name: 'Discard changes' }));
   await user.click(screen.getByRole('button', { name: 'Delete Traditional' }));
   expect(await screen.findByText(/This category has 2 links/)).toBeVisible();
   expect(screen.getByRole('button', { name: 'Confirm delete' })).toBeDisabled();
@@ -115,10 +118,12 @@ it('requires the complete unfiltered order and submits its original version snap
     expect(mocks.reorder).toHaveBeenCalledWith('genres', expect.any(Array), [2, 1]),
   );
 });
-it('guards Admin settings from ordinary users', async () => {
+it('shows personal settings and hides shared classifications from ordinary users', async () => {
   mocks.role = 'Viewer';
   mount();
-  expect(await screen.findByText('Home')).toBeVisible();
+  expect(await screen.findByRole('combobox', { name: 'Default choir' })).toBeVisible();
+  expect(screen.getByRole('link', { name: 'Account' })).toBeVisible();
+  expect(screen.queryByRole('link', { name: 'Classifications' })).toBeNull();
   expect(mocks.list).not.toHaveBeenCalled();
 });
 it('saves choir calendar versions and protects deliberate unsaved defaults', async () => {

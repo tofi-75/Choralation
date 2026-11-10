@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
+import { useConfirmation } from '../../components/ConfirmationProvider';
+import { confirmWorkspaceExit } from '../../components/workspaceExit';
 import { fetchChoirs } from '../../api/choirs';
 import type { Choir } from '../../api/choirs';
 import { useSession } from '../auth/SessionProvider';
@@ -20,11 +22,14 @@ const Context = createContext<ChoirContext>({
 });
 export const useChoir = () => useContext(Context);
 
+export const choirStorageKey = (userId?: number) => `choralation-choir-${userId}`;
+
 export function ChoirProvider({ children }: { children: ReactNode }) {
   const client = useQueryClient();
+  const confirm = useConfirmation();
   const navigate = useNavigate();
   const { user } = useSession();
-  const storageKey = `choralation-choir-${user?.id}`;
+  const storageKey = choirStorageKey(user?.id);
   const [id, setId] = useState<number | null | undefined>(undefined);
   const [switching, setSwitching] = useState(false);
   const query = useQuery({ queryKey: ['choirs'], queryFn: fetchChoirs, refetchInterval: 60_000 });
@@ -38,7 +43,11 @@ export function ChoirProvider({ children }: { children: ReactNode }) {
       } catch {
         /* Storage is optional. */
       }
-      const next = query.data.find((c) => c.id === preferred)?.id ?? query.data[0]?.id ?? null;
+      const next =
+        query.data.find((c) => c.id === preferred)?.id ??
+        query.data.find((c) => c.id === user?.default_choir_id)?.id ??
+        query.data[0]?.id ??
+        null;
 
       setId(next);
       return;
@@ -54,7 +63,7 @@ export function ChoirProvider({ children }: { children: ReactNode }) {
       setId(null);
       navigate('/choirs', { replace: true });
     }
-  }, [query.data, id, client, navigate, storageKey]);
+  }, [query.data, id, client, navigate, storageKey, user?.default_choir_id]);
   useEffect(() => {
     const refresh = () => {
       void query.refetch();
@@ -66,8 +75,7 @@ export function ChoirProvider({ children }: { children: ReactNode }) {
   }, [query.refetch]);
   async function select(next: number | null, destination = '/dashboard') {
     if (next === id) return;
-    if (!window.dispatchEvent(new Event('choralation:before-signout', { cancelable: true })))
-      return;
+    if (!(await confirmWorkspaceExit(confirm))) return;
     setSwitching(true);
     await client.cancelQueries({
       predicate: (q) => !['session', 'choirs'].includes(String(q.queryKey[0])),

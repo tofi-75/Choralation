@@ -11,9 +11,10 @@ import {
   setEmail,
   signOut,
   verifyEmail,
-  setChoirCreationPermission,
 } from '../api/auth';
 import { ApiError } from '../api/client';
+import { FloatingNotice } from '../components/FloatingNotice';
+import { ManagerAccessPanel } from '../features/auth/ManagerAccessPanel';
 import { useSession } from '../features/auth/SessionProvider';
 import { PasswordInput } from '../components/PasswordInput';
 import { PublicLinks } from '../components/PublicLinks';
@@ -215,27 +216,32 @@ export function AccountPages({
     }
   }
   return (
-    <Container className="account-page">
+    <Container className={mode === 'account' ? 'account-settings' : 'account-page'}>
       <section className="form-section account-card">
-        <Link
-          className="text-button"
-          to={session.user && !session.user.verification_required ? '/dashboard' : '/login'}
-          state={verificationReturn}
-        >
-          ← {session.user && !session.user.verification_required ? 'Home' : 'Sign in'}
-        </Link>
-        <p className="eyebrow">Choralation</p>
-        <h1>{title}</h1>
+        {mode !== 'account' && (
+          <Link
+            className="text-button"
+            to={session.user && !session.user.verification_required ? '/dashboard' : '/login'}
+            state={verificationReturn}
+          >
+            ← {session.user && !session.user.verification_required ? 'Home' : 'Sign in'}
+          </Link>
+        )}
+        {mode === 'account' ? (
+          <h2>{title}</h2>
+        ) : (
+          <>
+            <p className="eyebrow">Choralation</p>
+            <h1>{title}</h1>
+          </>
+        )}
+        {mode === 'account' && session.user?.role !== 'Admin' && <ManagerAccessPanel />}
         {error && (
-          <p className="notice error" role="alert">
+          <FloatingNotice error dismiss={() => setError('')}>
             {error}
-          </p>
+          </FloatingNotice>
         )}
-        {notice && (
-          <p className="notice" role="status">
-            {notice}
-          </p>
-        )}
+        {notice && <FloatingNotice dismiss={() => setNotice('')}>{notice}</FloatingNotice>}
         {mode === 'register' && (
           <>
             {config.isPending && <p role="status">Checking registration…</p>}
@@ -450,44 +456,7 @@ export function AccountPages({
           </form>
         )}
       </section>
-      <PublicLinks />
-      {mode === 'account' && session.user?.role === 'Admin' && (
-        <section className="detail-section">
-          <h2>Choir creation permissions</h2>
-          <p>
-            Grant or revoke permission to create additional choirs. Membership and planning roles
-            stay unchanged.
-          </p>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              const f = new FormData(e.currentTarget);
-              void run(async () =>
-                setNotice(
-                  (
-                    await setChoirCreationPermission(
-                      String(f.get('username')),
-                      f.has('can_create_choirs'),
-                    )
-                  ).detail,
-                ),
-              );
-            }}
-          >
-            <label className="field">
-              Username
-              <input name="username" required maxLength={150} />
-            </label>
-            <label className="checkbox-choice">
-              <input name="can_create_choirs" type="checkbox" />
-              Can create choirs
-            </label>
-            <button className="button secondary" disabled={pending}>
-              Update permission
-            </button>
-          </form>
-        </section>
-      )}
+      {mode !== 'account' && <PublicLinks />}
     </Container>
   );
 }

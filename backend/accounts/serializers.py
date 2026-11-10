@@ -2,6 +2,7 @@
 
 from rest_framework import serializers
 
+from accounts.models import ManagerRequest
 from accounts.permissions import Role
 
 
@@ -33,6 +34,11 @@ class UserSerializer(serializers.Serializer):
     can_create_choirs = serializers.BooleanField()
     can_edit_hymns = serializers.BooleanField()
     can_add_hymns = serializers.BooleanField()
+    default_choir_id = serializers.IntegerField(allow_null=True)
+
+
+class ChoirPreferenceSerializer(StrictSerializer):
+    default_choir_id = serializers.IntegerField(allow_null=True, min_value=1, max_value=2**63 - 1)
 
 
 class RegistrationSerializer(StrictSerializer):
@@ -79,6 +85,32 @@ class PasswordSerializer(StrictSerializer):
 
 class MessageSerializer(serializers.Serializer):
     detail = serializers.CharField()
+
+
+class ManagerRequestSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    username = serializers.CharField(source="applicant.username")
+    status = serializers.ChoiceField(choices=ManagerRequest.Status.choices)
+    requested_at = serializers.DateTimeField()
+    decided_at = serializers.DateTimeField(allow_null=True)
+
+
+class ManagerRequestStatusSerializer(serializers.Serializer):
+    request = ManagerRequestSerializer(allow_null=True)
+    can_create_choirs = serializers.BooleanField()
+
+
+class ManagerRequestQueueSerializer(serializers.Serializer):
+    count = serializers.IntegerField()
+    next = serializers.URLField(allow_null=True)
+    previous = serializers.URLField(allow_null=True)
+    results = ManagerRequestSerializer(many=True)
+
+
+class ManagerDecisionSerializer(StrictSerializer):
+    status = serializers.ChoiceField(
+        choices=[ManagerRequest.Status.APPROVED, ManagerRequest.Status.DECLINED]
+    )
 
 
 class ChoirCreationPermissionSerializer(StrictSerializer):

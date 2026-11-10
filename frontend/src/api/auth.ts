@@ -13,6 +13,7 @@ export const userSchema = z.object({
   can_create_choirs: z.boolean().optional(),
   can_edit_hymns: z.boolean().optional(),
   can_add_hymns: z.boolean().optional(),
+  default_choir_id: z.number().int().positive().nullable().optional(),
 });
 export type User = z.infer<typeof userSchema>;
 export const checkUsername = (username: string, signal?: AbortSignal) =>
@@ -79,6 +80,12 @@ export const changePassword = (current_password: string, password: string) =>
   request('/auth/password/', message, {
     method: 'POST',
     body: JSON.stringify({ current_password, password }),
+  });
+
+export const setDefaultChoir = (default_choir_id: number | null) =>
+  request('/auth/me/', userSchema, {
+    method: 'PATCH',
+    body: JSON.stringify({ default_choir_id }),
   });
 
 export function currentUser(): Promise<User> {

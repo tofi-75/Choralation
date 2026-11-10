@@ -1,9 +1,15 @@
 /** Form owns unsaved input; query refreshes never reset it and failed saves retain it. */
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
-import { Link, useBeforeUnload, useNavigate, useParams } from 'react-router';
+import { Link, useBeforeUnload, useLocation, useNavigate, useParams } from 'react-router';
+import { useChoir } from '../features/choirs/ChoirProvider';
+import { massHymnContext } from '../features/masses/hymnCreationRoute';
+import type { MassHymnContext } from '../features/masses/hymnCreationRoute';
 import { HymnPageActions } from '../features/hymns/HymnPageActions';
 
+import { useConfirmation } from '../components/ConfirmationProvider';
+import { useWorkspaceExitWarning } from '../components/workspaceExit';
+import { FloatingNotice } from '../components/FloatingNotice';
 import { ApiError } from '../api/client';
 import { saveHymn, textFields } from '../api/library';
 import type { Categories, Hymn, HymnInput, TextField } from '../api/library';
@@ -46,6 +52,11 @@ const lengths: Partial<Record<TextField, number>> = {
 export function HymnFormPage() {
   const { id } = useParams();
   const { user } = useSession();
+  const choir = useChoir();
+  const location = useLocation();
+  const context = id ? undefined : massHymnContext(location.state);
+  const fromMass =
+    context?.choirId === choir.active?.id && user?.role !== 'Viewer' ? context : undefined;
   const categories = useCategories();
   const hymn = useHymn(id);
   function retry() {
@@ -89,13 +100,27 @@ export function HymnFormPage() {
           </button>
         </div>
       )}
-      <HymnForm key={id ?? 'new'} hymn={hymn.data} categories={categories.data} />
+      <HymnForm
+        key={id ?? 'new'}
+        hymn={hymn.data}
+        categories={categories.data}
+        fromMass={fromMass}
+      />
     </>
   );
 }
 
-function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories }) {
+function HymnForm({
+  hymn,
+  categories,
+  fromMass,
+}: {
+  hymn?: Hymn;
+  categories: Categories;
+  fromMass?: MassHymnContext;
+}) {
   const navigate = useNavigate();
+  const confirm = useConfirmation();
   const { user } = useSession();
   const privateMode = hymn
     ? (hymn.publication_status ?? 'published') !== 'published'
@@ -119,7 +144,7 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
         TextField,
         string
       >),
-      title: hymn?.title ?? '',
+      title: hymn?.title ?? fromMass?.search.slice(0, 255) ?? '',
       language_id: hymn ? String(hymn.language.id) : '',
       genre_ids: hymn?.genres.map((row) => row.id) ?? [],
       season_ids: [
@@ -151,13 +176,7 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
     Boolean(form.watch('latin_title'));
 
   const dirty = isDirty || Boolean(pdf) || removePdf;
-  useEffect(() => {
-    const beforeSwitch = (event: Event) => {
-      if (dirty && !window.confirm('Discard unsaved hymn changes?')) event.preventDefault();
-    };
-    window.addEventListener('choralation:before-signout', beforeSwitch);
-    return () => window.removeEventListener('choralation:before-signout', beforeSwitch);
-  }, [dirty]);
+  useWorkspaceExitWarning(dirty, 'Discard unsaved hymn changes?');
 
   useBeforeUnload((event) => {
     if (dirty) {
@@ -229,7 +248,14 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
       setPdf(null);
       setRemovePdf(false);
       await refresh();
-      navigate(`/hymns/${saved.id}`, { replace: true, state: { saved: true } });
+      if (fromMass) {
+        navigate(`/masses/${fromMass.massId}/edit`, {
+          replace: true,
+          state: { fromMass: { ...fromMass, hymnId: saved.id } },
+        });
+      } else {
+        navigate(`/hymns/${saved.id}`, { replace: true, state: { saved: true } });
+      }
     } catch (error) {
       setFailure(
         error instanceof Error ? error.message : 'Unable to save. Your input has been kept.',
@@ -244,9 +270,13 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
       }
     }
   }
-  function cancel() {
-    if (!dirty || window.confirm('Discard unsaved hymn changes?'))
+  async function cancel() {
+    if (dirty && !(await confirm('Discard unsaved hymn changes?', 'Discard changes'))) return;
+    if (fromMass) {
+      navigate(`/masses/${fromMass.massId}/edit`, { replace: true, state: { fromMass } });
+    } else {
       navigate(hymn ? `/hymns/${hymn.id}` : '/hymns');
+    }
   }
   function metadataField(name: TextField, label: string) {
     return (
@@ -284,14 +314,24 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
   return (
     <>
       <div className="form-heading">
-        <Link className="text-button" to="/hymns">
-          ← Library
-        </Link>
+        {fromMass ? (
+          <button className="text-button" type="button" onClick={cancel} disabled={isSubmitting}>
+            ← Back to Mass
+          </button>
+        ) : (
+          <Link className="text-button" to="/hymns">
+            ← Library
+          </Link>
+        )}
         <div className="page-heading hymn-page-heading">
           <h1 className="page-title">{hymn ? 'Edit hymn' : 'Add hymn'}</h1>
-          {!hymn && (
+          {!hymn && !fromMass && (
             <HymnPageActions
-              confirmLeave={() => !dirty || window.confirm('Discard unsaved hymn changes?')}
+              confirmLeave={
+                dirty
+                  ? () => confirm('Discard unsaved hymn changes?', 'Discard changes')
+                  : undefined
+              }
             />
           )}
         </div>
@@ -384,12 +424,15 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
                 <input
                   type="checkbox"
                   checked={field.value}
-                  onChange={(event) => {
+                  onChange={async (event) => {
                     const enabled = event.target.checked;
                     if (
                       !enabled &&
                       voiceFields.fields.length &&
-                      !window.confirm('Turn off polyphony and remove all voice names?')
+                      !(await confirm(
+                        'Turn off polyphony and remove all voice names?',
+                        'Remove voices',
+                      ))
                     )
                       return;
                     if (!enabled) voiceFields.replace([]);
@@ -599,9 +642,9 @@ function HymnForm({ hymn, categories }: { hymn?: Hymn; categories: Categories })
           </fieldset>
         </details>
         {failure && (
-          <p className="notice error" role="alert">
+          <FloatingNotice error dismiss={() => setFailure(null)}>
             {failure} Your input has been kept.
-          </p>
+          </FloatingNotice>
         )}
         <div className="form-actions sticky-form-actions">
           <button className="button primary" type="submit" disabled={isSubmitting}>

@@ -1,6 +1,7 @@
 /** Fill empty placements through the normal autosave queue, preserving newer edits. */
 import { useEffect, useRef, useState } from 'react';
 
+import { FloatingNotice } from '../../components/FloatingNotice';
 import type { Category } from '../../api/library';
 import { fetchRandomPicks } from '../../api/masses';
 import type { RandomPicks } from '../../api/masses';
@@ -135,8 +136,12 @@ export function RandomPicker({
           ? 'Fill empty placements with hymns for this season, Ordinary Time or any season. Keeps your choices; avoids repeats.'
           : 'Select a liturgical season to pick random hymns.'}
       </p>
-      {message && <p role="status">{message}</p>}
-      {error && <p role="alert">{error} Your selections are unchanged. Try again.</p>}
+      {message && <FloatingNotice dismiss={() => setMessage('')}>{message}</FloatingNotice>}
+      {error && (
+        <FloatingNotice error dismiss={() => setError('')}>
+          {error} Your selections are unchanged. Try again.
+        </FloatingNotice>
+      )}
     </div>
   );
 }

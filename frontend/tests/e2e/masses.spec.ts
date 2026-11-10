@@ -1,4 +1,4 @@
-import { initialChoirId, selectInitialChoir } from './choir-context';
+import { continueMassCreation, initialChoirId, selectInitialChoir } from './choir-context';
 /** Real M3 workflow: persisted order/notes, failures, conflicts and role boundaries. */
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
@@ -19,6 +19,7 @@ async function signIn(page: Page, role = 'Planner') {
       exact: true,
     }),
   ).toBeVisible();
+  await selectInitialChoir(page);
 }
 async function csrf(page: Page) {
   const response = await page.request.get('/api/v1/auth/csrf/');
@@ -117,8 +118,8 @@ test('Mass list: nearest upcoming first and past Masses archived at the end', as
   );
   await page.screenshot({ path: info.outputPath('mass-list-order.png'), fullPage: true });
   await archived.getByRole('link', { name: new RegExp(`${prefix} Yesterday`) }).click();
-  await expect(page.getByText('Saved draft', { exact: true })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Edit Mass', exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/edit$/);
+  await expect(page.getByRole('button', { name: 'Save Mass', exact: true })).toBeVisible();
 });
 
 test('Section picker and saved view: preference, scrolling, failed save and edit reentry', async ({
@@ -165,7 +166,7 @@ test('Section picker and saved view: preference, scrolling, failed save and edit
   }
   const created = await page.request.post('/api/v1/masses/', {
     headers,
-    data: { date: '2026-10-11', liturgical_season_id: season.id, notes: 'Saved Mass instructions' },
+    data: { date: '2096-10-14', liturgical_season_id: season.id, notes: 'Saved Mass instructions' },
   });
   const mass = (await created.json()) as { id: number };
   await page.goto(`/masses/${mass.id}/edit`);
@@ -222,7 +223,7 @@ test('Section picker and saved view: preference, scrolling, failed save and edit
   await page
     .getByRole('textbox', { name: `Selection notes for ${matching}`, exact: true })
     .fill('Keep final selection notes');
-  await page.getByRole('button', { name: 'Save draft', exact: true }).click();
+  await page.getByRole('button', { name: 'Save Mass', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Retry save', exact: true })).toBeVisible();
   await expect(page).toHaveURL(/\/edit$/);
   await expect(
@@ -252,12 +253,12 @@ test('Section picker and saved view: preference, scrolling, failed save and edit
     .getByRole('textbox', { name: `Selection notes for ${matching}`, exact: true })
     .fill('Final choir note');
   await requestStarted;
-  await page.getByRole('button', { name: 'Save draft', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Saving draft…', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: 'Save Mass', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Saving Mass…', exact: true })).toBeDisabled();
   await expect(page).toHaveURL(/\/edit$/);
   release();
   await expect(page).toHaveURL(new RegExp(`/masses/${mass.id}$`));
-  await expect(page.getByText('Saved draft', { exact: true })).toBeVisible();
+  await expect(page.getByText('Finalized Mass program', { exact: true })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Saved hymn program' })).toContainText(
     'Final choir note',
   );
@@ -272,18 +273,18 @@ test('Section picker and saved view: preference, scrolling, failed save and edit
   );
   await page.screenshot({ path: info.outputPath('saved-mass-view.png'), fullPage: true });
   await page.reload();
-  await page.getByRole('link', { name: 'Edit Mass', exact: true }).click();
+  await page.getByRole('button', { name: 'Edit Mass', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirm edit', exact: true }).click();
   await editSelection(page, matching);
   await expect(
     page.getByRole('textbox', { name: `Selection notes for ${matching}`, exact: true }),
   ).toHaveValue('Final choir note');
-  await page.getByRole('button', { name: 'Save draft', exact: true }).click();
+  await page.getByRole('button', { name: 'Save Mass', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/masses/${mass.id}$`));
   await page.getByRole('link', { name: '← Mass plans', exact: true }).click();
-  await page.getByRole('link', { name: 'Drafts', exact: true }).click();
   await page.getByLabel('Search Mass plans').fill('Sunday Mass');
   await page.locator(`.mass-card a[href="/masses/${mass.id}"]`).click();
-  await expect(page.getByRole('link', { name: 'Edit Mass', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Edit Mass', exact: true })).toBeVisible();
   await expect(page.getByRole('textbox')).toHaveCount(0);
 });
 
@@ -381,7 +382,6 @@ test('Planner: multiple rows, reorder, retry, conflict review, and navigation gu
   const programTitle = `Wednesday program ${suffix}-${info.project.name}`;
   await seedHymn(page, first);
   await seedHymn(page, second);
-  page.on('dialog', (dialog) => void dialog.accept());
   await page.goto('/masses');
   await page.getByRole('link', { name: 'New Mass', exact: true }).click();
   await page.getByLabel('Date', { exact: true }).fill('2026-10-07');
@@ -390,7 +390,7 @@ test('Planner: multiple rows, reorder, retry, conflict review, and navigation gu
   await page
     .getByRole('combobox', { name: 'Liturgical season', exact: true })
     .selectOption({ label: 'Resurrection' });
-  await page.locator('#create-mass').getByRole('button', { name: 'Next', exact: true }).click();
+  await continueMassCreation(page);
   await expect(page).toHaveURL(/\/masses\/\d+\/edit$/);
   await saved(page);
   await choose(page, first);
@@ -417,17 +417,17 @@ test('Planner: multiple rows, reorder, retry, conflict review, and navigation gu
     page.getByRole('textbox', { name: `Selection notes for ${second}`, exact: true }),
   ).toHaveValue('Second hymn moved first');
   await choose(page, first, 'Opening');
-  await expect(page.getByRole('region', { name: 'Selection warnings' })).toContainText(
+  await expect(page.getByRole('dialog', { name: 'Selection warnings' })).toContainText(
     'Not classified for Opening.',
   );
-  await expect(page.getByRole('region', { name: 'Selection warnings' })).toContainText(
+  await expect(page.getByRole('dialog', { name: 'Selection warnings' })).toContainText(
     'Already selected in this program.',
   );
   await expect(page.getByRole('button', { name: 'Cancel choice', exact: true })).toBeFocused();
   await expect(page.getByRole('button', { name: 'Add anyway', exact: true })).toBeInViewport();
   expect(
     await page
-      .getByRole('region', { name: 'Selection warnings' })
+      .getByRole('dialog', { name: 'Selection warnings' })
       .locator('.form-actions')
       .evaluate((node) => getComputedStyle(node).backgroundColor),
   ).toBe('rgba(0, 0, 0, 0)');
@@ -480,7 +480,7 @@ test('Planner: multiple rows, reorder, retry, conflict review, and navigation gu
   await page.getByRole('link', { name: 'Drafts', exact: true }).click();
   await page.getByLabel('Search Mass plans').fill(programTitle);
   await page.getByRole('link', { name: new RegExp(programTitle) }).click();
-  await page.getByRole('link', { name: 'Edit Mass', exact: true }).click();
+  await expect(page).toHaveURL(/\/edit$/);
   await saved(page);
   await editSelection(page, second);
   await expect(
@@ -506,8 +506,8 @@ test('Planner: multiple rows, reorder, retry, conflict review, and navigation gu
   await expect(other.getByRole('region', { name: 'Saved version' })).toContainText(
     'Winning version',
   );
-  other.once('dialog', (dialog) => void dialog.accept());
   await other.getByRole('button', { name: 'Discard local edits and reload' }).click();
+  await other.getByRole('button', { name: 'Load saved version' }).click();
   await saved(other);
   await editSelection(other, second);
   await expect(
@@ -598,7 +598,6 @@ test('Planner: optional details, create retry, saved filters, and picker sorting
   const title = `Simple draft ${suffix}-${info.project.name}`;
   const hymn = `Picker hymn ${suffix}-${info.project.name}`;
   await seedHymn(page, hymn);
-  page.on('dialog', (dialog) => void dialog.accept());
   await page.goto('/masses');
   await page.getByRole('link', { name: 'New Mass', exact: true }).click();
   await expect(page.getByLabel('Title', { exact: true })).toBeHidden();
@@ -618,10 +617,10 @@ test('Planner: optional details, create retry, saved filters, and picker sorting
     },
     { times: 1 },
   );
-  await page.locator('#create-mass').getByRole('button', { name: 'Next', exact: true }).click();
+  await continueMassCreation(page);
   await expect(page.getByRole('alert')).toContainText('Your input has been kept.');
   await expect(page.getByLabel('Title', { exact: true })).toHaveValue(title);
-  await page.locator('#create-mass').getByRole('button', { name: 'Next', exact: true }).click();
+  await continueMassCreation(page);
   await expect(page).toHaveURL(/\/masses\/\d+\/edit$/);
   await saved(page);
   await page.getByRole('button', { name: '← Back to Mass details' }).click();
@@ -811,7 +810,6 @@ test('Planner: nearest Sunday, Maronite date selection and manual season overrid
     path: `test-results/${info.project.name}-workspace.png`,
     fullPage: true,
   });
-  page.on('dialog', (dialog) => void dialog.accept());
   await page.goto('/masses');
   await page.getByRole('link', { name: 'New Mass', exact: true }).click();
   await expect(page.getByLabel('Date', { exact: true })).toHaveValue(nearestSunday());
@@ -825,7 +823,7 @@ test('Planner: nearest Sunday, Maronite date selection and manual season overrid
       .getByRole('option', { name: 'Resurrection', exact: true })
       .getAttribute('value'))!,
   );
-  await page.locator('#create-mass').getByRole('button', { name: 'Next', exact: true }).click();
+  await continueMassCreation(page);
   await expect(page).toHaveURL(/\/masses\/\d+\/edit$/);
   await saved(page);
   await page.getByRole('button', { name: '← Back to Mass details' }).click();

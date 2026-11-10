@@ -178,7 +178,7 @@ export class DraftSaver {
   /** Drain one snapshot at a time, coalescing edits made while an acknowledgement is pending. */
   flush(): Promise<void> {
     clearTimeout(this.timer);
-    // Explicit Save draft must await a write already started by autosave.
+    // Explicit actions must await a write already started by autosave.
     // All callers share the drain, including edits coalesced during that write.
     if (this.inFlight) return this.inFlight;
     if (this.state.error || !this.active) return Promise.resolve();

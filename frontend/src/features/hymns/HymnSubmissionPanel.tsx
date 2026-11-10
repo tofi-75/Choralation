@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router';
 import { ApiError } from '../../api/client';
 import type { Hymn } from '../../api/library';
 import { reviewHymn, submitHymn } from '../../api/library';
+import { FloatingNotice } from '../../components/FloatingNotice';
 import { useSession } from '../auth/SessionProvider';
 import { useChoir } from '../choirs/ChoirProvider';
 import { useRefreshLibrary } from './queries';
@@ -136,9 +137,9 @@ export function HymnSubmissionPanel({ hymn }: { hymn: Hymn }) {
         </div>
       )}
       {error && (
-        <p className="notice error" role="alert">
+        <FloatingNotice error dismiss={() => setError('')}>
           {error}
-        </p>
+        </FloatingNotice>
       )}
     </section>
   );

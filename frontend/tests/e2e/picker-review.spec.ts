@@ -145,7 +145,7 @@ test('Picker review: columns, compact controls, sidebar and drag keep identities
   } else await expect(picker.getByRole('table')).toHaveCount(0);
   await picker.screenshot({ path: info.outputPath('picker-controls.png') });
   await picker.getByRole('button', { name: `Choose ${titles[0]}`, exact: true }).click();
-  await expect(page.getByRole('region', { name: 'Selection warnings' })).toHaveCount(0);
+  await expect(page.getByRole('dialog', { name: 'Selection warnings' })).toHaveCount(0);
   await expect(page.locator('.save-status')).toHaveText('Saved');
   await expect(section.getByRole('button', { name: /^Reorder / })).toHaveCount(0);
   const edit = (await section
@@ -163,10 +163,10 @@ test('Picker review: columns, compact controls, sidebar and drag keep identities
     picker = await open();
     await picker.getByRole('button', { name: `Choose ${titles[index]}`, exact: true }).click();
     if (index === 2) {
-      await expect(picker.getByRole('region', { name: 'Selection warnings' })).toContainText(
+      await expect(page.getByRole('dialog', { name: 'Selection warnings' })).toContainText(
         'Classified for Advent & Christmas; this Mass is Holy Cross.',
       );
-      await picker.getByRole('button', { name: 'Add anyway' }).click();
+      await page.getByRole('button', { name: 'Add anyway' }).click();
     }
     await expect(page.locator('.save-status')).toHaveText('Saved');
     await expect(section.getByRole('button', { name: /^Reorder / })).toHaveCount(

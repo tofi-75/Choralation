@@ -14,7 +14,7 @@ from rest_framework.test import APIClient
 from accounts.models import AccountProfile, AccountToken
 from accounts.security import limit
 from accounts.services import consume_link, issue_link, set_email
-from choirs.models import JoinCode, JoinRequest, Membership
+from choirs.models import Choir, JoinCode, JoinRequest, Membership
 from choirs.services import change_member, create_choir, decide, regenerate, request_join
 from hymns.models import Hymn, Language, MassPlacement
 from masses.models import Mass, MassHymnSelection
@@ -49,6 +49,24 @@ def api_for(user, choir=None):
     api = APIClient(**({"HTTP_X_CHOIR_ID": str(choir.pk)} if choir else {}))
     api.force_authenticate(user)
     return api
+
+
+def test_default_choir_can_be_saved_and_cleared_only_for_accessible_choirs(enabled):
+    user = account("choir-preference")
+    member_choir = Choir.objects.create(name="Member choir")
+    hidden_choir = Choir.objects.create(name="Other choir")
+    Membership.objects.create(user=user, choir=member_choir, role="Member")
+    path = "/api/v1/auth/me/"
+    api = api_for(user)
+    assert api.get(path).json()["default_choir_id"] is None
+    assert api.patch(path, {"default_choir_id": hidden_choir.pk}, format="json").status_code == 404
+    saved = api.patch(path, {"default_choir_id": member_choir.pk}, format="json")
+    assert saved.status_code == 200
+    assert api_for(user).get(path).json()["default_choir_id"] == member_choir.pk
+    assert (
+        api.patch(path, {"default_choir_id": None}, format="json").json()["default_choir_id"]
+        is None
+    )
 
 
 def raw_token():

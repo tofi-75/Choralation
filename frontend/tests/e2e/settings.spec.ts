@@ -99,8 +99,8 @@ test('Admin classification lifecycle, reference safety, keyboard order and stale
   await expect(page.getByRole('textbox', { name: 'Description', exact: true })).toHaveValue(
     'Keep this deliberate edit',
   );
-  page.once('dialog', (d) => d.accept());
   await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await page.getByRole('button', { name: 'Discard changes', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Edit English', exact: true })).toBeFocused();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
@@ -189,8 +189,11 @@ test('choir calendar preview, overrides, version conflicts and read-only member 
   } finally {
     await memberContext.close();
   }
-  page.once('dialog', (d) => d.accept());
   await page.getByRole('button', { name: 'Remove override', exact: true }).click();
+  await page
+    .getByRole('dialog', { name: 'Confirm action' })
+    .getByRole('button', { name: 'Remove override', exact: true })
+    .click();
   await expect(page.getByText('No date overrides.', { exact: true })).toBeVisible();
   await page.getByLabel('Preview date', { exact: true }).fill('2027-03-28');
   await page.getByRole('button', { name: 'Preview suggestion', exact: true }).click();

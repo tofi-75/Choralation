@@ -14,7 +14,7 @@ import { ChoirRequired } from '../features/choirs/ChoirRequired';
 export function MassesPage() {
   const { active } = useChoir();
   const [params, setParams] = useSearchParams();
-  // Save draft keeps the lifecycle at draft. Only explicit finalization makes
+  // Drafts autosave while editing. An explicit Save Mass makes
   // a program ready; never infer readiness from hymn count or archive date.
   const status = params.get('status') === 'draft' ? 'draft' : 'finalized';
   const archived = status !== 'draft' && params.get('archived') === 'true';
@@ -238,7 +238,7 @@ export function MassesPage() {
                   ? 'No pending drafts. New drafts appear here while you prepare them.'
                   : archived
                     ? 'No archived Masses yet.'
-                    : 'No upcoming saved Masses. Finalize a saved draft to make it ready.'}
+                    : 'No upcoming saved Masses. Save a draft Mass to make it ready.'}
             </p>
           )}
           {!query.data.next && query.data.count > 0 && (

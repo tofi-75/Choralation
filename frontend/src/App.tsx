@@ -77,7 +77,7 @@ export function App() {
         <Route path="/reset-password" element={<AccountPages mode="reset" />} />
         <Route element={<ProtectedRoute />}>
           <Route element={<ChoirShell />}>
-            <Route path="/account" element={<AccountPages mode="account" />} />
+            <Route path="/account" element={<Navigate to="/settings?tab=account" replace />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/choirs/:id/calendar" element={<CalendarSettingsPage />} />
             <Route path="/choirs" element={<ChoirPages mode="list" />} />

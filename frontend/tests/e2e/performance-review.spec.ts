@@ -58,6 +58,71 @@ async function checkPdfZoom(viewer: Locator) {
   await expect.poll(fits).toBe(true);
 }
 
+async function checkFocusRotation(page: Page, focus: Locator) {
+  const portrait = page.viewportSize()!;
+  const rotation = await page.context().newCDPSession(page);
+  const viewport = focus.locator('.pdf-viewport');
+  const canvas = viewport.locator('canvas');
+  const fitsPage = () =>
+    viewport.evaluate((element) => {
+      const page = element.querySelector('canvas')!.getBoundingClientRect();
+      return page.width <= element.clientWidth + 1 && page.height <= element.clientHeight + 1;
+    });
+  const rotate = (landscape: boolean) =>
+    rotation.send('Emulation.setDeviceMetricsOverride', {
+      width: landscape ? portrait.height : portrait.width,
+      height: landscape ? portrait.width : portrait.height,
+      deviceScaleFactor: 1,
+      mobile: true,
+      screenOrientation: landscape
+        ? { type: 'landscapePrimary', angle: 90 }
+        : { type: 'portraitPrimary', angle: 0 },
+    });
+
+  try {
+    await rotate(true);
+    await expect(focus.getByRole('button', { name: 'Fit to height', exact: true })).toBeVisible();
+    await expect
+      .poll(() =>
+        viewport.evaluate((element) =>
+          Math.abs(
+            element.querySelector('canvas')!.getBoundingClientRect().width - element.clientWidth,
+          ),
+        ),
+      )
+      .toBeLessThan(2);
+    await rotate(false);
+    await expect(focus.getByRole('button', { name: 'Fit to width', exact: true })).toBeVisible();
+    await expect.poll(fitsPage).toBe(true);
+
+    const fitWidth = (await canvas.boundingBox())!.width;
+    const portraitWidth = await viewport.evaluate((element) => element.clientWidth);
+    await focus.getByRole('button', { name: 'Zoom in', exact: true }).click();
+    await expect
+      .poll(async () => (await canvas.boundingBox())!.width)
+      .toBeGreaterThan(fitWidth * 1.2);
+    const zoomed = (await canvas.boundingBox())!;
+    await rotate(true);
+    await expect
+      .poll(() => viewport.evaluate((element) => element.clientWidth))
+      .toBeGreaterThan(portraitWidth);
+    await expect(focus.getByRole('button', { name: 'Fit to width', exact: true })).toBeVisible();
+    await expect(focus.getByLabel('Zoom relative to fit')).toHaveText('125%');
+    expect((await canvas.boundingBox())!.width).toBeCloseTo(zoomed.width, 0);
+    expect((await canvas.boundingBox())!.height).toBeCloseTo(zoomed.height, 0);
+    await rotate(false);
+    await expect
+      .poll(() => viewport.evaluate((element) => element.clientWidth))
+      .toBe(portraitWidth);
+    expect((await canvas.boundingBox())!.width).toBeCloseTo(zoomed.width, 0);
+    await focus.getByRole('button', { name: 'Zoom out', exact: true }).click();
+    await expect.poll(fitsPage).toBe(true);
+  } finally {
+    await rotate(false);
+    await rotation.detach();
+  }
+}
+
 async function swipePdf(page: Page, viewer: Locator, direction: 'left' | 'right' | 'down') {
   const box = (await viewer.locator('.pdf-viewport').boundingBox())!;
   const session = await page.context().newCDPSession(page);
@@ -249,13 +314,22 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
     await expect(fullscreen.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();
     await swipePdf(page, fullscreen, 'right');
     await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
-    await swipePdf(page, fullscreen, 'down');
-    await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
     await fullscreen.getByRole('button', { name: 'Zoom in', exact: true }).click();
     await expect(readingArea).toHaveAttribute('aria-busy', 'false');
     await swipePdf(page, fullscreen, 'left');
     await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
-    await fullscreen.getByRole('button', { name: 'Zoom out', exact: true }).click();
+    for (let step = 0; step < 2; step++)
+      await fullscreen.getByRole('button', { name: 'Zoom in', exact: true }).click();
+    await expect
+      .poll(() => readingArea.evaluate((element) => element.scrollHeight - element.clientHeight))
+      .toBeGreaterThan(75);
+    await readingArea.evaluate((element) => {
+      element.scrollTop = 75;
+    });
+    await swipePdf(page, fullscreen, 'down');
+    await expect(fullscreen).toBeVisible();
+    for (let step = 0; step < 3; step++)
+      await fullscreen.getByRole('button', { name: 'Zoom out', exact: true }).click();
   }
   await fullscreen.getByRole('button', { name: 'Next PDF page', exact: true }).click();
   await expect(fullscreen.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();
@@ -297,7 +371,8 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
         page.evaluate(() => document.fullscreenElement?.classList.contains('pdf-fullscreen')),
       )
       .toBe(true);
-  await fullscreen.getByRole('button', { name: 'Exit PDF fullscreen', exact: true }).click();
+  if (mobile) await swipePdf(page, fullscreen, 'down');
+  else await fullscreen.getByRole('button', { name: 'Exit PDF fullscreen', exact: true }).click();
   await expect(fullscreen).toHaveCount(0);
   await expect(
     page.getByRole('button', { name: `Open ${pdf.title} PDF fullscreen`, exact: true }),
@@ -354,6 +429,7 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
     await expect
       .poll(() => page.evaluate(() => document.fullscreenElement?.className))
       .toBe('mass-focus');
+  await expect(focus.locator('.focus-header')).toHaveText('✕');
   await expect(focus.getByRole('heading', { name: pdf.title, exact: true })).toBeVisible();
   await expect(focus.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
   await expect(focus.getByText('Loading sheet music…', { exact: true })).toHaveCount(0);
@@ -373,12 +449,15 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
     .click();
   await expect(fullscreen).toBeVisible();
   await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
-  await fullscreen.getByRole('button', { name: 'Exit PDF fullscreen', exact: true }).click();
+  if (mobile) await swipePdf(page, fullscreen, 'down');
+  else await fullscreen.getByRole('button', { name: 'Exit PDF fullscreen', exact: true }).click();
   await expect(fullscreen).toHaveCount(0);
   await expect(focus.getByText('Hymn 1 of 4', { exact: true })).toBeVisible();
   if (nativeFocus) {
     expect(await page.evaluate(() => document.fullscreenElement?.className)).toBe('mass-focus');
-    await focus.getByRole('button', { name: 'Exit focus mode', exact: true }).click();
+    if (mobile) await swipePdf(page, focus, 'down');
+    else await focus.getByRole('button', { name: 'Exit focus mode', exact: true }).click();
+    await expect(focus).toHaveCount(0);
     await expect.poll(() => page.evaluate(() => document.fullscreenElement === null)).toBe(true);
   }
   // Browsers without the Fullscreen API still get a full-viewport reading dialog.
@@ -470,6 +549,19 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   await expect(focus.locator('.hymn-lyrics')).toHaveText('PDF fallback lyrics');
   await page.keyboard.press('Escape');
   await expect(focus).toHaveCount(0);
+
+  if (mobile) {
+    // Start a fresh focus session for device rotation so it cannot affect the fallback viewport checks.
+    await page.unroute(`**/api/v1/hymns/${pdf.id}/sheet-music/`);
+    await page.reload();
+    await page.getByRole('button', { name: 'Focus mode', exact: true }).click();
+    await expect(focus.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
+    await expect(focus.locator('.pdf-viewport')).toHaveAttribute('aria-busy', 'false');
+    await checkFocusRotation(page, focus);
+    await swipePdf(page, focus, 'down');
+    await expect(focus).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Focus mode', exact: true })).toBeFocused();
+  }
 });
 
 test('Home heading alignment and Mass actions stay on one line at narrow widths', async ({

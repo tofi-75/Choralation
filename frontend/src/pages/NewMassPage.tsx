@@ -5,6 +5,8 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router';
+import { useConfirmation } from '../components/ConfirmationProvider';
+import { FloatingNotice } from '../components/FloatingNotice';
 import { createMass, fetchMasses } from '../api/masses';
 import { useChoir } from '../features/choirs/ChoirProvider';
 import { ChoirRequired } from '../features/choirs/ChoirRequired';
@@ -14,6 +16,7 @@ import { MassDateFields } from '../features/masses/MassDateFields';
 
 export function NewMassPage() {
   const categories = useCategories();
+  const confirm = useConfirmation();
   const { active } = useChoir();
   const navigate = useNavigate();
   const client = useQueryClient();
@@ -50,9 +53,10 @@ export function NewMassPage() {
             );
             if (
               existing.count &&
-              !window.confirm(
+              !(await confirm(
                 `${existing.count} Mass plan${existing.count === 1 ? ' already exists' : 's already exist'} for ${newDate}. Create another Mass for this date?`,
-              )
+                'Create another Mass',
+              ))
             )
               return;
             const saved = await createMass(
@@ -109,9 +113,9 @@ export function NewMassPage() {
           </p>
         )}
         {failure && (
-          <p className="notice error" role="alert">
+          <FloatingNotice error dismiss={() => setFailure(null)}>
             {failure} Your input has been kept.
-          </p>
+          </FloatingNotice>
         )}
         <div className="form-actions">
           <button className="button primary" disabled={pending || calendarPending}>

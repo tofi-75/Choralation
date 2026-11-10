@@ -1,29 +1,32 @@
 import { useEffect } from 'react';
-import { useBlocker } from 'react-router';
+import { useBeforeUnload, useBlocker } from 'react-router';
+import { useConfirmation } from './ConfirmationProvider';
+import { useWorkspaceExitWarning } from './workspaceExit';
+
+const warning = 'Discard your unsaved settings changes?';
 
 /** Protect drafts on router navigation (including Back), reload, choir switches and sign-out. */
 export function useUnsavedSettings(dirty: boolean) {
   const blocker = useBlocker(dirty);
+  const confirm = useConfirmation();
   useEffect(() => {
-    if (blocker.state === 'blocked') {
-      if (window.confirm('Discard your unsaved settings changes?')) blocker.proceed();
+    if (blocker.state !== 'blocked') return;
+    let active = true;
+    void confirm(warning, 'Discard changes').then((discard) => {
+      if (!active) return;
+      if (discard) blocker.proceed();
       else blocker.reset();
-    }
-  }, [blocker]);
-  useEffect(() => {
-    if (!dirty) return;
-    const unload = (event: BeforeUnloadEvent) => {
+    });
+    return () => {
+      active = false;
+    };
+  }, [blocker, confirm]);
+
+  useBeforeUnload((event) => {
+    if (dirty) {
       event.preventDefault();
       event.returnValue = '';
-    };
-    const signout = (event: Event) => {
-      if (!window.confirm('Discard your unsaved settings changes?')) event.preventDefault();
-    };
-    window.addEventListener('beforeunload', unload);
-    window.addEventListener('choralation:before-signout', signout);
-    return () => {
-      window.removeEventListener('beforeunload', unload);
-      window.removeEventListener('choralation:before-signout', signout);
-    };
-  }, [dirty]);
+    }
+  });
+  useWorkspaceExitWarning(dirty, warning);
 }

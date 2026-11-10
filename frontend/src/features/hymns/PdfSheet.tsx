@@ -1,12 +1,13 @@
 /** Same-origin private PDFs, one bounded canvas at a time; no document scripts. */
 import * as Dialog from '@radix-ui/react-dialog';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { flushSync } from 'react-dom';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { useReaderFullscreen } from './useReaderFullscreen';
+import { useReaderSwipe } from './useReaderSwipe';
 
 GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -56,12 +57,38 @@ export default function PdfSheet({
     return () => clearTimeout(hideControls.current);
   }, [expanded]);
   const [zoom, setZoom] = useState(1);
+  const [zoomReference, setZoomReference] = useState<typeof size | null>(null);
+  const phoneFocus = focus && window.matchMedia?.('(any-pointer: coarse)').matches;
+  const fitSize = zoomReference ?? size;
+
+  function changeZoom(delta: number) {
+    const next = Math.max(0.5, Math.min(3, zoom + delta));
+    if (phoneFocus && size.width && size.height) {
+      // Keep the rendered scale while zoomed, even when rotation resizes the viewport.
+      setZoomReference(next === 1 ? null : (zoomReference ?? size));
+    }
+    setZoom(next);
+  }
+
+  const applyOrientationFit = useEffectEvent((landscape: boolean) => {
+    if (zoom === 1 && (window.visualViewport?.scale ?? 1) <= 1.01) {
+      setFit(landscape ? 'width' : 'height');
+    }
+  });
+  useEffect(() => {
+    if (!phoneFocus) return;
+    const orientation = window.matchMedia('(orientation: landscape)');
+    const rotate = (event: MediaQueryListEvent) => applyOrientationFit(event.matches);
+    orientation.addEventListener('change', rotate);
+    return () => orientation.removeEventListener('change', rotate);
+  }, [phoneFocus]);
   const [rendering, setRendering] = useState(true);
   const changeExpanded = useCallback((open: boolean) => {
     setRendering(true);
     setExpanded(open);
   }, []);
   const closeFullscreen = useCallback(() => changeExpanded(false), [changeExpanded]);
+  const swipe = useReaderSwipe({ dismiss: closeFullscreen, isolate: true });
   const { rootRef: fullscreenRoot, requestFullscreen } = useReaderFullscreen(
     expanded,
     closeFullscreen,
@@ -147,7 +174,7 @@ export default function PdfSheet({
     };
   }, [url, onFailure]);
   useEffect(() => {
-    if (!pdfDocument || !size.width || !size.height || !canvas) return;
+    if (!pdfDocument || !fitSize.width || !fitSize.height || !canvas) return;
     let active = true;
     let cancel: (() => void) | undefined;
     const target = canvas;
@@ -157,9 +184,9 @@ export default function PdfSheet({
         const pdfPage = await pdfDocument.getPage(page);
         if (!active) return;
         const original = pdfPage.getViewport({ scale: 1 });
-        const widthScale = size.width / original.width;
+        const widthScale = fitSize.width / original.width;
         const fitScale =
-          fit === 'height' ? Math.min(widthScale, size.height / original.height) : widthScale;
+          fit === 'height' ? Math.min(widthScale, fitSize.height / original.height) : widthScale;
         const scale = fitScale * zoom;
         const viewport = pdfPage.getViewport({ scale });
         // Bound memory on high-density phones and unusually tall pages.
@@ -188,7 +215,7 @@ export default function PdfSheet({
       active = false;
       cancel?.();
     };
-  }, [pdfDocument, page, size, fit, zoom, onFailure, canvas]);
+  }, [pdfDocument, page, fitSize, fit, zoom, onFailure, canvas]);
   useEffect(() => {
     if (container) {
       container.scrollTop = 0;
@@ -208,7 +235,7 @@ export default function PdfSheet({
             className="button secondary"
             aria-label="Zoom out"
             disabled={zoom <= 0.5}
-            onClick={() => setZoom((value) => Math.max(0.5, value - 0.25))}
+            onClick={() => changeZoom(-0.25)}
           >
             −
           </button>
@@ -217,7 +244,7 @@ export default function PdfSheet({
             className="button secondary"
             aria-label="Zoom in"
             disabled={zoom >= 3}
-            onClick={() => setZoom((value) => Math.min(3, value + 0.25))}
+            onClick={() => changeZoom(0.25)}
           >
             +
           </button>
@@ -228,6 +255,7 @@ export default function PdfSheet({
             onClick={() => {
               setFit(fit === 'height' ? 'width' : 'height');
               setZoom(1);
+              setZoomReference(null);
             }}
           >
             <svg
@@ -334,16 +362,9 @@ export default function PdfSheet({
           onPointerCancel={() => {
             pointer.current = null;
           }}
-          onTouchStart={(event) => {
-            if (expanded || zoom > 1) event.stopPropagation();
-          }}
           onTouchMove={(event) => {
-            if (expanded || zoom > 1) event.stopPropagation();
             // A second finger cancels page navigation; pinch/vertical pan remain native.
             if (event.touches.length !== 1) pointer.current = null;
-          }}
-          onTouchEnd={(event) => {
-            if (expanded || zoom > 1) event.stopPropagation();
           }}
           onClick={(event) => {
             const viewport = event.currentTarget;
@@ -422,9 +443,7 @@ export default function PdfSheet({
                 previewButton.current?.focus();
               }}
               onEscapeKeyDown={(event) => event.stopPropagation()}
-              onTouchStart={(event) => event.stopPropagation()}
-              onTouchMove={(event) => event.stopPropagation()}
-              onTouchEnd={(event) => event.stopPropagation()}
+              {...swipe}
               onKeyDown={(event) => {
                 event.stopPropagation();
                 if (!pdfDocument || event.altKey || event.ctrlKey || event.metaKey) return;

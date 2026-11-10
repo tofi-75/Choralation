@@ -2,6 +2,14 @@ import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 
 /** Legacy scenarios run explicitly in their fixture workspace, never a global tenant. */
+export async function continueMassCreation(page: Page) {
+  await page.locator('#create-mass').getByRole('button', { name: 'Next', exact: true }).click();
+  const duplicate = page.getByRole('button', { name: 'Create another Mass', exact: true });
+  const result = page.locator('.mass-planner, .floating-notice');
+  await duplicate.or(result).first().waitFor();
+  if (await duplicate.isVisible()) await duplicate.click();
+}
+
 export async function initialChoirId(page: Page): Promise<string> {
   const response = await page.request.get('/api/v1/choirs/');
   if (response.status() !== 200)

@@ -126,7 +126,7 @@ export function deleteMass(id: number, revision: number) {
 }
 
 /** Lifecycle uses the saved-view revision; stale confirmations require review. */
-export function transitionMass(mass: Mass, reopen: boolean) {
+export function transitionMass(mass: Pick<Mass, 'id' | 'revision'>, reopen: boolean) {
   return request(`/masses/${mass.id}/${reopen ? 'reopen' : 'finalize'}/`, massSchema, {
     method: 'POST',
     headers: { 'X-Expected-Mass-Revision': String(mass.revision) },

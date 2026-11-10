@@ -1,16 +1,26 @@
 import { useChoirQuery } from '../features/choirs/useChoirQuery';
-/** Saved programs open as compact read-only views; editing is an explicit route. */
+/** Finalized programs open as compact read-only views. */
 
-import { Link, useParams } from 'react-router';
+import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router';
 
 import { fetchMass } from '../api/masses';
 import { fetchMassPlacements } from '../api/library';
 import { MassFocusMode } from '../features/masses/MassFocusMode';
 import { MassLifecycle } from '../features/masses/MassLifecycle';
 import { useChoir } from '../features/choirs/ChoirProvider';
+import { useSession } from '../features/auth/SessionProvider';
+
+import { FloatingNotice } from '../components/FloatingNotice';
 
 export function MassViewPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const hymnSavedOutsideProgram =
+    typeof location.state?.hymnSavedOutsideProgram === 'string'
+      ? location.state.hymnSavedOutsideProgram
+      : null;
   const choir = useChoir();
+  const { user } = useSession();
   const { id } = useParams();
   const query = useChoirQuery({
     queryKey: ['mass', id],
@@ -52,6 +62,13 @@ export function MassViewPage() {
         </button>
       </section>
     );
+  if (
+    mass.status === 'draft' &&
+    (user?.role === 'Admin' ||
+      choir.choirs.some((c) => c.id === mass.choir_id && c.role === 'Planner'))
+  ) {
+    return <Navigate to={`/masses/${id}/edit`} replace />;
+  }
   const selected = new Set(mass.program.map((row) => row.placement.id));
   // Configuration supplies empty sections. Merge saved references so selected
   // inactive sections remain readable, then follow configured display order.
@@ -68,6 +85,15 @@ export function MassViewPage() {
   );
   return (
     <article className="mass-view">
+      {hymnSavedOutsideProgram && (
+        <FloatingNotice
+          dismiss={() => {
+            navigate(location.pathname, { replace: true, state: null });
+          }}
+        >
+          The hymn was saved to the library. {hymnSavedOutsideProgram}
+        </FloatingNotice>
+      )}
       <Link className="text-button" to="/masses">
         ← Mass plans
       </Link>

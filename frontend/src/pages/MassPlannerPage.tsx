@@ -3,11 +3,20 @@ import { useChoirQuery } from '../features/choirs/useChoirQuery';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Link, Navigate, useBeforeUnload, useBlocker, useNavigate, useParams } from 'react-router';
+import {
+  Link,
+  Navigate,
+  useBeforeUnload,
+  useBlocker,
+  useLocation,
+  useNavigate,
+  useParams,
+} from 'react-router';
 
 import { ApiError } from '../api/client';
-import type { Categories, Category } from '../api/library';
-import { deleteMass, fetchMass } from '../api/masses';
+import { fetchHymn } from '../api/library';
+import type { Categories, Category, Hymn } from '../api/library';
+import { deleteMass, fetchMass, transitionMass } from '../api/masses';
 import type { Mass } from '../api/masses';
 import { useSession } from '../features/auth/SessionProvider';
 import { useChoir } from '../features/choirs/ChoirProvider';
@@ -19,7 +28,13 @@ import { PlannerIcon } from '../features/masses/PlannerIcon';
 import { MassDateFields } from '../features/masses/MassDateFields';
 import { RandomPicker } from '../features/masses/RandomPicker';
 import { SortableProgram, reorderPlacement } from '../features/masses/SortableProgram';
-import { HymnPicker } from '../features/masses/HymnPicker';
+import { HymnPicker, selectionWarnings } from '../features/masses/HymnPicker';
+import { refreshMassUsage } from '../features/masses/refreshMassUsage';
+import { massHymnContext } from '../features/masses/hymnCreationRoute';
+import type { MassHymnContext } from '../features/masses/hymnCreationRoute';
+import { useConfirmation } from '../components/ConfirmationProvider';
+import { useWorkspaceExitWarning } from '../components/workspaceExit';
+import { FloatingNotice } from '../components/FloatingNotice';
 
 function validationMessages(value: unknown): string[] {
   if (typeof value === 'string') return [value];
@@ -30,6 +45,9 @@ function validationMessages(value: unknown): string[] {
 export function MassPlannerPage() {
   const choir = useChoir();
   const { id } = useParams();
+  const location = useLocation();
+  const hymnReturn = massHymnContext(location.state);
+  const returnedWithHymn = hymnReturn?.massId === Number(id) && Boolean(hymnReturn.hymnId);
   const mass = useChoirQuery({
     queryKey: ['mass', id],
     queryFn: (choirId) => fetchMass(id!, choirId),
@@ -47,6 +65,9 @@ export function MassPlannerPage() {
       <section role="alert">
         <h1>Unable to open Mass plan</h1>
         <p>{mass.error?.message ?? categories.error?.message}</p>
+        {returnedWithHymn && (
+          <p>Your new hymn is saved in the library. The Mass must be available to add it.</p>
+        )}
         <button
           className="button secondary"
           onClick={() => {
@@ -63,7 +84,17 @@ export function MassPlannerPage() {
     !choir.choirs.some((c) => c.id === mass.data.choir_id && c.role === 'Planner') &&
     user?.role !== 'Admin'
   )
-    return <Navigate to={`/masses/${id}`} replace />;
+    return (
+      <Navigate
+        to={`/masses/${id}`}
+        replace
+        state={
+          returnedWithHymn
+            ? { hymnSavedOutsideProgram: 'You no longer have permission to edit this Mass.' }
+            : undefined
+        }
+      />
+    );
   if (choir.active?.id !== mass.data.choir_id)
     return (
       <section className="form-section">
@@ -107,11 +138,20 @@ export function MassPlannerPage() {
 
 /** Decide access on entry only. A background finalize must not unmount local edits. */
 function DraftEntry(props: Parameters<typeof Planner>[0]) {
+  const location = useLocation();
   const [enteredDraft] = useState(() => props.initial.status === 'draft');
   return enteredDraft ? (
     <Planner {...props} />
   ) : (
-    <Navigate to={`/masses/${props.initial.id}`} replace />
+    <Navigate
+      to={`/masses/${props.initial.id}`}
+      replace
+      state={
+        massHymnContext(location.state)?.hymnId
+          ? { hymnSavedOutsideProgram: 'This Mass has already been finalized.' }
+          : undefined
+      }
+    />
   );
 }
 
@@ -125,17 +165,37 @@ function Planner({
   reload: (saved: Mass) => void;
 }) {
   const choirContext = useChoir();
+  const confirm = useConfirmation();
   const [saver] = useState(() => new DraftSaver(initial));
   const subscribe = useCallback((callback: () => void) => saver.subscribe(callback), [saver]);
   const state = useSyncExternalStore(subscribe, () => saver.state);
   const { user } = useSession();
   const client = useQueryClient();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [returnContext] = useState(() => {
+    const context = massHymnContext(location.state);
+    if (context?.massId === initial.id && context.choirId === initial.choir_id) return context;
+  });
+  const [creation, setCreation] = useState<MassHymnContext | null>(null);
+  const startingCreation = useRef(false);
+  const [leavingForHymn, setLeavingForHymn] = useState(false);
+  const [returnedHymn, setReturnedHymn] = useState<Hymn | null>(null);
+  const handledReturn = useRef(false);
+  const returnPlacement = categories['mass-placements'].find(
+    (row) => row.id === returnContext?.placementId && row.is_active,
+  );
+  const createdHymnId = returnContext?.hymnId;
+  const createdHymn = useChoirQuery({
+    queryKey: ['hymn', 'mass-return', createdHymnId],
+    queryFn: (choirId) => fetchHymn(String(createdHymnId), choirId),
+    enabled: Boolean(createdHymnId && returnPlacement),
+  });
   const [finishing, setFinishing] = useState(false);
   const [detailsStep, setDetailsStep] = useState(false);
   const [randomPending, setRandomPending] = useState(false);
-  const editable = user?.role !== 'Viewer' && initial.status === 'draft';
-  const readOnly = !editable || finishing;
+  const editable = initial.status === 'draft';
+  const readOnly = !editable || finishing || leavingForHymn;
   const [calendarPending, setCalendarPending] = useState(false);
   const dirty = state.status !== 'Saved' || calendarPending;
   const changeDate = useCallback(
@@ -147,23 +207,86 @@ function Planner({
     [saver],
   );
   const blocker = useBlocker(dirty);
-  const [picker, setPicker] = useState<Category | null>(null);
+  const [picker, setPicker] = useState<Category | null>(returnPlacement ?? null);
+  const [pickerSearch, setPickerSearch] = useState(returnContext?.search ?? '');
   const [editing, setEditing] = useState<string | null>(null);
   const [replacing, setReplacing] = useState<string | null>(null);
   const [server, setServer] = useState<Mass | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [dismissedSaveError, setDismissedSaveError] = useState<Error | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [busy, setBusy] = useState(false);
   const cancelDelete = useRef<HTMLButtonElement>(null);
   const deleteTrigger = useRef<HTMLButtonElement>(null);
   const pickerTrigger = useRef<HTMLButtonElement | null>(null);
   const lastSavedRevision = useRef(initial.revision);
+  const [finalized, setFinalized] = useState(false);
+  const finalizing = useRef(false);
   useEffect(() => {
-    // Navigate only after React has received the saved state, so the unsaved
-    // navigation guard cannot intercept a successfully completed Save draft.
-    if (finishing && state.status === 'Saved' && !calendarPending)
-      navigate(`/masses/${initial.id}`);
-  }, [finishing, state.status, calendarPending, initial.id, navigate]);
+    if (finalized && !dirty) navigate(`/masses/${initial.id}`, { replace: true });
+  }, [finalized, dirty, initial.id, navigate]);
+  useEffect(() => {
+    if (creation && !dirty) navigate('/hymns/new', { state: { fromMass: creation } });
+  }, [creation, dirty, navigate]);
+  useEffect(() => {
+    if (!returnContext || handledReturn.current || dirty) return;
+    if (createdHymnId && returnPlacement && !createdHymn.isFetchedAfterMount) return;
+    // Consume the return before adding a row so a reload or history entry cannot replay it.
+    handledReturn.current = true;
+    navigate(location.pathname, { replace: true, state: null });
+    if (!createdHymnId) return;
+    const hymn = createdHymn.data;
+    if (
+      !returnPlacement ||
+      createdHymn.error ||
+      !hymn?.is_active ||
+      (hymn.publication_status ?? 'published') !== 'published'
+    ) {
+      setActionError(
+        'The hymn was saved to the library. It could not be added to this Mass section.',
+      );
+      return;
+    }
+    const latest = saver.state.draft;
+    const season = latest.metadata.liturgical_season_id;
+    const seasonName = categories['liturgical-seasons'].find((row) => row.id === season)?.name;
+    if (
+      selectionWarnings(
+        hymn,
+        returnPlacement,
+        season,
+        seasonName,
+        latest.rows.map((row) => row.hymn.id),
+      ).length
+    ) {
+      setReturnedHymn(hymn);
+      setPicker(returnPlacement);
+      return;
+    }
+    saver.update({
+      ...latest,
+      rows: [
+        ...latest.rows,
+        { key: newRowKey(), placement_id: returnPlacement.id, hymn, notes: '' },
+      ],
+    });
+    setPicker(null);
+    document
+      .getElementById(`mass-placement-${returnPlacement.id}`)
+      ?.scrollIntoView?.({ block: 'nearest' });
+  }, [
+    returnContext,
+    createdHymnId,
+    returnPlacement,
+    createdHymn.isFetchedAfterMount,
+    createdHymn.data,
+    createdHymn.error,
+    dirty,
+    location.pathname,
+    navigate,
+    saver,
+    categories,
+  ]);
   useEffect(() => {
     saver.refreshReferences(initial.program, categories['mass-placements']);
   }, [saver, initial, categories]);
@@ -180,17 +303,7 @@ function Planner({
       void client.invalidateQueries({ queryKey: ['mass', String(initial.id)] });
     }
   }, [state.status, state.revision, initial.id, client]);
-  useEffect(() => {
-    const beforeSignout = (event: Event) => {
-      if (
-        dirty &&
-        !window.confirm('Sign out with unsaved Mass edits? Your local edits will be lost.')
-      )
-        event.preventDefault();
-    };
-    window.addEventListener('choralation:before-signout', beforeSignout);
-    return () => window.removeEventListener('choralation:before-signout', beforeSignout);
-  }, [dirty]);
+  useWorkspaceExitWarning(dirty, 'Leave with unsaved Mass edits? Your local edits will be lost.');
   const draft = state.draft;
   const programWarnings = saver.programWarnings;
   const placements = categories['mass-placements'].filter(
@@ -201,9 +314,50 @@ function Planner({
     draft.rows.some((selection) => selection.placement_id === row.id),
   ).length;
   const update = (next: Draft) => saver.update(next);
+  async function createMissingHymn(placement: Category, search: string) {
+    if (startingCreation.current || finalizing.current || calendarPending || randomPending) return;
+    startingCreation.current = true;
+    setLeavingForHymn(true);
+    try {
+      await saver.flush();
+      if (saver.state.status !== 'Saved') return;
+      setCreation({
+        massId: initial.id,
+        choirId: initial.choir_id,
+        placementId: placement.id,
+        search,
+      });
+    } finally {
+      if (saver.state.status !== 'Saved') {
+        setLeavingForHymn(false);
+        startingCreation.current = false;
+      }
+    }
+  }
   const conflicts =
     state.error instanceof ApiError &&
     ['revision_conflict', 'mass_finalized', 'revision_required'].includes(state.error.code);
+  const saveError = state.error !== dismissedSaveError && !actionError ? state.error : null;
+  const recoverSave = state.error && (
+    <button
+      className="button secondary"
+      onClick={async () => {
+        if (!conflicts) {
+          saver.retry();
+          return;
+        }
+        setDismissedSaveError(state.error);
+        setActionError(null);
+        try {
+          setServer(await fetchMass(String(initial.id), choirContext.active?.id));
+        } catch (error) {
+          setActionError(error instanceof Error ? error.message : 'Unable to load saved version.');
+        }
+      }}
+    >
+      {conflicts ? 'Review saved version' : 'Retry save'}
+    </button>
+  );
   return (
     <div className="mass-planner">
       <Link className="text-button" to="/masses">
@@ -229,43 +383,28 @@ function Planner({
           <Link to={`/masses/${initial.id}`}>Open finalized program</Link>
         </p>
       )}
-      {state.error && (
-        <section className="notice error" role="alert">
-          <p>{state.error.message} Your local edits have been kept.</p>
-          {state.error instanceof ApiError && (
+      {saveError ? (
+        <FloatingNotice
+          error
+          dismiss={() => setDismissedSaveError(saveError)}
+          actions={recoverSave}
+        >
+          <p>{saveError.message} Your local edits have been kept.</p>
+          {saveError instanceof ApiError && validationMessages(saveError.fields).length > 0 && (
             <ul>
-              {[...new Set(validationMessages(state.error.fields))].map((message) => (
+              {[...new Set(validationMessages(saveError.fields))].map((message) => (
                 <li key={message}>{message}</li>
               ))}
             </ul>
           )}
-          {conflicts ? (
-            <button
-              className="button secondary"
-              onClick={async () => {
-                setActionError(null);
-                try {
-                  setServer(await fetchMass(String(initial.id)));
-                } catch (error) {
-                  setActionError(
-                    error instanceof Error ? error.message : 'Unable to load saved version.',
-                  );
-                }
-              }}
-            >
-              Review saved version
-            </button>
-          ) : (
-            <button className="button secondary" onClick={() => saver.retry()}>
-              Retry save
-            </button>
-          )}
-        </section>
+        </FloatingNotice>
+      ) : (
+        recoverSave
       )}
       {actionError && (
-        <p className="notice error" role="alert">
+        <FloatingNotice error dismiss={() => setActionError(null)}>
           {actionError}
-        </p>
+        </FloatingNotice>
       )}
       {server && (
         <section className="form-section" aria-label="Saved version">
@@ -286,7 +425,12 @@ function Planner({
           <button
             className="button secondary"
             onClick={async () => {
-              if (window.confirm('Discard local edits and load the latest saved version?')) {
+              if (
+                await confirm(
+                  'Discard local edits and load the latest saved version?',
+                  'Load saved version',
+                )
+              ) {
                 try {
                   const latest = await fetchMass(String(initial.id));
                   client.setQueryData(
@@ -392,7 +536,12 @@ function Planner({
           {placements.map((placement) => {
             const rows = draft.rows.filter((row) => row.placement_id === placement.id);
             return (
-              <section className="placement-section" aria-label={placement.name} key={placement.id}>
+              <section
+                className="placement-section"
+                id={`mass-placement-${placement.id}`}
+                aria-label={placement.name}
+                key={placement.id}
+              >
                 <div className="section-heading">
                   <h2 dir="auto">
                     {placement.name}
@@ -407,6 +556,8 @@ function Planner({
                       aria-controls={`picker-${placement.id}`}
                       onClick={(event) => {
                         setReplacing(null);
+                        setReturnedHymn(null);
+                        setPickerSearch('');
                         pickerTrigger.current = event.currentTarget;
                         setPicker(picker?.id === placement.id ? null : placement);
                       }}
@@ -415,9 +566,16 @@ function Planner({
                     </button>
                   )}
                 </div>
-                {picker?.id === placement.id && !readOnly && (
+                {picker?.id === placement.id && editable && !finishing && (
                   <HymnPicker
-                    key={`${picker?.id}-${draft.metadata.liturgical_season_id}`}
+                    key={`${picker?.id}-${draft.metadata.liturgical_season_id}-${returnedHymn?.id ?? ''}`}
+                    initialSearch={pickerSearch}
+                    initialCandidate={returnedHymn}
+                    create={
+                      user?.role !== 'Viewer' && !replacing && !calendarPending && !randomPending
+                        ? (search) => void createMissingHymn(placement, search)
+                        : undefined
+                    }
                     categories={categories}
                     restoreFocus={() => pickerTrigger.current?.focus()}
                     placement={placement}
@@ -425,9 +583,12 @@ function Planner({
                     selected={draft.rows
                       .filter((row) => row.key !== replacing)
                       .map((row) => row.hymn.id)}
-                    close={() => setPicker(null)}
+                    close={() => {
+                      setPicker(null);
+                      setReturnedHymn(null);
+                    }}
                     add={(hymn) => {
-                      if (!picker) return;
+                      if (!picker || readOnly) return;
                       update({
                         ...saver.state.draft,
                         // Replacing a choice retains its selection identity, order and notes.
@@ -527,6 +688,8 @@ function Planner({
                                 onClick={(event) => {
                                   pickerTrigger.current = event.currentTarget;
                                   setReplacing(row.key);
+                                  setReturnedHymn(null);
+                                  setPickerSearch('');
                                   setPicker(placement);
                                 }}
                               >
@@ -590,20 +753,54 @@ function Planner({
         <div className="form-actions sticky-form-actions">
           <button
             className="button primary"
-            disabled={calendarPending || randomPending || finishing || Boolean(state.error)}
+            disabled={calendarPending || randomPending || readOnly || Boolean(state.error)}
             onClick={async () => {
+              if (finalizing.current) return;
+              finalizing.current = true;
               setFinishing(true);
-              await saver.flush();
-              if (saver.state.status !== 'Saved') setFinishing(false);
+              setActionError(null);
+              try {
+                await saver.flush();
+                if (saver.state.status !== 'Saved') return;
+                const saved = await transitionMass(
+                  { id: initial.id, revision: saver.state.revision },
+                  false,
+                );
+                client.setQueryData(
+                  ['mass', String(saved.id), choirContext.active?.id ?? null],
+                  saved,
+                );
+                void refreshMassUsage(client);
+                setFinalized(true);
+              } catch (error) {
+                setActionError(
+                  error instanceof Error
+                    ? error.message
+                    : 'Unable to finalize this Mass. Try again.',
+                );
+                if (
+                  error instanceof ApiError &&
+                  ['revision_conflict', 'mass_finalized'].includes(error.code)
+                ) {
+                  try {
+                    setServer(await fetchMass(String(initial.id), choirContext.active?.id));
+                  } catch {
+                    // The draft remains open so the user can review or retry.
+                  }
+                }
+              } finally {
+                finalizing.current = false;
+                setFinishing(false);
+              }
             }}
           >
-            {finishing ? 'Saving draft…' : 'Save draft'}
+            {finishing ? 'Saving Mass…' : 'Save Mass'}
           </button>
           {user?.role === 'Admin' && (
             <button
               ref={deleteTrigger}
               className="button secondary"
-              disabled={dirty || finishing || randomPending}
+              disabled={dirty || readOnly || randomPending}
               onClick={() => setDeleting(true)}
             >
               Delete draft

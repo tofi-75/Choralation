@@ -6,6 +6,7 @@ import { flushSync } from 'react-dom';
 import type { Mass } from '../../api/masses';
 import { HymnMaterial } from '../hymns/HymnMaterial';
 import { useReaderFullscreen } from '../hymns/useReaderFullscreen';
+import { useReaderSwipe } from '../hymns/useReaderSwipe';
 
 import type { PdfFit } from '../hymns/PdfSheet';
 
@@ -69,24 +70,37 @@ function useScreenAwake() {
 function FocusSession({
   selections: initialSelections,
   rootRef,
+  closeFocus,
 }: {
   selections: Selection[];
   rootRef: Ref<HTMLDivElement>;
+  closeFocus: () => void;
 }) {
   // Keep the reading sequence stable if another session edits/refetches the Mass.
   const [selections] = useState(initialSelections);
   const [index, setIndex] = useState(0);
-  const [fit, setFit] = useState<PdfFit>('height');
-  const touch = useRef<{ x: number; y: number } | null>(null);
+  const [fit, setFit] = useState<PdfFit>(() =>
+    window.matchMedia?.('(any-pointer: coarse) and (orientation: landscape)').matches
+      ? 'width'
+      : 'height',
+  );
   const awake = useScreenAwake();
   const selected = selections[index];
   const move = (delta: number) =>
     setIndex((value) => Math.max(0, Math.min(selections.length - 1, value + delta)));
+  const swipe = useReaderSwipe({
+    dismiss: closeFocus,
+    turn: (direction, target) => {
+      if (target.closest('.focus-reading') && !target.closest('.pdf-viewport[data-zoomed="true"]'))
+        move(direction);
+    },
+  });
   return (
     <Dialog.Content
       className="mass-focus"
       ref={rootRef}
-      aria-describedby="focus-help"
+      aria-describedby={undefined}
+      {...swipe}
       onKeyDown={(event) => {
         if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
         if (event.key === 'ArrowRight') {
@@ -99,43 +113,13 @@ function FocusSession({
         }
       }}
     >
+      <Dialog.Title className="sr-only">Focus mode</Dialog.Title>
       <header className="focus-header">
-        <div>
-          <Dialog.Title>Focus mode</Dialog.Title>
-          <Dialog.Description id="focus-help">
-            Swipe for hymns; PDF side arrows turn pages.
-          </Dialog.Description>
-        </div>
         <Dialog.Close className="button secondary focus-close" aria-label="Exit focus mode">
           ✕
         </Dialog.Close>
       </header>
-      <div
-        className="focus-reading"
-        key={selected.id}
-        onTouchStart={(event) => {
-          if (event.touches.length !== 1) {
-            touch.current = null;
-            return;
-          }
-          touch.current = { x: event.touches[0].clientX, y: event.touches[0].clientY };
-        }}
-        onTouchMove={(event) => {
-          if (event.touches.length !== 1) touch.current = null;
-        }}
-        onTouchCancel={() => {
-          touch.current = null;
-        }}
-        onTouchEnd={(event) => {
-          const start = touch.current;
-          touch.current = null;
-          if (!start || event.changedTouches.length !== 1) return;
-          const deltaX = event.changedTouches[0].clientX - start.x;
-          const deltaY = event.changedTouches[0].clientY - start.y;
-          if (Math.abs(deltaX) >= 55 && Math.abs(deltaX) > Math.abs(deltaY) * 1.4)
-            move(deltaX < 0 ? 1 : -1);
-        }}
-      >
+      <div className="focus-reading" key={selected.id}>
         <p className="focus-placement" dir="auto">
           {selected.placement.name}
         </p>
@@ -204,7 +188,7 @@ export function MassFocusMode({ selections }: { selections: Selection[] }) {
         {open && (
           <>
             <Dialog.Overlay className="dialog-overlay" />
-            <FocusSession selections={selections} rootRef={rootRef} />
+            <FocusSession selections={selections} rootRef={rootRef} closeFocus={closeFocus} />
           </>
         )}
       </Dialog.Portal>

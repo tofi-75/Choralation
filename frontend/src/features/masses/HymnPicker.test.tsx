@@ -82,7 +82,7 @@ it('Any-season choice bypasses the notice and generates no local program season 
 it('explicit other-season choice explains its classification and requires confirmation', async () => {
   const { add, choice } = picker(false);
   fireEvent.click(await screen.findByRole('button', { name: 'Choose First hymn' }));
-  expect(screen.getByRole('region', { name: 'Selection warnings' })).toHaveTextContent(
+  expect(screen.getByRole('dialog', { name: 'Selection warnings' })).toHaveTextContent(
     'Classified for Advent; this Mass is Holy Cross.',
   );
   expect(add).not.toHaveBeenCalled();

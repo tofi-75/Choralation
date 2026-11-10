@@ -64,17 +64,13 @@ test('Browser review: duplicate date, compact inline picker, HTTP random selecti
   expect(notesBox.y).toBeGreaterThanOrEqual(titleBox.y + titleBox.height);
 
   await page.getByLabel('Title', { exact: true }).fill(`${prefix} new`);
-  let confirmations = 0;
-  page.on('dialog', async (dialog) => {
-    expect(dialog.message()).toContain('Create another Mass for this date?');
-    confirmations++;
-    if (confirmations === 1) await dialog.dismiss();
-    else await dialog.accept();
-  });
+  const duplicate = page.getByRole('dialog', { name: 'Confirm action' });
   await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await expect.poll(() => confirmations).toBe(1);
+  await expect(duplicate).toContainText('Create another Mass for this date?');
+  await duplicate.getByRole('button', { name: 'Cancel' }).click();
   await expect(page.getByLabel('Title', { exact: true })).toHaveValue(`${prefix} new`);
   await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await duplicate.getByRole('button', { name: 'Create another Mass' }).click();
   await expect(page).toHaveURL(/\/masses\/\d+\/edit$/);
   const id = Number(page.url().split('/').at(-2));
   await expect(page.getByRole('region', { name: 'Confirmed Mass details' })).toContainText(
@@ -82,8 +78,9 @@ test('Browser review: duplicate date, compact inline picker, HTTP random selecti
   );
   await expect(page.getByLabel('Date', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Random hymns', exact: true }).click();
-  await expect(page.locator('.random-picker [role="status"]')).toContainText('random hymn');
-  await expect(page.locator('.random-picker [role="alert"]')).toHaveCount(0);
+  const notification = page.getByRole('dialog', { name: 'Notification' });
+  await expect(notification).toContainText('random hymn');
+  await notification.getByRole('button', { name: 'Dismiss' }).click();
   for (const name of ['first', 'second']) {
     const hymn = await page.request.post('/api/v1/hymns/', {
       headers,
@@ -147,18 +144,26 @@ test('Browser review: duplicate date, compact inline picker, HTTP random selecti
   await handle.press('Space');
   await page.screenshot({ path: info.outputPath('inline-picker-flow.png'), fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.getByRole('button', { name: 'Save draft', exact: true }).click();
+  await page.getByRole('button', { name: 'Save Mass', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/masses/${id}$`));
   const stored = await (await page.request.get(`/api/v1/masses/${id}/`)).json();
   expect(
     stored.program.some((row: { notes: string }) => row.notes === 'Keep this performance note'),
   ).toBe(true);
+  expect(stored.status).toBe('finalized');
+  const secondDraft = await page.request.post('/api/v1/masses/', {
+    headers,
+    data: { date: '2026-10-12', title: `${prefix} another draft` },
+  });
+  expect(secondDraft.status()).toBe(201);
   await page.goto(`/masses?status=draft&q=${encodeURIComponent(prefix)}`);
   await expect(page.locator('.mass-card')).toHaveCount(2);
   await expect(page.getByText('End of matching Mass plans', { exact: true })).toBeVisible();
-  await page.setViewportSize({ width: page.viewportSize()!.width, height: 520 });
+  await page.setViewportSize({ width: page.viewportSize()!.width, height: 380 });
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-  await page.getByRole('button', { name: 'Scroll to top', exact: true }).click();
+  const toTop = page.getByRole('button', { name: 'Scroll to top', exact: true });
+  await expect(toTop).toBeVisible();
+  await toTop.click();
   await expect(page.getByRole('link', { name: 'New Mass', exact: true })).toBeInViewport();
   await expect(page.getByRole('button', { name: 'Scroll to top', exact: true })).toHaveCount(0);
 });

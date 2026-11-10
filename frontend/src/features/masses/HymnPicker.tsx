@@ -1,3 +1,4 @@
+import * as Dialog from '@radix-ui/react-dialog';
 import { useChoirQuery } from '../choirs/useChoirQuery';
 /** Section-scoped choices; season/neutral preference is applied before pagination. */
 
@@ -39,6 +40,25 @@ function useDesktopResults() {
   return wide;
 }
 
+export function selectionWarnings(
+  hymn: Hymn,
+  placement: Category | null,
+  season: number | null,
+  seasonName: string | undefined,
+  selected: number[],
+) {
+  if (!placement) return [];
+  const warnings = [];
+  if (!hymn.placements.some((row) => row.id === placement.id))
+    warnings.push(`Not classified for ${placement.name}.`);
+  if (hasSeasonMismatch(hymn, season))
+    warnings.push(
+      `Classified for ${seasonLabel(hymn)}; this Mass is ${seasonName ?? 'a different season'}.`,
+    );
+  if (selected.includes(hymn.id)) warnings.push('Already selected in this program.');
+  return warnings;
+}
+
 export function HymnPicker({
   categories,
   restoreFocus,
@@ -47,6 +67,9 @@ export function HymnPicker({
   selected,
   close,
   add,
+  create,
+  initialSearch = '',
+  initialCandidate = null,
 }: {
   categories: Categories;
   restoreFocus: () => void;
@@ -55,13 +78,16 @@ export function HymnPicker({
   selected: number[];
   close: () => void;
   add: (hymn: Hymn) => void;
+  create?: (search: string) => void;
+  initialSearch?: string;
+  initialCandidate?: Hymn | null;
 }) {
   const desktop = useDesktopResults();
-  const [q, setQ] = useState('');
+  const [q, setQ] = useState(initialSearch);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [page, setPage] = useState(1);
-  const [candidate, setCandidate] = useState<Hymn | null>(null);
-  const [search, setSearch] = useState('');
+  const [candidate, setCandidate] = useState<Hymn | null>(initialCandidate);
+  const [search, setSearch] = useState(initialSearch);
   const [language, setLanguage] = useState('');
   const [genre, setGenre] = useState('');
   const [ordering, setOrdering] = useState('title');
@@ -70,8 +96,7 @@ export function HymnPicker({
   const choiceCancel = useRef<HTMLButtonElement>(null);
   const seasonName = categories['liturgical-seasons'].find((row) => row.id === season)?.name;
   useEffect(() => {
-    if (candidate) choiceCancel.current?.focus();
-    else if (placement) searchInput.current?.focus();
+    if (!candidate && placement) searchInput.current?.focus();
   }, [candidate, placement]);
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -108,18 +133,24 @@ export function HymnPicker({
       ),
     enabled: Boolean(placement),
   });
-  const warnings =
-    candidate && placement
-      ? [
-          !candidate.placements.some((row) => row.id === placement.id)
-            ? `Not classified for ${placement.name}.`
-            : null,
-          hasSeasonMismatch(candidate, season)
-            ? `Classified for ${seasonLabel(candidate)}; this Mass is ${seasonName ?? 'a different season'}.`
-            : null,
-          selected.includes(candidate.id) ? 'Already selected in this program.' : null,
-        ].filter(Boolean)
-      : [];
+  const settledEmpty = Boolean(
+    create &&
+    q.trim() &&
+    q === search &&
+    query.isSuccess &&
+    !query.isFetching &&
+    query.data.count === 0,
+  );
+  const filtered = !allPlacements || Boolean(language || genre);
+  const broader = useChoirQuery({
+    queryKey: ['hymns', 'picker-unfiltered', search],
+    queryFn: (choirId) => fetchHymns(new URLSearchParams({ q: search }).toString(), choirId),
+    enabled: settledEmpty && filtered,
+  });
+  const fullResults = filtered ? broader : query;
+  const warnings = candidate
+    ? selectionWarnings(candidate, placement, season, seasonName, selected)
+    : [];
   function changeOrdering(value: string) {
     setOrdering(value);
     setPage(1); // The API sorts the entire filtered result set, not just this page.
@@ -130,11 +161,7 @@ export function HymnPicker({
         className="button secondary icon-button"
         aria-label={`Choose ${hymn.title}`}
         onClick={() => {
-          if (
-            !hymn.placements.some((row) => row.id === placement?.id) ||
-            hasSeasonMismatch(hymn, season) ||
-            selected.includes(hymn.id)
-          )
+          if (selectionWarnings(hymn, placement, season, seasonName, selected).length)
             setCandidate(hymn);
           else choose(hymn);
         }}
@@ -166,7 +193,7 @@ export function HymnPicker({
       className="inline-hymn-picker"
       aria-label={`Add hymn to ${placement?.name}`}
       onKeyDown={(event) => {
-        if (event.key === 'Escape') {
+        if (event.key === 'Escape' && !candidate) {
           event.stopPropagation();
           closePicker();
         }
@@ -177,27 +204,45 @@ export function HymnPicker({
         {seasonName ? `${seasonName} / neutral first` : 'Section matches first'}
       </p>
       {candidate ? (
-        <section className="notice" aria-label="Selection warnings">
-          <h3 dir="auto">{candidate.title}</h3>
-          <ul>
-            {warnings.map((warning) => (
-              <li key={warning}>{warning}</li>
-            ))}
-          </ul>
-          <p>You can still use this hymn. Add it to {placement?.name}?</p>
-          <div className="form-actions">
-            <button
-              ref={choiceCancel}
-              className="button secondary"
-              onClick={() => setCandidate(null)}
+        <Dialog.Root
+          open
+          onOpenChange={(open) => {
+            if (!open) setCandidate(null);
+          }}
+        >
+          <Dialog.Portal>
+            <Dialog.Overlay className="dialog-overlay" />
+            <Dialog.Content
+              className="dialog-content"
+              aria-describedby={undefined}
+              onOpenAutoFocus={(event) => {
+                event.preventDefault();
+                choiceCancel.current?.focus();
+              }}
             >
-              Cancel choice
-            </button>
-            <button className="button primary" onClick={() => choose(candidate)}>
-              Add anyway
-            </button>
-          </div>
-        </section>
+              <Dialog.Title>Selection warnings</Dialog.Title>
+              <h3 dir="auto">{candidate.title}</h3>
+              <ul>
+                {warnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+              <p>You can still use this hymn. Add it to {placement?.name}?</p>
+              <div className="form-actions">
+                <button
+                  ref={choiceCancel}
+                  className="button secondary"
+                  onClick={() => setCandidate(null)}
+                >
+                  Cancel choice
+                </button>
+                <button className="button primary" onClick={() => choose(candidate)}>
+                  Add anyway
+                </button>
+              </div>
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
       ) : (
         <>
           <div className="picker-toolbar">
@@ -423,6 +468,32 @@ export function HymnPicker({
               Filters.
             </p>
           )}
+          {settledEmpty && fullResults.isFetching && <p role="status">Checking all placements…</p>}
+          {settledEmpty && filtered && fullResults.error && (
+            <button className="button secondary" onClick={() => void broader.refetch()}>
+              Retry library search
+            </button>
+          )}
+          {settledEmpty &&
+            fullResults.isSuccess &&
+            !fullResults.isFetching &&
+            (fullResults.data.count === 0 ? (
+              <button className="button primary" onClick={() => create?.(search.trim())}>
+                Hymn not found, add hymn?
+              </button>
+            ) : (
+              <button
+                className="button secondary"
+                onClick={() => {
+                  setAllPlacements(true);
+                  setLanguage('');
+                  setGenre('');
+                  setPage(1);
+                }}
+              >
+                Show matches from all placements
+              </button>
+            ))}
           <div className="form-actions">
             <button
               className="button secondary"

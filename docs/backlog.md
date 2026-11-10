@@ -19,11 +19,11 @@ Follow the [development plan](../DEVELOPMENT_PLAN.md) for complete milestone gat
 
 - **Mass creation date field on phones.** Match the date card to the size of the liturgical season field at the same phone width. Check that the date field fits within its card and that neither the card nor its contents cover nearby sections.
 - **Liturgical season choices.** Use the eight approved groups in order and align automatic Mass suggestions with them. Map the older default categories and their existing references as described in [App season groups](calendar.md#app-season-groups).
-- **Main menu order.** Show **Home**, **Hymns** (rename **Hymn library**), **Mass plans**, **Mass History**, and **Choirs**, in that order. Place **Settings** and **Account** in a separate group at the bottom and respect their existing access rules.
+- **Main menu order.** Show **Home**, **Hymns** (rename **Hymn library**), **Mass plans**, **Mass History**, and **Choirs**, in that order. Place **Settings** in a separate group at the bottom. Put **Account** and the default choir preference in Settings. Shared classifications remain available to administrators.
 - **Hymn actions on phones.** Place **My hymns** and **Add hymn** side by side on both the Hymns page and the Add hymn page.
 - **Scroll position after saving a hymn.** After a successful **Save hymn**, start at the top of the destination page. In the current standalone flow, that page is the saved hymn’s detail page.
 
-### Features to work on now
+### Features implemented locally
 
 #### Create a missing hymn from a draft Mass
 
@@ -34,12 +34,18 @@ Follow the [development plan](../DEVELOPMENT_PLAN.md) for complete milestone gat
 
 Verify the round trip with pending draft edits, insertion into the originating section, warning confirmation and cancellation, filtered search matches, save failures, and refresh or history replay.
 
+#### Resume and save a draft Mass
+
+Drafts open in the editor and autosave while being prepared. **Save Mass** finalizes the current revision and opens the read-only program. In-app confirmations and transient feedback use centered floating windows. The navigation drawer retains its side placement.
+
 #### Use the full phone display in fullscreen
 
 The local implementation requests native fullscreen for PDF reading and phone Mass Focus. Verify on physical iOS and Android phones and record how each behaves when native fullscreen is unavailable. See [phone fullscreen behavior](reader-and-account-refinements.md#phone-fullscreen-follow-up).
 
 ### Features for later
 
+- **Sign-in and create-account buttons.** Make **Create account** the same size as **Sign in**, using an unfilled style. Selecting **Create account** or **Sign in** swaps the two buttons’ positions and colors so the selected action is emphasized.
+- **Mass hymn picker.** When a search has no matches in the current placement, show **Hymn not found, add hymn?** directly in the picker alongside **Search all placements**. Use the same search text when broadening the search.
 - **Database storage and hymn load time.** Minimize database storage across all record types while targeting a load time under one second for every hymn, at minimum for its PDF. Define how load time will be measured, the test conditions, and storage tradeoffs when this work is discussed.
 - **Hymn search.** Improve matching and result ranking for searches in the hymn’s language and for queries across languages. Define the language pairs, expected matches, and search quality criteria when this work is scheduled.
 

@@ -1,6 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useLocation } from 'react-router';
 import {
   cancelApplication,
@@ -16,6 +16,7 @@ import {
 } from '../api/choirs';
 import type { Choir, ChoirInput } from '../api/choirs';
 import { ApiError } from '../api/client';
+import { FloatingNotice } from '../components/FloatingNotice';
 import { useSession } from '../features/auth/SessionProvider';
 import { useChoir } from '../features/choirs/ChoirProvider';
 import { HymnReviewQueue } from '../features/hymns/HymnReviewQueue';
@@ -63,6 +64,12 @@ export function ChoirPages({ mode }: { mode: 'list' | 'join' | 'new' | 'detail' 
   const { user } = useSession();
   const context = useChoir();
   const client = useQueryClient();
+  const userId = user?.id;
+  useEffect(() => {
+    if (userId && (mode === 'list' || mode === 'new')) {
+      void client.invalidateQueries({ queryKey: ['session'], exact: true });
+    }
+  }, [client, location.key, userId, mode]);
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [directoryPage, setDirectoryPage] = useState(1);
@@ -207,9 +214,13 @@ export function ChoirPages({ mode }: { mode: 'list' | 'join' | 'new' | 'detail' 
               <Link className="button secondary" to="/choirs/join">
                 Join choir
               </Link>
-              {user?.can_create_choirs && (
+              {user?.can_create_choirs ? (
                 <Link className="button primary" to="/choirs/new">
                   Create choir
+                </Link>
+              ) : (
+                <Link className="button secondary" to="/settings?tab=account">
+                  Request Manager access
                 </Link>
               )}
             </>
@@ -221,22 +232,18 @@ export function ChoirPages({ mode }: { mode: 'list' | 'join' | 'new' | 'detail' 
         </div>
       </div>
       {mode === 'list' && ['approved', 'declined'].includes(hymnReview ?? '') && (
-        <p className="notice" role="status">
+        <FloatingNotice dismiss={() => navigate(location.pathname, { replace: true, state: null })}>
           {hymnReview === 'approved'
             ? 'Hymn approved and published.'
             : 'Changes requested. The hymn remains private.'}
-        </p>
+        </FloatingNotice>
       )}
       {error && (
-        <p className="notice error" role="alert">
+        <FloatingNotice error dismiss={() => setError('')}>
           {error}
-        </p>
+        </FloatingNotice>
       )}
-      {notice && (
-        <p className="notice" role="status">
-          {notice}
-        </p>
-      )}
+      {notice && <FloatingNotice dismiss={() => setNotice('')}>{notice}</FloatingNotice>}
       {mode === 'list' && (
         <>
           {(user?.role === 'Admin' || context.choirs.some((choir) => choir.role === 'Planner')) && (
@@ -384,7 +391,10 @@ export function ChoirPages({ mode }: { mode: 'list' | 'join' | 'new' | 'detail' 
             </button>
           </form>
         ) : (
-          <p className="notice">An app administrator must grant permission to create choirs.</p>
+          <p className="notice">
+            An Admin must approve Manager access before you can create a choir.{' '}
+            <Link to="/settings?tab=account">Request Manager access</Link>
+          </p>
         ))}
       {mode === 'detail' && (
         <>

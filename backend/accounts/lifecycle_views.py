@@ -6,18 +6,23 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import Throttled, ValidationError
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts import services
-from accounts.models import AccountProfile
-from accounts.permissions import AdminPermission, VerifiedPermission
+from accounts import manager_requests, services
+from accounts.models import AccountProfile, ManagerRequest
+from accounts.permissions import AdminPermission, Role, VerifiedPermission, role_for
 from accounts.security import limit
 from accounts.serializers import (
     ChoirCreationPermissionSerializer,
     EmailSerializer,
     EmptySerializer,
+    ManagerDecisionSerializer,
+    ManagerRequestQueueSerializer,
+    ManagerRequestSerializer,
+    ManagerRequestStatusSerializer,
     MessageSerializer,
     PasswordSerializer,
     RegistrationSerializer,
@@ -233,12 +238,65 @@ class ChoirCreationPermissionView(APIView):
     def post(self, request):
         data = ChoirCreationPermissionSerializer(data=request.data)
         data.is_valid(raise_exception=True)
-        user = get_user_model().objects.filter(username=data.validated_data["username"]).first()
-        if user is None:
-            raise ValidationError({"username": ["Account not found."]})
-        profile = services.profile_for(user)
-        profile.can_create_choirs = data.validated_data["can_create_choirs"]
-        profile.save(update_fields=["can_create_choirs"])
+        manager_requests.set_choir_creation_permission(
+            request.user, data.validated_data["username"], data.validated_data["can_create_choirs"]
+        )
         return Response(
             {"detail": "Choir creation permission updated. Existing choir roles are unchanged."}
         )
+
+
+class MyManagerRequestView(APIView):
+    permission_classes = [VerifiedPermission]
+
+    @extend_schema(responses={200: ManagerRequestStatusSerializer})
+    def get(self, request):
+        item = (
+            request.user.manager_requests.select_related("applicant")
+            .order_by("-requested_at", "-id")
+            .first()
+        )
+        payload = {
+            "request": item,
+            "can_create_choirs": (
+                role_for(request.user) == Role.ADMIN
+                or services.profile_for(request.user).can_create_choirs
+            ),
+        }
+        return Response(ManagerRequestStatusSerializer(payload).data)
+
+    @extend_schema(request=EmptySerializer, responses={201: ManagerRequestStatusSerializer})
+    def post(self, request):
+        EmptySerializer(data=request.data).is_valid(raise_exception=True)
+        item = manager_requests.submit_manager_request(request.user)
+        payload = {"request": item, "can_create_choirs": False}
+        return Response(ManagerRequestStatusSerializer(payload).data, status=201)
+
+
+class ManagerRequestQueueView(APIView):
+    permission_classes = [AdminPermission]
+
+    @extend_schema(responses={200: ManagerRequestQueueSerializer})
+    def get(self, request):
+        rows = (
+            ManagerRequest.objects.filter(status=ManagerRequest.Status.PENDING)
+            .select_related("applicant")
+            .order_by("requested_at", "id")
+        )
+        paginator = PageNumberPagination()
+        paginator.page_size = 20
+        page = paginator.paginate_queryset(rows, request, view=self)
+        return paginator.get_paginated_response(ManagerRequestSerializer(page, many=True).data)
+
+
+class ManagerRequestDecisionView(APIView):
+    permission_classes = [AdminPermission]
+
+    @extend_schema(request=ManagerDecisionSerializer, responses={204: None})
+    def post(self, request, request_id):
+        data = ManagerDecisionSerializer(data=request.data)
+        data.is_valid(raise_exception=True)
+        manager_requests.decide_manager_request(
+            request.user, request_id, data.validated_data["status"]
+        )
+        return Response(status=204)

@@ -133,8 +133,11 @@ test('Planner: create Unicode hymn, save recovery, URL filters, refresh, and edi
   expect((await pdfResponse.body()).subarray(0, 5).toString()).toBe('%PDF-');
   await expect(page.getByRole('button', { name: 'Deactivate hymn' })).toHaveCount(0);
   await page.getByRole('link', { name: 'Edit hymn', exact: true }).click();
-  page.once('dialog', (dialog) => void dialog.dismiss());
   await page.getByRole('checkbox', { name: 'Polyphony (multiple voices)' }).click();
+  await page
+    .getByRole('dialog', { name: 'Confirm action' })
+    .getByRole('button', { name: 'Cancel' })
+    .click();
   await expect(page.getByRole('checkbox', { name: 'Polyphony (multiple voices)' })).toBeChecked();
   await expect(page.getByRole('textbox', { name: 'Voice 2', exact: true })).toHaveValue('Alto');
   await page.getByText('More hymn details').click();

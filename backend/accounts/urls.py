@@ -6,6 +6,9 @@ from accounts.lifecycle_views import (
     ChoirCreationPermissionView,
     ConfigView,
     EmailView,
+    ManagerRequestDecisionView,
+    ManagerRequestQueueView,
+    MyManagerRequestView,
     PasswordView,
     RegisterView,
     ResendView,
@@ -18,6 +21,9 @@ from accounts.views import CsrfView, LoginView, LogoutView, MeView
 
 urlpatterns = [
     path("choir-creation/", ChoirCreationPermissionView.as_view()),
+    path("manager-requests/me/", MyManagerRequestView.as_view()),
+    path("manager-requests/", ManagerRequestQueueView.as_view()),
+    path("manager-requests/<int:request_id>/decide/", ManagerRequestDecisionView.as_view()),
     path("config/", ConfigView.as_view()),
     path("register/", RegisterView.as_view()),
     path("username-availability/", UsernameAvailabilityView.as_view()),

@@ -19,7 +19,7 @@ const inactive = {
 };
 function mount(
   role = 'Planner',
-  status: 'draft' | 'finalized' = 'draft',
+  status: 'draft' | 'finalized' = 'finalized',
   empty = false,
   retainedInactive = false,
 ) {
@@ -61,16 +61,17 @@ function mount(
         <SessionProvider>
           <Routes>
             <Route path="/masses/:id" element={<MassViewPage />} />
+            <Route path="/masses/:id/edit" element={<h1>Draft editor</h1>} />
           </Routes>
         </SessionProvider>
       </MemoryRouter>
     </QueryClientProvider>,
   );
 }
-it('shows compact ordered hymns and notes with an explicit edit link', async () => {
+it('shows compact ordered hymns and notes with an edit action', async () => {
   mount();
   expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent('Draft Mass');
-  expect(screen.getByRole('link', { name: 'Edit Mass' })).toHaveAttribute('href', '/masses/1/edit');
+  expect(screen.getByRole('button', { name: 'Edit Mass' })).toBeVisible();
   expect(screen.getByRole('region', { name: 'Communion' })).toHaveTextContent('First hymn');
   expect(screen.getByRole('region', { name: 'Entrance' })).toHaveTextContent('Hymn not selected');
   expect(
@@ -82,20 +83,24 @@ it('shows compact ordered hymns and notes with an explicit edit link', async () 
   expect(screen.getByText('Quiet introduction')).toBeVisible();
   expect(screen.getByText('Choir instructions')).toBeVisible();
   expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: 'Save draft' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Save Mass' })).not.toBeInTheDocument();
 });
 it('keeps every active section visible when the entire saved program is empty', async () => {
-  mount('Planner', 'draft', true);
+  mount('Planner', 'finalized', true);
   await screen.findByRole('heading', { level: 1 });
   expect(screen.getAllByText('Hymn not selected')).toHaveLength(2);
   expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
   expect(screen.queryByRole('region', { name: 'Retired section' })).not.toBeInTheDocument();
 });
 it('retains a selected inactive section alongside empty active sections', async () => {
-  mount('Planner', 'draft', false, true);
+  mount('Planner', 'finalized', false, true);
   await screen.findByRole('heading', { level: 1 });
   expect(screen.getByRole('region', { name: 'Retired section' })).toHaveTextContent('First hymn');
   expect(screen.getAllByText('Hymn not selected')).toHaveLength(2);
+});
+it('opens an editable draft directly in the editor', async () => {
+  mount('Planner', 'draft');
+  expect(await screen.findByRole('heading', { name: 'Draft editor' })).toBeVisible();
 });
 it.each([
   ['Viewer', 'draft'],

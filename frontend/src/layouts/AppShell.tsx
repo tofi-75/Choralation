@@ -4,9 +4,12 @@ import { useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router';
 
 import { signOut } from '../api/auth';
+import { useConfirmation } from '../components/ConfirmationProvider';
+import { confirmWorkspaceExit } from '../components/workspaceExit';
+import { FloatingNotice } from '../components/FloatingNotice';
 import { PublicLinks } from '../components/PublicLinks';
 import { useSession } from '../features/auth/SessionProvider';
-import { useChoir } from '../features/choirs/ChoirProvider';
+import { choirStorageKey, useChoir } from '../features/choirs/ChoirProvider';
 
 const mainLinks = [
   ['/dashboard', 'Home', '⌂'],
@@ -18,14 +21,12 @@ const mainLinks = [
 
 export function AppShell() {
   const session = useSession();
+  const confirm = useConfirmation();
   const choir = useChoir();
   const [collapsed, setCollapsed] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
-  const accountLinks = [
-    ...(session.user?.role === 'Admin' ? [['/settings', 'Settings', '⚙']] : []),
-    ['/account', 'Account', '○'],
-  ];
+  const settingsLink = ['/settings', 'Settings', '⚙'];
 
   function desktopLink([path, label, icon]: string[]) {
     return (
@@ -47,7 +48,7 @@ export function AppShell() {
   function mobileLink([path, label]: string[]) {
     return (
       <Dialog.Close asChild key={path}>
-        <NavLink className={({ isActive }) => `nav-item ${isActive ? 'current' : ''}`} to={path}>
+        <NavLink className="nav-item" to={path}>
           {label}
         </NavLink>
       </Dialog.Close>
@@ -55,12 +56,16 @@ export function AppShell() {
   }
 
   async function logout() {
-    if (!window.dispatchEvent(new Event('choralation:before-signout', { cancelable: true })))
-      return;
+    if (!(await confirmWorkspaceExit(confirm))) return;
     setFailure(null);
     setSigningOut(true);
     try {
       await signOut();
+      try {
+        sessionStorage.removeItem(choirStorageKey(session.user?.id));
+      } catch {
+        // Storage is optional.
+      }
       session.clearSession();
     } catch (error) {
       setFailure(error instanceof Error ? error.message : 'Unable to sign out. Try again.');
@@ -92,7 +97,7 @@ export function AppShell() {
         </div>
         <nav id="desktop-navigation" aria-label="Main">
           <div>{mainLinks.map(desktopLink)}</div>
-          <div className="account-nav-group">{accountLinks.map(desktopLink)}</div>
+          <div className="account-nav-group">{desktopLink(settingsLink)}</div>
         </nav>
         <div className="sidebar-footer">
           <p>Music for every gathering.</p>
@@ -111,7 +116,7 @@ export function AppShell() {
                   <Dialog.Description>Navigate your team's shared workspace.</Dialog.Description>
                   <nav aria-label="Mobile">
                     <div>{mainLinks.map(mobileLink)}</div>
-                    <div className="account-nav-group">{accountLinks.map(mobileLink)}</div>
+                    <div className="account-nav-group">{mobileLink(settingsLink)}</div>
                   </nav>
                   <Dialog.Close className="button secondary">Close menu</Dialog.Close>
                 </Dialog.Content>
@@ -137,7 +142,11 @@ export function AppShell() {
             <span className="account-name" dir="auto">
               {session.user?.username}
             </span>
-            <span className="role-badge">{session.user?.role}</span>
+            <span className="role-badge">
+              {session.user?.role !== 'Admin' && session.user?.can_create_choirs
+                ? 'Manager'
+                : session.user?.role}
+            </span>
             <button
               className="button secondary"
               onClick={() => void logout()}
@@ -148,9 +157,9 @@ export function AppShell() {
           </div>
         </header>
         {failure && (
-          <p className="notice error shell-error" role="alert">
+          <FloatingNotice error dismiss={() => setFailure(null)}>
             {failure}
-          </p>
+          </FloatingNotice>
         )}
         <main id="main-content" className="page-content" tabIndex={-1}>
           <Outlet />
