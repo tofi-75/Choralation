@@ -133,21 +133,8 @@ export function HymnPicker({
       ),
     enabled: Boolean(placement),
   });
-  const settledEmpty = Boolean(
-    create &&
-    q.trim() &&
-    q === search &&
-    query.isSuccess &&
-    !query.isFetching &&
-    query.data.count === 0,
-  );
-  const filtered = !allPlacements || Boolean(language || genre);
-  const broader = useChoirQuery({
-    queryKey: ['hymns', 'picker-unfiltered', search],
-    queryFn: (choirId) => fetchHymns(new URLSearchParams({ q: search }).toString(), choirId),
-    enabled: settledEmpty && filtered,
-  });
-  const fullResults = filtered ? broader : query;
+  const emptyResults = query.isSuccess && !query.isFetching && query.data.count === 0;
+  const emptySearch = emptyResults && q === search && Boolean(search.trim());
   const warnings = candidate
     ? selectionWarnings(candidate, placement, season, seasonName, selected)
     : [];
@@ -332,7 +319,15 @@ export function HymnPicker({
               </div>
             </div>
           )}
-          {query.isPending && <p role="status">Loading hymns…</p>}
+          <div role="status">
+            {(query.isFetching || q !== search) && 'Loading hymns…'}
+            {emptyResults && q === search && 'No active hymns match the current filters.'}
+            {query.isSuccess && !query.isFetching && q === search && query.data.count > 0 && (
+              <span className="sr-only">
+                {query.data.count === 1 ? '1 hymn found.' : `${query.data.count} hymns found.`}
+              </span>
+            )}
+          </div>
           {query.error && (
             <p role="alert">
               {query.error.message}{' '}
@@ -341,7 +336,41 @@ export function HymnPicker({
               </button>
             </p>
           )}
-          {desktop ? (
+          {emptySearch && (
+            <div className="form-actions picker-empty-actions">
+              {create && (
+                <button className="button primary" onClick={() => create(search.trim())}>
+                  Hymn not found, add hymn?
+                </button>
+              )}
+              {!allPlacements && (
+                <button
+                  className="button secondary"
+                  onClick={(event) => {
+                    setAllPlacements(true);
+                    setPage(1);
+                    if (event.detail === 0) searchInput.current?.focus();
+                  }}
+                >
+                  Search all placements
+                </button>
+              )}
+              {allPlacements && (language || genre) && (
+                <button
+                  className="button secondary"
+                  onClick={(event) => {
+                    setLanguage('');
+                    setGenre('');
+                    setPage(1);
+                    if (event.detail === 0) searchInput.current?.focus();
+                  }}
+                >
+                  Clear language and genre filters
+                </button>
+              )}
+            </div>
+          )}
+          {query.data?.count === 0 ? null : desktop ? (
             <div
               className="picker-table-scroll picker-result-scroll"
               tabIndex={0}
@@ -462,38 +491,6 @@ export function HymnPicker({
               ))}
             </ul>
           )}
-          {query.data?.count === 0 && (
-            <p>
-              No active hymns match this section and search. You can search all placements under
-              Filters.
-            </p>
-          )}
-          {settledEmpty && fullResults.isFetching && <p role="status">Checking all placements…</p>}
-          {settledEmpty && filtered && fullResults.error && (
-            <button className="button secondary" onClick={() => void broader.refetch()}>
-              Retry library search
-            </button>
-          )}
-          {settledEmpty &&
-            fullResults.isSuccess &&
-            !fullResults.isFetching &&
-            (fullResults.data.count === 0 ? (
-              <button className="button primary" onClick={() => create?.(search.trim())}>
-                Hymn not found, add hymn?
-              </button>
-            ) : (
-              <button
-                className="button secondary"
-                onClick={() => {
-                  setAllPlacements(true);
-                  setLanguage('');
-                  setGenre('');
-                  setPage(1);
-                }}
-              >
-                Show matches from all placements
-              </button>
-            ))}
           <div className="form-actions">
             <button
               className="button secondary"

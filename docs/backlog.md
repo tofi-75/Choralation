@@ -27,7 +27,7 @@ Follow the [development plan](../DEVELOPMENT_PLAN.md) for complete milestone gat
 
 #### Create a missing hymn from a draft Mass
 
-1. When a non-empty search in a section’s **Add hymn** picker finishes with zero matches across the active shared library, show **Hymn not found, add hymn?**. If placement, language, or genre filters hid a match, offer to show those results.
+1. When a non-empty search in a section’s **Add hymn** picker returns zero results, show **Hymn not found, add hymn?** next to **Search all placements**. Broadening keeps the search text and any language or genre filters. If the wider search is empty, offer to clear those filters.
 2. Before opening the existing hymn creation form, wait for pending draft edits to save. If saving fails, keep the user in the planner with its existing recovery controls. Carry the draft, choir, and section as return context, and use the search text as an editable title suggestion. Canceling the form returns to the same section and search.
 3. After **Save hymn**, return to the same section of the latest draft and check the saved hymn for placement mismatch, season mismatch, and duplicate selection. If there are no warnings, append the hymn and autosave. If there are warnings, offer **Add anyway** and **Cancel choice** before changing the program. Canceling the choice keeps the new hymn in the library.
 4. If the Mass was finalized, the section became inactive, or edit access changed, tell the user the hymn was saved and explain why it could not be added. Apply the return action once so refreshing or revisiting it through browser history cannot add another copy.
@@ -42,10 +42,14 @@ Drafts open in the editor and autosave while being prepared. **Save Mass** final
 
 The local implementation requests native fullscreen for PDF reading and phone Mass Focus. Verify on physical iOS and Android phones and record how each behaves when native fullscreen is unavailable. See [phone fullscreen behavior](reader-and-account-refinements.md#phone-fullscreen-follow-up).
 
+#### Account actions and Mass Focus
+
+**Sign in** and **Create account** share equal-size buttons. Switching forms puts the current action in the first, filled position and moves focus to the new form heading.
+
+Mass Focus has lyric size controls and a hymn menu. Within a session, each program selection retains its PDF page or lyric scroll position. Physical-device and screen-reader checks are listed in [Phone testing](phone-testing.md#current-phone-acceptance-checklist).
+
 ### Features for later
 
-- **Sign-in and create-account buttons.** Make **Create account** the same size as **Sign in**, using an unfilled style. Selecting **Create account** or **Sign in** swaps the two buttons’ positions and colors so the selected action is emphasized.
-- **Mass hymn picker.** When a search has no matches in the current placement, show **Hymn not found, add hymn?** directly in the picker alongside **Search all placements**. Use the same search text when broadening the search.
 - **Database storage and hymn load time.** Minimize database storage across all record types while targeting a load time under one second for every hymn, at minimum for its PDF. Define how load time will be measured, the test conditions, and storage tradeoffs when this work is discussed.
 - **Hymn search.** Improve matching and result ranking for searches in the hymn’s language and for queries across languages. Define the language pairs, expected matches, and search quality criteria when this work is scheduled.
 

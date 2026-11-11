@@ -1,6 +1,6 @@
 /** A read-only performance session; each selection retains its program position. */
 import * as Dialog from '@radix-ui/react-dialog';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import type { Ref } from 'react';
 import { flushSync } from 'react-dom';
 import type { Mass } from '../../api/masses';
@@ -79,6 +79,12 @@ function FocusSession({
   // Keep the reading sequence stable if another session edits/refetches the Mass.
   const [selections] = useState(initialSelections);
   const [index, setIndex] = useState(0);
+  const [pages, setPages] = useState<Record<number, number>>({});
+  const [lyricSize, setLyricSize] = useState('standard');
+  const scrollPositions = useRef<Record<number, number>>({});
+  const reading = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const jumpId = useId();
   const [fit, setFit] = useState<PdfFit>(() =>
     window.matchMedia?.('(any-pointer: coarse) and (orientation: landscape)').matches
       ? 'width'
@@ -86,8 +92,15 @@ function FocusSession({
   );
   const awake = useScreenAwake();
   const selected = selections[index];
-  const move = (delta: number) =>
-    setIndex((value) => Math.max(0, Math.min(selections.length - 1, value + delta)));
+  useLayoutEffect(() => {
+    if (reading.current) reading.current.scrollTop = scrollPositions.current[selected.id] ?? 0;
+  }, [selected.id]);
+  function jump(nextIndex: number) {
+    if (nextIndex === index) return;
+    scrollPositions.current[selected.id] = reading.current?.scrollTop ?? 0;
+    setIndex(nextIndex);
+  }
+  const move = (delta: number) => jump(Math.max(0, Math.min(selections.length - 1, index + delta)));
   const swipe = useReaderSwipe({
     dismiss: closeFocus,
     turn: (direction, target) => {
@@ -102,7 +115,14 @@ function FocusSession({
       aria-describedby={undefined}
       {...swipe}
       onKeyDown={(event) => {
-        if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+        if (
+          event.altKey ||
+          event.ctrlKey ||
+          event.metaKey ||
+          event.shiftKey ||
+          (event.target instanceof Element && event.target.closest('select'))
+        )
+          return;
         if (event.key === 'ArrowRight') {
           event.preventDefault();
           move(1);
@@ -119,17 +139,35 @@ function FocusSession({
           ✕
         </Dialog.Close>
       </header>
-      <div className="focus-reading" key={selected.id}>
+      <div
+        className="focus-reading"
+        key={selected.id}
+        ref={reading}
+        role="region"
+        aria-labelledby={titleId}
+        tabIndex={0}
+      >
         <p className="focus-placement" dir="auto">
           {selected.placement.name}
         </p>
-        <h2 dir="auto">{selected.hymn.title}</h2>
+        <h2 id={titleId} dir="auto">
+          {selected.hymn.title}
+        </h2>
         {selected.notes && (
           <p className="focus-notes preserve-lines" dir="auto">
             {selected.notes}
           </p>
         )}
-        <HymnMaterial key={selected.id} hymn={selected.hymn} focus fit={fit} onFitChange={setFit} />
+        <HymnMaterial
+          hymn={selected.hymn}
+          focus
+          fit={fit}
+          onFitChange={setFit}
+          page={pages[selected.id] ?? 1}
+          onPageChange={(page) => setPages((previous) => ({ ...previous, [selected.id]: page }))}
+          lyricSize={lyricSize}
+          onLyricSizeChange={setLyricSize}
+        />
       </div>
       <footer className="focus-footer">
         <nav aria-label="Hymn navigation">
@@ -141,9 +179,25 @@ function FocusSession({
           >
             ←
           </button>
-          <span role="status" aria-live="polite">
-            Hymn {index + 1} of {selections.length}
-          </span>
+          <div className="focus-jump">
+            <label className="sr-only" htmlFor={jumpId}>
+              Jump to hymn
+            </label>
+            <select
+              id={jumpId}
+              value={index}
+              onChange={(event) => jump(Number(event.target.value))}
+            >
+              {selections.map((selection, position) => (
+                <option key={selection.id} value={position}>
+                  {`${position + 1}. \u2068${selection.hymn.title}\u2069 · \u2068${selection.placement.name}\u2069`}
+                </option>
+              ))}
+            </select>
+            <span role="status">
+              Hymn {index + 1} of {selections.length}
+            </span>
+          </div>
           <button
             className="button primary"
             onClick={() => move(1)}

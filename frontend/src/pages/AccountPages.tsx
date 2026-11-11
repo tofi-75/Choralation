@@ -13,6 +13,7 @@ import {
   verifyEmail,
 } from '../api/auth';
 import { ApiError } from '../api/client';
+import { AuthActions } from '../components/AuthActions';
 import { FloatingNotice } from '../components/FloatingNotice';
 import { ManagerAccessPanel } from '../features/auth/ManagerAccessPanel';
 import { useSession } from '../features/auth/SessionProvider';
@@ -85,6 +86,10 @@ export function AccountPages({
   const session = useSession();
   const location = useLocation();
   const navigate = useNavigate();
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (mode === 'register' && location.state?.focusAuthHeading) heading.current?.focus();
+  }, [mode, location.key, location.state]);
   const [link, setLink] = useState(() => ({
     pathname: location.pathname,
     token: new URLSearchParams(location.hash.slice(1)).get('token') ?? '',
@@ -218,7 +223,7 @@ export function AccountPages({
   return (
     <Container className={mode === 'account' ? 'account-settings' : 'account-page'}>
       <section className="form-section account-card">
-        {mode !== 'account' && (
+        {mode !== 'account' && mode !== 'register' && (
           <Link
             className="text-button"
             to={session.user && !session.user.verification_required ? '/dashboard' : '/login'}
@@ -232,7 +237,9 @@ export function AccountPages({
         ) : (
           <>
             <p className="eyebrow">Choralation</p>
-            <h1>{title}</h1>
+            <h1 ref={heading} tabIndex={mode === 'register' ? -1 : undefined}>
+              {title}
+            </h1>
           </>
         )}
         {mode === 'account' && session.user?.role !== 'Admin' && <ManagerAccessPanel />}
@@ -283,10 +290,11 @@ export function AccountPages({
                   {config.data?.email_verification_enabled &&
                     ' You’ll verify your email before accessing the app.'}
                 </p>
-                <button className="button primary" disabled={pending}>
-                  {pending ? 'Creating…' : 'Create account'}
-                </button>
+                <AuthActions mode="register" pending={pending} />
               </form>
+            )}
+            {!config.data?.registration_enabled && (
+              <AuthActions mode="register" registrationAvailable={false} />
             )}
           </>
         )}

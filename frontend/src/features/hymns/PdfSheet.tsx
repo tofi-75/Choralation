@@ -20,6 +20,8 @@ export default function PdfSheet({
   focus = false,
   fit: preferredFit,
   onFitChange,
+  page: selectedPage,
+  onPageChange,
 }: {
   url: string;
   title: string;
@@ -27,11 +29,14 @@ export default function PdfSheet({
   focus?: boolean;
   fit?: PdfFit;
   onFitChange?: (fit: PdfFit) => void;
+  page?: number;
+  onPageChange?: (page: number) => void;
 }) {
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
   const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
-  const [page, setPage] = useState(1);
+  const [localPage, setLocalPage] = useState(1);
+  const page = selectedPage ?? localPage;
   const [expanded, setExpanded] = useState(false);
   const [portalContainer, setPortalContainer] = useState<Element | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -104,7 +109,8 @@ export default function PdfSheet({
     const next = Math.max(1, Math.min(pdfDocument.numPages, page + delta));
     if (next !== page) {
       setRendering(true);
-      setPage(next);
+      if (onPageChange) onPageChange(next);
+      else setLocalPage(next);
     }
   }
   function pageButton(delta: -1 | 1) {

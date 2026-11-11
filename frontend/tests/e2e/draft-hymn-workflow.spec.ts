@@ -84,8 +84,10 @@ test('A draft resumes in edit mode and can create or review a hymn in the same s
   await expect(warnings).toContainText('Not classified for Communion.');
   await warnings.getByRole('button', { name: 'Cancel choice' }).click();
   await expect(communion.getByRole('link', { name: mismatched, exact: true })).toHaveCount(0);
+  await expect(missing).toBeVisible();
+  await communion.getByRole('button', { name: 'Search all placements', exact: true }).click();
+  await expect(search).toHaveValue(mismatched);
   await expect(missing).toHaveCount(0);
-  await communion.getByRole('button', { name: 'Show matches from all placements' }).click();
   await communion.getByRole('button', { name: `Choose ${mismatched}` }).click();
   await warnings.getByRole('button', { name: 'Add anyway' }).click();
   await expect(communion.getByRole('link', { name: mismatched, exact: true })).toHaveCount(1);

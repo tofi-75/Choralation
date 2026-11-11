@@ -243,3 +243,13 @@ Source inspected: [cloudflared broker assertion validation](https://github.com/c
 ## October 10 picker and drag follow-up
 
 Use the left drag handle to reorder hymns within a placement. Verify finger dragging and viewport edge scrolling, interrupted-touch cancellation, saved notes/order after refresh and normal scrolling outside the handle. Picker language/genre/sort share one row; phones show cards while desktop shows a sortable table. Confirm Any-season choices produce no season notice. Automated Chromium touch/phone-width checks are supporting evidence only; physical Safari/Chrome results remain pending. See [picker review](picker-review.md).
+
+## Current phone acceptance checklist
+
+Run on iPhone Safari and Android Chrome. Record the device, OS and browser version, app revision, orientation, and any step that fails.
+
+- Open the sidebar and use its links. Check that the date and season share the Mass creation row and that the keyboard leaves the active field and its actions reachable.
+- Reopen a draft and verify that it opens in edit mode. Search for a missing hymn, check that both actions are visible together, and confirm that searching all placements keeps the text. Create a hymn from the picker and check that it returns to the same section. Verify the centered warning and cancellation, then use **Save Mass** to finalize the draft.
+- Request Manager access from Account in Settings. Use a separate Admin session to review the request. Return to Choirs as the requester and confirm that **Create choir** becomes available.
+- Read a multipage PDF on its own and from Mass Focus. Rotate a phone while reading at default fit and again while zoomed. Swipe down from the top to dismiss the active reader. Verify that returning from PDF fullscreen keeps the same page and that a scrolled page can be panned.
+- In Mass Focus, resize lyrics and jump to another hymn. Return to verify the lyric scroll position and PDF page. Check the account form switch and the reader controls with VoiceOver or TalkBack where available.

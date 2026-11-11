@@ -13,7 +13,47 @@ test('simple accounts register, email-login and change password without account 
   const email = `${username}@example.test`;
   const folder = resolve(process.env.EMAIL_FILE_PATH ?? '../.cache/e2e-emails');
   const before = existsSync(folder) ? readdirSync(folder).length : 0;
-  await page.goto('/register');
+  await page.goto('/login');
+  const signIn = page.getByRole('button', { name: 'Sign in', exact: true });
+  const switchToCreate = page.getByRole('link', { name: 'Create account', exact: true });
+  const primary = (await signIn.boundingBox())!;
+  const secondary = (await switchToCreate.boundingBox())!;
+  expect(primary.width).toBe(secondary.width);
+  expect(primary.height).toBe(secondary.height);
+  expect(primary.y).toBeLessThan(secondary.y);
+  await switchToCreate.focus();
+  await expect(switchToCreate).toBeFocused();
+  await expect(switchToCreate).toHaveCSS('outline-style', 'solid');
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('heading', { name: 'Create your account' })).toBeFocused();
+  const create = page.getByRole('button', { name: 'Create account', exact: true });
+  const switchToSignIn = page.getByRole('link', { name: 'Sign in', exact: true });
+  await expect(create).toHaveClass(/primary/);
+  await expect(switchToSignIn).toHaveClass(/secondary/);
+  const registrationPrimary = (await create.boundingBox())!;
+  const registrationSecondary = (await switchToSignIn.boundingBox())!;
+  expect(registrationPrimary.width).toBe(registrationSecondary.width);
+  expect(registrationPrimary.height).toBe(registrationSecondary.height);
+  expect(registrationPrimary.y).toBeLessThan(registrationSecondary.y);
+  await switchToSignIn.click();
+  await expect(page.getByRole('heading', { name: 'Sign in to your workspace' })).toBeFocused();
+  await switchToCreate.click();
+  if (info.project.name === 'desktop') {
+    const originalViewport = page.viewportSize()!;
+    await page.setViewportSize({ ...originalViewport, width: 320 });
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '200%';
+    });
+    await expect(create).toBeVisible();
+    await expect(switchToSignIn).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      320,
+    );
+    await page.evaluate(() => {
+      document.documentElement.style.removeProperty('font-size');
+    });
+    await page.setViewportSize(originalViewport);
+  }
   await page.getByLabel('Username', { exact: true }).fill(username);
   await expect(page.getByRole('status')).toContainText('Username is available.');
   const passwordField = page.getByLabel('Password', { exact: true });

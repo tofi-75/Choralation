@@ -196,13 +196,12 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   await login(page);
   const title = `ترنيمة ${suffix}-${info.project.name}`;
   const latin = `Tarnima ${suffix}-${info.project.name}`;
+  const lyrics = 'السطر الأول\nالسطر الثاني\n'.repeat(35).trim();
   await page.goto('/hymns/new');
   await page.getByRole('textbox', { name: /^Title/ }).fill(title);
   await page.getByRole('combobox', { name: /^Language/ }).selectOption({ label: 'Arabic' });
   await page.getByRole('textbox', { name: 'Latin Characters Name', exact: true }).fill(latin);
-  await page
-    .getByRole('textbox', { name: 'Lyrics', exact: true })
-    .fill('السطر الأول\nالسطر الثاني');
+  await page.getByRole('textbox', { name: 'Lyrics', exact: true }).fill(lyrics);
   await page.getByRole('textbox', { name: 'Default key', exact: true }).fill('D minor');
   await page.getByRole('textbox', { name: 'Tempo', exact: true }).fill('Andante · 80 BPM');
   await choose(page, 'Suitable placements', 'Communion');
@@ -210,7 +209,7 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   await page.getByRole('button', { name: 'Save hymn', exact: true }).click();
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
   const lyricId = Number(page.url().split('/').pop());
-  await expect(page.locator('.hymn-lyrics')).toHaveText('السطر الأول\nالسطر الثاني');
+  await expect(page.locator('.hymn-lyrics')).toHaveText(lyrics);
   await expect(page.locator('.hymn-musical-summary')).toContainText('D minor');
   await expect(page.locator('.hymn-musical-summary')).toContainText('Andante · 80 BPM');
   await expect(
@@ -511,6 +510,19 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   } else await page.keyboard.press('ArrowRight');
   await expect(focus.getByText('Hymn 2 of 4', { exact: true })).toBeVisible();
   await expect(focus.locator('.hymn-lyrics')).toContainText('السطر الأول');
+  const lyricSize = focus.getByLabel('Lyric text size');
+  const lyricText = focus.locator('.hymn-lyrics');
+  const originalFont = await lyricText.evaluate((element) =>
+    parseFloat(getComputedStyle(element).fontSize),
+  );
+  await lyricSize.selectOption('extra-large');
+  expect(
+    await lyricText.evaluate((element) => parseFloat(getComputedStyle(element).fontSize)),
+  ).toBeGreaterThan(originalFont);
+  const focusReading = focus.locator('.focus-reading');
+  await focusReading.evaluate((element) => {
+    element.scrollTop = 160;
+  });
   await page.screenshot({ path: info.outputPath('focus-lyrics.png') });
   await focus.getByRole('button', { name: 'Next hymn', exact: true }).click();
   await expect(focus.locator('.focus-title-only')).toHaveText(plain.title);
@@ -529,6 +541,17 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
     )
     .toBeLessThan(2);
   await expect(focus.getByRole('button', { name: 'Next hymn', exact: true })).toBeDisabled();
+  const jump = focus.getByRole('combobox', { name: 'Jump to hymn', exact: true });
+  await jump.selectOption('0');
+  await focus.getByRole('button', { name: 'Next PDF page', exact: true }).click();
+  await expect(focus.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();
+  await jump.selectOption('3');
+  await expect(focus.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
+  await jump.selectOption('0');
+  await expect(focus.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();
+  await jump.selectOption('1');
+  await expect(lyricSize).toHaveValue('extra-large');
+  await expect.poll(() => focusReading.evaluate((element) => element.scrollTop)).toBe(160);
   await focus.getByRole('button', { name: 'Exit focus mode', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Focus mode', exact: true })).toBeFocused();
   await expect

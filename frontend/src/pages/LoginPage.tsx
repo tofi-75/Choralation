@@ -1,5 +1,5 @@
 /** Accessible credentials form: preserves input on failures and never logs passwords. */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router';
@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { fetchAuthConfig, signIn } from '../api/auth';
 import { ApiError } from '../api/client';
 import { useSession } from '../features/auth/SessionProvider';
+import { AuthActions } from '../components/AuthActions';
 import { FloatingNotice } from '../components/FloatingNotice';
 import { PasswordInput } from '../components/PasswordInput';
 import { PublicLinks } from '../components/PublicLinks';
@@ -22,6 +23,10 @@ export function LoginPage() {
   const session = useSession();
   const location = useLocation();
   const navigate = useNavigate();
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (location.state?.focusAuthHeading) heading.current?.focus();
+  }, [location.key, location.state]);
   const config = useQuery({ queryKey: ['auth-config'], queryFn: fetchAuthConfig });
   const [failure, setFailure] = useState<string | null>(null);
   const {
@@ -98,7 +103,9 @@ export function LoginPage() {
       <section className="login-side" aria-labelledby="login-title">
         <div className="login-card">
           <p className="eyebrow">Welcome back</p>
-          <h2 id="login-title">Sign in to your workspace</h2>
+          <h2 id="login-title" ref={heading} tabIndex={-1}>
+            Sign in to your workspace
+          </h2>
           <p className="muted">Sign in with your email or username.</p>
           {(passwordUpdated || expired) && (
             <FloatingNotice
@@ -148,17 +155,14 @@ export function LoginPage() {
                 {failure}
               </FloatingNotice>
             )}
-            <button className="button primary full-width" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Signing in…' : 'Sign in'}
-            </button>
+            <AuthActions mode="login" pending={isSubmitting} />
           </form>
           <p className="account-help">
             {config.data?.password_reset_enabled ? (
               <Link to="/forgot-password">Forgot password?</Link>
             ) : (
               <a href="mailto:tofi.lattouf@gmail.com">Need help signing in? Contact support</a>
-            )}{' '}
-            · <Link to="/register">Create an account</Link>
+            )}
           </p>
           <PublicLinks />
         </div>

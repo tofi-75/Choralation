@@ -10,11 +10,19 @@ export function HymnMaterial({
   focus = false,
   fit,
   onFitChange,
+  page,
+  onPageChange,
+  lyricSize,
+  onLyricSizeChange,
 }: {
   hymn: Hymn;
   focus?: boolean;
   fit?: PdfFit;
   onFitChange?: (fit: PdfFit) => void;
+  page?: number;
+  onPageChange?: (page: number) => void;
+  lyricSize?: string;
+  onLyricSizeChange?: (size: string) => void;
 }) {
   const [failed, setFailed] = useState(false);
   const onFailure = useCallback(() => setFailed(true), []);
@@ -33,6 +41,8 @@ export function HymnMaterial({
             focus={focus}
             fit={fit}
             onFitChange={onFitChange}
+            page={page}
+            onPageChange={onPageChange}
           />
         </Suspense>
       ) : (
@@ -51,9 +61,24 @@ export function HymnMaterial({
             </p>
           )}
           {hymn.lyrics ? (
-            <div className="hymn-lyrics preserve-lines" dir="auto">
-              {hymn.lyrics}
-            </div>
+            <>
+              {onLyricSizeChange && (
+                <label className="field focus-lyric-size">
+                  Lyric text size
+                  <select
+                    value={lyricSize}
+                    onChange={(event) => onLyricSizeChange(event.target.value)}
+                  >
+                    <option value="standard">Standard</option>
+                    <option value="large">Large</option>
+                    <option value="extra-large">Extra large</option>
+                  </select>
+                </label>
+              )}
+              <div className="hymn-lyrics preserve-lines" dir="auto" data-text-size={lyricSize}>
+                {hymn.lyrics}
+              </div>
+            </>
           ) : focus ? (
             <p className="focus-title-only" dir="auto">
               {hymn.title}
