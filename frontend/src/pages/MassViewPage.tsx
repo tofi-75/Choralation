@@ -5,6 +5,7 @@ import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-route
 
 import { fetchMass } from '../api/masses';
 import { fetchMassPlacements } from '../api/library';
+import { HymnMusicalSummary } from '../features/hymns/HymnMusicalSummary';
 import { MassFocusMode } from '../features/masses/MassFocusMode';
 import { MassLifecycle } from '../features/masses/MassLifecycle';
 import { useChoir } from '../features/choirs/ChoirProvider';
@@ -148,14 +149,14 @@ export function MassViewPage() {
                   .filter((row) => row.placement.id === placement.id)
                   .map((row) => (
                     <li key={row.id}>
-                      <Link to={`/hymns/${row.hymn.id}`} dir="auto">
+                      <Link
+                        to={`/hymns/${row.hymn.id}`}
+                        state={{ returnToMassId: mass.id }}
+                        dir="auto"
+                      >
                         {row.hymn.title}
                       </Link>
-                      <span className="tiny muted">
-                        {' '}
-                        · {row.hymn.language.name}
-                        {!row.hymn.is_active && ' · Inactive hymn retained'}
-                      </span>
+                      <HymnMusicalSummary hymn={row.hymn} showLanguage />
                       {row.notes && (
                         <p className="tiny preserve-lines" dir="auto">
                           {row.notes}

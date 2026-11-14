@@ -41,7 +41,7 @@ function mount(
                   : [
                       {
                         id: 5,
-                        hymn,
+                        hymn: retainedInactive ? { ...hymn, is_active: false } : hymn,
                         placement: retainedInactive ? inactive : category,
                         position: 0,
                         notes: 'Quiet introduction',
@@ -95,7 +95,9 @@ it('keeps every active section visible when the entire saved program is empty', 
 it('retains a selected inactive section alongside empty active sections', async () => {
   mount('Planner', 'finalized', false, true);
   await screen.findByRole('heading', { level: 1 });
-  expect(screen.getByRole('region', { name: 'Retired section' })).toHaveTextContent('First hymn');
+  const section = screen.getByRole('region', { name: 'Retired section' });
+  expect(section).toHaveTextContent('First hymn');
+  expect(within(section).getByText('Inactive hymn retained')).toBeVisible();
   expect(screen.getAllByText('Hymn not selected')).toHaveLength(2);
 });
 it('opens an editable draft directly in the editor', async () => {

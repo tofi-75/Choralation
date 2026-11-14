@@ -88,8 +88,11 @@ export function AccountPages({
   const navigate = useNavigate();
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
-    if (mode === 'register' && location.state?.focusAuthHeading) heading.current?.focus();
-  }, [mode, location.key, location.state]);
+    if (mode !== 'register' || !location.state?.focusAuthHeading) return;
+    heading.current?.focus();
+    // Clear the one-shot flag so reloads and Back navigation don't move focus again.
+    void navigate({ pathname: location.pathname, search: location.search }, { replace: true });
+  }, [mode, location.state, location.pathname, location.search, navigate]);
   const [link, setLink] = useState(() => ({
     pathname: location.pathname,
     token: new URLSearchParams(location.hash.slice(1)).get('token') ?? '',
@@ -293,7 +296,7 @@ export function AccountPages({
                 <AuthActions mode="register" pending={pending} />
               </form>
             )}
-            {!config.data?.registration_enabled && (
+            {!config.isPending && !config.data?.registration_enabled && (
               <AuthActions mode="register" registrationAvailable={false} />
             )}
           </>

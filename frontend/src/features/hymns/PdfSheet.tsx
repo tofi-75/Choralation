@@ -109,8 +109,8 @@ export default function PdfSheet({
     const next = Math.max(1, Math.min(pdfDocument.numPages, page + delta));
     if (next !== page) {
       setRendering(true);
-      if (onPageChange) onPageChange(next);
-      else setLocalPage(next);
+      setLocalPage(next);
+      onPageChange?.(next);
     }
   }
   function pageButton(delta: -1 | 1) {

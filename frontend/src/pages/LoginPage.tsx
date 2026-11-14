@@ -25,8 +25,11 @@ export function LoginPage() {
   const navigate = useNavigate();
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
-    if (location.state?.focusAuthHeading) heading.current?.focus();
-  }, [location.key, location.state]);
+    if (!location.state?.focusAuthHeading) return;
+    heading.current?.focus();
+    // Clear the one-shot flag so reloads and Back navigation don't move focus again.
+    void navigate({ pathname: location.pathname, search: location.search }, { replace: true });
+  }, [location.state, location.pathname, location.search, navigate]);
   const config = useQuery({ queryKey: ['auth-config'], queryFn: fetchAuthConfig });
   const [failure, setFailure] = useState<string | null>(null);
   const {
@@ -155,7 +158,11 @@ export function LoginPage() {
                 {failure}
               </FloatingNotice>
             )}
-            <AuthActions mode="login" pending={isSubmitting} />
+            <AuthActions
+              mode="login"
+              pending={isSubmitting}
+              registrationAvailable={config.data?.registration_enabled !== false}
+            />
           </form>
           <p className="account-help">
             {config.data?.password_reset_enabled ? (

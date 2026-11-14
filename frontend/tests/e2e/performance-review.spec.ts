@@ -241,6 +241,10 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
     placement_ids: [lyric.placements[0].id],
     season_ids: [lyric.seasons[0].id],
     lyrics: 'PDF fallback lyrics',
+    default_key: 'G minor',
+    tempo: '96 BPM',
+    is_polyphonic: true,
+    voices: ['Soprano', 'Alto'],
   };
   const pdfResponse = await page.request.post('/api/v1/hymns/', {
     headers,
@@ -257,11 +261,22 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   const pdf = await pdfResponse.json();
   const plainResponse = await page.request.post('/api/v1/hymns/', {
     headers,
-    data: { ...payload, title: `Title only ${suffix}-${info.project.name}`, lyrics: null },
+    data: {
+      ...payload,
+      title: `Title only ${suffix}-${info.project.name}`,
+      lyrics: null,
+      default_key: null,
+      tempo: null,
+      voices: [],
+    },
   });
   expect(plainResponse.status()).toBe(201);
   const plain = await plainResponse.json();
   await page.goto(`/hymns/${pdf.id}`);
+  await expect(page.getByRole('link', { name: '← Hymn library', exact: true })).toHaveAttribute(
+    'href',
+    '/hymns',
+  );
   await expect(page.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
   await expect(page.getByText('Loading sheet music…', { exact: true })).toHaveCount(0);
   expect(
@@ -387,38 +402,77 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   await page.getByRole('button', { name: 'Save hymn', exact: true }).click();
   await expect(page.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
-  const massResponse = await page.request.post('/api/v1/masses/', {
-    headers,
-    data: {
-      date: '2099-10-11',
-      title: `Reading ${suffix}-${info.project.name}`,
-      liturgical_season_id: lyric.seasons[0].id,
-      notes: null,
-    },
-  });
-  expect(massResponse.status()).toBe(201);
-  const mass = await massResponse.json();
-  const program = await page.request.put(`/api/v1/masses/${mass.id}/program/`, {
-    headers: { ...headers, 'X-Expected-Mass-Revision': String(mass.revision) },
-    data: {
-      selections: [pdf, lyric, plain, pdf].map((hymn, position) => ({
-        hymn_id: hymn.id,
-        placement_id: lyric.placements[0].id,
-        position,
+  async function saveProgram(massTitle: string, hymns: { id: number }[]) {
+    const massResponse = await page.request.post('/api/v1/masses/', {
+      headers,
+      data: {
+        date: '2099-10-11',
+        title: massTitle,
+        liturgical_season_id: lyric.seasons[0].id,
         notes: null,
-      })),
-    },
-  });
-  expect(program.status()).toBe(200);
-  const finalized = await page.request.post(`/api/v1/masses/${mass.id}/finalize/`, {
-    headers: { ...headers, 'X-Expected-Mass-Revision': String((await program.json()).revision) },
-    data: {},
-  });
-  expect(finalized.status()).toBe(200);
-  await page.goto(`/masses/${mass.id}`);
+      },
+    });
+    expect(massResponse.status()).toBe(201);
+    const mass = await massResponse.json();
+    const program = await page.request.put(`/api/v1/masses/${mass.id}/program/`, {
+      headers: { ...headers, 'X-Expected-Mass-Revision': String(mass.revision) },
+      data: {
+        selections: hymns.map((hymn, position) => ({
+          hymn_id: hymn.id,
+          placement_id: lyric.placements[0].id,
+          position,
+          notes: null,
+        })),
+      },
+    });
+    expect(program.status()).toBe(200);
+    const finalized = await page.request.post(`/api/v1/masses/${mass.id}/finalize/`, {
+      headers: { ...headers, 'X-Expected-Mass-Revision': String((await program.json()).revision) },
+      data: {},
+    });
+    expect(finalized.status()).toBe(200);
+    return mass.id as number;
+  }
+  const massTitle = `Reading ${suffix}-${info.project.name}`;
+  const massId = await saveProgram(massTitle, [pdf, lyric, plain, pdf]);
+  const secondMassId = await saveProgram(`Second ${massTitle}`, [pdf]);
+  await page.goto(`/masses/${secondMassId}`);
+  const pdfLink = page.getByRole('link', { name: pdf.title, exact: true }).first();
+  await pdfLink.click();
+  const back = page.getByRole('link', { name: '← Back to Mass', exact: true });
+  await expect(back).toHaveAttribute('href', `/masses/${secondMassId}`);
+  await back.click();
+  await expect(
+    page.getByRole('heading', { name: `Second ${massTitle}`, exact: true }),
+  ).toBeVisible();
+  await page.goto(`/masses/${massId}`);
   expect(
     await page.locator('.saved-program').evaluate((element) => getComputedStyle(element).textAlign),
   ).toBe('center');
+  const savedProgram = page.getByRole('region', { name: 'Saved hymn program' });
+  const metadata = savedProgram.locator('.hymn-musical-summary');
+  await expect(metadata.nth(0).locator(':scope > *')).toHaveText([
+    lyric.language.name,
+    'Key G minor',
+    'Tempo 96 BPM',
+    'Voices 2',
+  ]);
+  await expect(metadata.nth(1)).toContainText('Voices 1');
+  await expect(metadata.nth(2).locator('strong')).toHaveText(['—', '—', '-']);
+  await expect(metadata.nth(0)).toHaveCSS('flex-wrap', 'wrap');
+  await pdfLink.click();
+  await expect(back).toHaveAttribute('href', `/masses/${massId}`);
+  await back.click();
+  await expect(page.getByRole('heading', { name: massTitle, exact: true })).toBeVisible();
+
+  const plainUrl = `**/api/v1/hymns/${plain.id}/`;
+  await page.route(plainUrl, (route) => route.fulfill({ status: 404 }));
+  await savedProgram.getByRole('link', { name: plain.title, exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Unable to open hymn' })).toBeVisible();
+  await back.click();
+  await expect(page.getByRole('heading', { name: massTitle, exact: true })).toBeVisible();
+  await page.unroute(plainUrl);
+
   await page.getByRole('button', { name: 'Focus mode', exact: true }).click();
   const focus = page.getByRole('dialog', { name: 'Focus mode', exact: true });
   const nativeFocus = await page.evaluate(
@@ -430,6 +484,13 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
       .toBe('mass-focus');
   await expect(focus.locator('.focus-header')).toHaveText('✕');
   await expect(focus.getByRole('heading', { name: pdf.title, exact: true })).toBeVisible();
+  const focusMetadata = focus.locator('.focus-reading > h2 + .hymn-musical-summary');
+  await expect(focusMetadata.locator(':scope > span')).toHaveText([
+    'Key G minor',
+    'Tempo 96 BPM',
+    'Voices 2',
+  ]);
+  await expect(focusMetadata).toHaveCSS('flex-wrap', 'wrap');
   await expect(focus.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
   await expect(focus.getByText('Loading sheet music…', { exact: true })).toHaveCount(0);
   await expect(focus.getByText('Screen kept awake', { exact: true })).toBeVisible();
@@ -526,6 +587,7 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   await page.screenshot({ path: info.outputPath('focus-lyrics.png') });
   await focus.getByRole('button', { name: 'Next hymn', exact: true }).click();
   await expect(focus.locator('.focus-title-only')).toHaveText(plain.title);
+  await expect(focusMetadata.locator('strong')).toHaveText(['—', '—', '-']);
   await focus.getByRole('button', { name: 'Next hymn', exact: true }).click();
   await expect(focus.getByText('Hymn 4 of 4', { exact: true })).toBeVisible();
   await expect(focus.getByRole('button', { name: 'Fit to height', exact: true })).toBeVisible();

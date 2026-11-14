@@ -5,6 +5,13 @@ import type { Hymn } from '../../api/library';
 
 const PdfSheet = lazy(() => import('./PdfSheet'));
 
+export const LYRIC_SIZES = [
+  ['standard', 'Standard'],
+  ['large', 'Large'],
+  ['extra-large', 'Extra large'],
+] as const;
+export type LyricSize = (typeof LYRIC_SIZES)[number][0];
+
 export function HymnMaterial({
   hymn,
   focus = false,
@@ -21,8 +28,8 @@ export function HymnMaterial({
   onFitChange?: (fit: PdfFit) => void;
   page?: number;
   onPageChange?: (page: number) => void;
-  lyricSize?: string;
-  onLyricSizeChange?: (size: string) => void;
+  lyricSize?: LyricSize;
+  onLyricSizeChange?: (size: LyricSize) => void;
 }) {
   const [failed, setFailed] = useState(false);
   const onFailure = useCallback(() => setFailed(true), []);
@@ -67,11 +74,13 @@ export function HymnMaterial({
                   Lyric text size
                   <select
                     value={lyricSize}
-                    onChange={(event) => onLyricSizeChange(event.target.value)}
+                    onChange={(event) => onLyricSizeChange(event.target.value as LyricSize)}
                   >
-                    <option value="standard">Standard</option>
-                    <option value="large">Large</option>
-                    <option value="extra-large">Extra large</option>
+                    {LYRIC_SIZES.map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
                   </select>
                 </label>
               )}

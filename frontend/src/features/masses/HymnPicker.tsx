@@ -3,6 +3,7 @@ import { useChoirQuery } from '../choirs/useChoirQuery';
 /** Section-scoped choices; season/neutral preference is applied before pagination. */
 
 import { useEffect, useRef, useState } from 'react';
+import type { MouseEvent } from 'react';
 import { hasSeasonMismatch, seasonLabel } from './seasonSuitability';
 
 import { fetchHymns } from '../../api/library';
@@ -135,9 +136,25 @@ export function HymnPicker({
   });
   const emptyResults = query.isSuccess && !query.isFetching && query.data.count === 0;
   const emptySearch = emptyResults && q === search && Boolean(search.trim());
+  // Only offer to create a hymn when the whole shared library has no match, not just this view.
+  const narrowed = !allPlacements || Boolean(language || genre);
+  const library = useChoirQuery({
+    queryKey: ['hymns', 'picker-unfiltered', search],
+    queryFn: (choirId) => fetchHymns(new URLSearchParams({ q: search }).toString(), choirId),
+    enabled: Boolean(create) && emptySearch && narrowed,
+  });
+  const libraryEmpty = narrowed
+    ? library.isSuccess && !library.isFetching && library.data.count === 0
+    : emptySearch;
   const warnings = candidate
     ? selectionWarnings(candidate, placement, season, seasonName, selected)
     : [];
+  function refineSearch(event: MouseEvent<HTMLButtonElement>, update: () => void) {
+    update();
+    setPage(1);
+    // Keyboard activation unmounts the focused button, so return focus to the search box.
+    if (event.detail === 0) searchInput.current?.focus();
+  }
   function changeOrdering(value: string) {
     setOrdering(value);
     setPage(1); // The API sorts the entire filtered result set, not just this page.
@@ -338,19 +355,23 @@ export function HymnPicker({
           )}
           {emptySearch && (
             <div className="form-actions picker-empty-actions">
-              {create && (
+              {create && libraryEmpty && (
                 <button className="button primary" onClick={() => create(search.trim())}>
                   Hymn not found, add hymn?
+                </button>
+              )}
+              {create && narrowed && library.isFetching && (
+                <span role="status">Checking all placements…</span>
+              )}
+              {create && narrowed && library.error && (
+                <button className="button secondary" onClick={() => void library.refetch()}>
+                  Retry library search
                 </button>
               )}
               {!allPlacements && (
                 <button
                   className="button secondary"
-                  onClick={(event) => {
-                    setAllPlacements(true);
-                    setPage(1);
-                    if (event.detail === 0) searchInput.current?.focus();
-                  }}
+                  onClick={(event) => refineSearch(event, () => setAllPlacements(true))}
                 >
                   Search all placements
                 </button>
@@ -358,12 +379,12 @@ export function HymnPicker({
               {allPlacements && (language || genre) && (
                 <button
                   className="button secondary"
-                  onClick={(event) => {
-                    setLanguage('');
-                    setGenre('');
-                    setPage(1);
-                    if (event.detail === 0) searchInput.current?.focus();
-                  }}
+                  onClick={(event) =>
+                    refineSearch(event, () => {
+                      setLanguage('');
+                      setGenre('');
+                    })
+                  }
                 >
                   Clear language and genre filters
                 </button>

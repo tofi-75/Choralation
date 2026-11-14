@@ -8,6 +8,7 @@ import { deleteHymn, setHymnActive, textFields } from '../api/library';
 import { useSession } from '../features/auth/SessionProvider';
 import { HymnSubmissionPanel } from '../features/hymns/HymnSubmissionPanel';
 import { HymnMaterial } from '../features/hymns/HymnMaterial';
+import { HymnMusicalSummary } from '../features/hymns/HymnMusicalSummary';
 import { PlannerIcon } from '../features/masses/PlannerIcon';
 import { CategoryChips } from '../features/hymns/HymnSummary';
 import { useHymn, useRefreshLibrary } from '../features/hymns/queries';
@@ -21,6 +22,11 @@ export function HymnDetailPage() {
   const refresh = useRefreshLibrary();
   const navigate = useNavigate();
   const location = useLocation();
+  const massId = location.state?.returnToMassId;
+  const massPath =
+    typeof massId === 'number' && Number.isSafeInteger(massId) && massId > 0
+      ? `/masses/${massId}`
+      : null;
   const savedJustNow = location.state?.saved === true;
   useLayoutEffect(() => {
     if (savedJustNow) window.scrollTo({ top: 0, behavior: 'instant' });
@@ -57,7 +63,7 @@ export function HymnDetailPage() {
         <button className="button secondary" onClick={() => void hymn.refetch()}>
           Try again
         </button>
-        <Link to="/hymns">Return to library</Link>
+        <Link to={massPath ?? '/hymns'}>{massPath ? '← Back to Mass' : 'Return to library'}</Link>
       </section>
     );
   const saved = hymn.data;
@@ -77,9 +83,18 @@ export function HymnDetailPage() {
     <>
       <Link
         className="text-button"
-        to={published ? '/hymns' : saved.created_by === user?.id ? '/hymns/mine' : '/choirs'}
+        to={
+          massPath ??
+          (published ? '/hymns' : saved.created_by === user?.id ? '/hymns/mine' : '/choirs')
+        }
       >
-        {published ? '← Hymn library' : saved.created_by === user?.id ? '← My hymns' : '← Choirs'}
+        {massPath
+          ? '← Back to Mass'
+          : published
+            ? '← Hymn library'
+            : saved.created_by === user?.id
+              ? '← My hymns'
+              : '← Choirs'}
       </Link>
       <div className="page-heading">
         <div>
@@ -91,18 +106,7 @@ export function HymnDetailPage() {
             {saved.language.name} · {saved.is_active ? 'Active' : 'Inactive'}
             {saved.is_polyphonic && ' · Polyphonic'}
           </p>
-          <p className="hymn-musical-summary" aria-label="Musical details">
-            <span>
-              Key <strong>{saved.default_key ?? '—'}</strong>
-            </span>
-            <span>
-              Tempo <strong>{saved.tempo ?? '—'}</strong>
-            </span>
-            <span>
-              Voices{' '}
-              <strong>{saved.is_polyphonic ? saved.voices.length || 'Unspecified' : 1}</strong>
-            </span>
-          </p>
+          <HymnMusicalSummary hymn={saved} />
         </div>
         {canEdit && (
           <Link

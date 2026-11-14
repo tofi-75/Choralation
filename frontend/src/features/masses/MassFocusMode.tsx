@@ -5,6 +5,8 @@ import type { Ref } from 'react';
 import { flushSync } from 'react-dom';
 import type { Mass } from '../../api/masses';
 import { HymnMaterial } from '../hymns/HymnMaterial';
+import { HymnMusicalSummary } from '../hymns/HymnMusicalSummary';
+import type { LyricSize } from '../hymns/HymnMaterial';
 import { useReaderFullscreen } from '../hymns/useReaderFullscreen';
 import { useReaderSwipe } from '../hymns/useReaderSwipe';
 
@@ -80,7 +82,7 @@ function FocusSession({
   const [selections] = useState(initialSelections);
   const [index, setIndex] = useState(0);
   const [pages, setPages] = useState<Record<number, number>>({});
-  const [lyricSize, setLyricSize] = useState('standard');
+  const [lyricSize, setLyricSize] = useState<LyricSize>('standard');
   const scrollPositions = useRef<Record<number, number>>({});
   const reading = useRef<HTMLDivElement>(null);
   const titleId = useId();
@@ -96,9 +98,7 @@ function FocusSession({
     if (reading.current) reading.current.scrollTop = scrollPositions.current[selected.id] ?? 0;
   }, [selected.id]);
   function jump(nextIndex: number) {
-    if (nextIndex === index) return;
-    scrollPositions.current[selected.id] = reading.current?.scrollTop ?? 0;
-    setIndex(nextIndex);
+    if (nextIndex !== index) setIndex(nextIndex);
   }
   const move = (delta: number) => jump(Math.max(0, Math.min(selections.length - 1, index + delta)));
   const swipe = useReaderSwipe({
@@ -143,6 +143,9 @@ function FocusSession({
         className="focus-reading"
         key={selected.id}
         ref={reading}
+        onScroll={(event) => {
+          scrollPositions.current[selected.id] = event.currentTarget.scrollTop;
+        }}
         role="region"
         aria-labelledby={titleId}
         tabIndex={0}
@@ -153,6 +156,7 @@ function FocusSession({
         <h2 id={titleId} dir="auto">
           {selected.hymn.title}
         </h2>
+        <HymnMusicalSummary hymn={selected.hymn} />
         {selected.notes && (
           <p className="focus-notes preserve-lines" dir="auto">
             {selected.notes}

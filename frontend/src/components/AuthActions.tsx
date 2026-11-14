@@ -19,13 +19,15 @@ export function AuthActions({
           {pending ? pendingLabel : submitLabel}
         </button>
       )}
-      <Link
-        className="button secondary"
-        to={signingIn ? '/register' : '/login'}
-        state={{ focusAuthHeading: true }}
-      >
-        {signingIn ? 'Create account' : 'Sign in'}
-      </Link>
+      {(!signingIn || registrationAvailable) && (
+        <Link
+          className="button secondary"
+          to={signingIn ? '/register' : '/login'}
+          state={{ focusAuthHeading: true }}
+        >
+          {signingIn ? 'Create account' : 'Sign in'}
+        </Link>
+      )}
     </div>
   );
 }
