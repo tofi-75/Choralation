@@ -33,6 +33,13 @@ async function register(page: Page, username: string, email: string) {
   await page.getByRole('button', { name: 'Create account', exact: true }).click();
 }
 
+async function dismissNotice(page: Page, message: string) {
+  const notice = page.getByRole('dialog', { name: 'Notification', exact: true });
+  await expect(notice).toContainText(message);
+  await notice.getByRole('button', { name: 'Close notification', exact: true }).click();
+  await expect(notice).toHaveCount(0);
+}
+
 test('private approval, scoped counts and code rotation', async ({ page, browser }, info) => {
   // Regular registration needs email verification off (the simple accounts mode).
   test.skip(process.env.E2E_SIMPLE_ACCOUNTS !== 'true', 'Run with simple account capabilities.');
@@ -58,6 +65,7 @@ test('private approval, scoped counts and code rotation', async ({ page, browser
     await planner.getByRole('textbox', { name: /Choir name/ }).fill(choirName);
     await planner.getByLabel('Show member count to people outside this choir').uncheck();
     await planner.getByRole('button', { name: 'Create choir', exact: true }).click();
+    await dismissNotice(planner, 'Choir created.');
     await expect(planner.getByRole('heading', { name: choirName, exact: true })).toBeVisible();
     const choirA = Number(planner.url().split('/').at(-1));
     const oldCode = (await planner.locator('.choir-code').innerText()).trim();
@@ -70,11 +78,12 @@ test('private approval, scoped counts and code rotation', async ({ page, browser
     await expect(card).toBeVisible();
     await expect(card).not.toContainText('members');
     await card.getByRole('button', { name: 'Request to join' }).click();
+    await dismissNotice(page, 'Request sent. A choir planner will review it.');
     await expect(card.getByRole('button', { name: 'Request pending' })).toBeDisabled();
     expect((await page.request.get(`/api/v1/choirs/${choirA}/`)).status()).toBe(404);
     await planner.reload();
     await planner.getByRole('button', { name: 'Approve', exact: true }).click();
-    await expect(planner.getByText('Member approved.', { exact: true })).toBeVisible();
+    await dismissNotice(planner, 'Member approved.');
     await page.goto('/choirs');
 
     await expect(page.getByLabel('Active choir')).toHaveValue(String(choirA));
@@ -148,6 +157,7 @@ test('private approval, scoped counts and code rotation', async ({ page, browser
     await expect(planner.locator('.choir-code')).toHaveText(oldCode);
     await planner.getByRole('button', { name: 'Generate new code' }).click();
     await planner.getByRole('button', { name: 'Confirm', exact: true }).click();
+    await dismissNotice(planner, 'Changes saved.');
     await expect(planner.locator('.choir-code')).not.toHaveText(oldCode);
     expect(
       (
