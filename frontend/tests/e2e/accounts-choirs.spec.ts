@@ -24,31 +24,22 @@ async function headers(page: Page, choir?: number, revision?: number) {
     ...(revision ? { 'X-Expected-Mass-Revision': String(revision) } : {}),
   };
 }
-test('self-service verification, private approval, scoped counts, rotation and recovery', async ({
-  page,
-  browser,
-}, info) => {
-  test.setTimeout(150000);
-  const username = `e2e-${suffix}-signup-${info.project.name}`;
-  const email = `${username}@example.test`;
+async function register(page: Page, username: string, email: string) {
   await page.goto('/register');
   await page.getByLabel('Username', { exact: true }).fill(username);
   await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByLabel('Password', { exact: true }).fill(password!);
   await page.getByLabel('Confirm password', { exact: true }).fill(password!);
   await page.getByRole('button', { name: 'Create account', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Verify your email', exact: true })).toBeVisible();
-  expect((await page.request.get('/api/v1/hymns/')).status()).toBe(403);
-  const token = emailToken(email, 'Verify your Choralation email');
-  await page.locator('.account-trigger').click();
-  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Sign in to your workspace' })).toBeVisible();
-  await page.goto(`/verify-email#token=${token}`);
+}
+
+test('private approval, scoped counts and code rotation', async ({ page, browser }, info) => {
+  // Regular registration needs email verification off (the simple accounts mode).
+  test.skip(process.env.E2E_SIMPLE_ACCOUNTS !== 'true', 'Run with simple account capabilities.');
+  test.setTimeout(150000);
+  const username = `e2e-${suffix}-signup-${info.project.name}`;
+  await register(page, username, `${username}@example.test`);
   await expect(page.getByRole('heading', { name: 'Masses', exact: true })).toBeVisible();
-  await expect((await page.request.get('/api/v1/auth/me/')).json()).resolves.toMatchObject({
-    username,
-    email_verified: true,
-  });
   await expect(page.getByText('Choose your choir', { exact: true })).toBeVisible();
 
   const plannerContext = await browser.newContext({
@@ -177,25 +168,48 @@ test('self-service verification, private approval, scoped counts, rotation and r
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
     );
-
-    await page.goto('/forgot-password');
-    await page.getByLabel('Email', { exact: true }).fill(email);
-    await page.getByRole('button', { name: 'Send reset link' }).click();
-    await expect(page.getByRole('status')).toContainText('reset link has been sent');
-    const reset = emailToken(email, 'Reset your Choralation password');
-    await page.goto(`/reset-password#token=${reset}`);
-    const next = password + 'New';
-    await page.getByLabel('New password', { exact: true }).fill(next);
-    await page.getByLabel('Confirm new password', { exact: true }).fill(next);
-    await page.getByRole('button', { name: 'Update password' }).click();
-    await expect(page).toHaveURL(/\/login$/);
-    await expect(page.getByRole('status')).toContainText('Password updated');
-    await page.getByRole('button', { name: 'Close notification', exact: true }).click();
-    await page.getByLabel('Email or username').fill(email.toUpperCase());
-    await page.getByLabel('Password', { exact: true }).fill(next);
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await expect(page.getByRole('heading', { name: 'Masses', exact: true })).toBeVisible();
   } finally {
     await plannerContext.close();
   }
+});
+
+test('email verification and password reset', async ({ page }, info) => {
+  // Email verification isn't released yet. Re-enable this once it is, and add a way to simulate
+  // a received or rejected verification. Regular registration is covered by the tests above and
+  // simple-accounts.spec.ts.
+  test.skip(true, 'Email verification is not enabled yet');
+  test.setTimeout(150000);
+  const username = `e2e-${suffix}-verify-${info.project.name}`;
+  const email = `${username}@example.test`;
+  await register(page, username, email);
+  await expect(page.getByRole('heading', { name: 'Verify your email', exact: true })).toBeVisible();
+  expect((await page.request.get('/api/v1/hymns/')).status()).toBe(403);
+  const token = emailToken(email, 'Verify your Choralation email');
+  // The verification page has its own Sign out button; the account menu isn't shown there.
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Sign in to your workspace' })).toBeVisible();
+  await page.goto(`/verify-email#token=${token}`);
+  await expect(page.getByRole('heading', { name: 'Masses', exact: true })).toBeVisible();
+  await expect((await page.request.get('/api/v1/auth/me/')).json()).resolves.toMatchObject({
+    username,
+    email_verified: true,
+  });
+
+  await page.goto('/forgot-password');
+  await page.getByLabel('Email', { exact: true }).fill(email);
+  await page.getByRole('button', { name: 'Send reset link' }).click();
+  await expect(page.getByRole('status')).toContainText('reset link has been sent');
+  const reset = emailToken(email, 'Reset your Choralation password');
+  await page.goto(`/reset-password#token=${reset}`);
+  const next = password + 'New';
+  await page.getByLabel('New password', { exact: true }).fill(next);
+  await page.getByLabel('Confirm new password', { exact: true }).fill(next);
+  await page.getByRole('button', { name: 'Update password' }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.getByRole('status')).toContainText('Password updated');
+  await page.getByRole('button', { name: 'Close notification', exact: true }).click();
+  await page.getByLabel('Email or username').fill(email.toUpperCase());
+  await page.getByLabel('Password', { exact: true }).fill(next);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Masses', exact: true })).toBeVisible();
 });

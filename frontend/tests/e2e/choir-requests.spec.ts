@@ -67,12 +67,16 @@ test('Admins approve and decline private choir requests directly on Choirs witho
       })
       .click();
     await expect(page.getByText('Member approved.', { exact: true })).toBeVisible();
+    // The notice is modal, so close it before using the rest of the page.
+    await page.getByRole('button', { name: 'Close notification', exact: true }).click();
     await page
       .getByRole('button', {
         name: `Decline e2e-${suffix}-viewer for ${choirs[1].name}`,
         exact: true,
       })
       .click();
+    await expect(page.getByText('Request declined.', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Close notification', exact: true }).click();
     await expect(page.getByText('No pending join requests.', { exact: true })).toBeVisible();
     const memberChoirs = await (await applicant.request.get('/api/v1/choirs/')).json();
     expect(memberChoirs.some((choir: { id: number }) => choir.id === choirs[0].id)).toBe(true);
