@@ -4,7 +4,7 @@
  * Login/logout failures never pretend a server session changed successfully.
  */
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { createContext, useContext, useEffect } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { currentUser } from '../../api/auth';
@@ -15,6 +15,7 @@ const sessionKey = ['session'] as const;
 type Session = {
   user: User | null;
   pending: boolean;
+  signedOut: boolean;
   error: Error | null;
   retry: () => void;
   acceptUser: (user: User) => void;
@@ -24,6 +25,7 @@ const SessionContext = createContext<Session | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const client = useQueryClient();
+  const [signedOut, setSignedOut] = useState(false);
   const query = useQuery({
     queryKey: sessionKey,
     queryFn: async () => {
@@ -80,15 +82,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       value={{
         user: query.data ?? null,
         pending: query.isPending,
+        signedOut,
         error: query.error,
         retry: () => void query.refetch(),
         acceptUser: (user) => {
+          setSignedOut(false);
           // Cancel an older /me refetch before publishing the newly signed-in user.
           void client.cancelQueries({ queryKey: sessionKey });
           client.removeQueries({ predicate: (entry) => entry.queryKey[0] !== 'session' });
           client.setQueryData(sessionKey, user);
         },
         clearSession: () => {
+          setSignedOut(true);
           // An in-flight identity response must not restore the signed-out shell.
           void client.cancelQueries({ queryKey: sessionKey });
           client.removeQueries({ predicate: (entry) => entry.queryKey[0] !== 'session' });

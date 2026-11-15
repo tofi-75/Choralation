@@ -1,16 +1,12 @@
 /** Shared reading surface: private PDF first, then lyrics, then the hymn title. */
 import { lazy, Suspense, useCallback, useState } from 'react';
+import type { Ref } from 'react';
+import { FocusLyrics } from './FocusLyrics';
+import type { LyricPageNavigation, LyricSize } from './FocusLyrics';
 import type { PdfFit } from './PdfSheet';
 import type { Hymn } from '../../api/library';
 
 const PdfSheet = lazy(() => import('./PdfSheet'));
-
-export const LYRIC_SIZES = [
-  ['standard', 'Standard'],
-  ['large', 'Large'],
-  ['extra-large', 'Extra large'],
-] as const;
-export type LyricSize = (typeof LYRIC_SIZES)[number][0];
 
 export function HymnMaterial({
   hymn,
@@ -19,8 +15,13 @@ export function HymnMaterial({
   onFitChange,
   page,
   onPageChange,
-  lyricSize,
+  lyricSize = 'standard',
   onLyricSizeChange,
+  lyricPosition,
+  onLyricPositionChange,
+  lyricNavigationRef,
+  onExitFocus,
+  onHymnSwipe,
 }: {
   hymn: Hymn;
   focus?: boolean;
@@ -30,6 +31,11 @@ export function HymnMaterial({
   onPageChange?: (page: number) => void;
   lyricSize?: LyricSize;
   onLyricSizeChange?: (size: LyricSize) => void;
+  lyricPosition?: number;
+  onLyricPositionChange?: (position: number) => void;
+  lyricNavigationRef?: Ref<LyricPageNavigation>;
+  onExitFocus?: () => void;
+  onHymnSwipe?: LyricPageNavigation;
 }) {
   const [failed, setFailed] = useState(false);
   const onFailure = useCallback(() => setFailed(true), []);
@@ -50,6 +56,8 @@ export function HymnMaterial({
             onFitChange={onFitChange}
             page={page}
             onPageChange={onPageChange}
+            onExitFocus={onExitFocus}
+            onHymnSwipe={onHymnSwipe}
           />
         </Suspense>
       ) : (
@@ -68,26 +76,22 @@ export function HymnMaterial({
             </p>
           )}
           {hymn.lyrics ? (
-            <>
-              {onLyricSizeChange && (
-                <label className="field focus-lyric-size">
-                  Lyric text size
-                  <select
-                    value={lyricSize}
-                    onChange={(event) => onLyricSizeChange(event.target.value as LyricSize)}
-                  >
-                    {LYRIC_SIZES.map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-              <div className="hymn-lyrics preserve-lines" dir="auto" data-text-size={lyricSize}>
+            focus ? (
+              <FocusLyrics
+                lyrics={hymn.lyrics}
+                size={lyricSize}
+                onSizeChange={onLyricSizeChange}
+                position={lyricPosition}
+                onPositionChange={onLyricPositionChange}
+                navigationRef={lyricNavigationRef}
+                onExit={onExitFocus}
+                onHymnSwipe={onHymnSwipe}
+              />
+            ) : (
+              <div className="hymn-lyrics preserve-lines" dir="auto">
                 {hymn.lyrics}
               </div>
-            </>
+            )
           ) : focus ? (
             <p className="focus-title-only" dir="auto">
               {hymn.title}

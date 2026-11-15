@@ -132,6 +132,7 @@ it('shows invalid link errors without retrying automatically or signing in', asy
   vi.stubGlobal('fetch', fetch);
   mount('/verify-email#token=expired-fictional-link');
   expect(await screen.findByRole('alert')).toHaveTextContent('invalid or expired');
+  await userEvent.click(screen.getByRole('button', { name: 'Close notification' }));
   expect(session.acceptUser).not.toHaveBeenCalled();
   expect(await screen.findByRole('button', { name: 'Retry verification' })).toBeEnabled();
   expect(fetch.mock.calls.filter(([url]) => url.endsWith('/verify-email/'))).toHaveLength(1);
@@ -161,10 +162,11 @@ it('redirects a successful password reset to sign-in with a success notice', asy
   );
   await userEvent.type(screen.getByLabelText('Confirm new password'), 'New-fictional-password!42');
   await userEvent.click(screen.getByRole('button', { name: 'Update password' }));
-  expect(await screen.findByRole('heading', { name: 'Sign in to your workspace' })).toBeVisible();
-  expect(screen.getByRole('status')).toHaveTextContent(
+  expect(await screen.findByRole('status')).toHaveTextContent(
     'Password updated. Sign in with your new password.',
   );
+  await userEvent.click(screen.getByRole('button', { name: 'Close notification' }));
+  expect(await screen.findByRole('heading', { name: 'Sign in to your workspace' })).toBeVisible();
   expect(session.clearSession).toHaveBeenCalledOnce();
 });
 
@@ -190,6 +192,7 @@ it('keeps failed password reset on the form without clearing the session', async
   await userEvent.type(screen.getByLabelText('Confirm new password'), 'New-fictional-password!42');
   await userEvent.click(screen.getByRole('button', { name: 'Update password' }));
   await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('expired'));
+  await userEvent.click(screen.getByRole('button', { name: 'Close notification' }));
   expect(screen.getByRole('heading', { name: 'Choose a new password' })).toBeVisible();
   expect(session.clearSession).not.toHaveBeenCalled();
 });

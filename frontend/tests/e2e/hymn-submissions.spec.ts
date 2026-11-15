@@ -56,6 +56,7 @@ test('member PDF stays private, receives feedback and becomes shared only after 
       .setInputFiles('tests/fixtures/two-page-sheet-music.pdf');
     await expect(page.locator('.pdf-edit-preview canvas')).toBeVisible();
     await page.getByRole('button', { name: 'Save hymn', exact: true }).click();
+    await page.getByRole('button', { name: 'Close notification', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Private hymn', exact: true })).toBeVisible();
     const id = Number(page.url().split('/').pop());
     await expect(page.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
@@ -85,7 +86,7 @@ test('member PDF stays private, receives feedback and becomes shared only after 
     await expect(
       feedbackNotice.getByText('Changes requested. The hymn remains private.', { exact: true }),
     ).toBeVisible();
-    await feedbackNotice.getByRole('button', { name: 'Dismiss', exact: true }).click();
+    await feedbackNotice.getByRole('button', { name: 'Close notification', exact: true }).click();
     await expect(feedbackNotice).toHaveCount(0);
     await page.reload();
     await expect(
@@ -94,6 +95,7 @@ test('member PDF stays private, receives feedback and becomes shared only after 
     await page.getByRole('link', { name: 'Edit hymn', exact: true }).click();
     await page.getByRole('textbox', { name: 'Default key', exact: true }).fill('D minor');
     await page.getByRole('button', { name: 'Save hymn', exact: true }).click();
+    await page.getByRole('button', { name: 'Close notification', exact: true }).click();
     await page.getByRole('button', { name: 'Request planner approval', exact: true }).click();
     await expect(
       page.getByRole('heading', { name: 'Awaiting planner approval', exact: true }),

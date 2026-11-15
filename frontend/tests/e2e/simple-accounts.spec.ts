@@ -94,6 +94,7 @@ test('simple accounts register, email-login and change password without account 
     });
   }
   await page.goto('/dashboard');
+  await page.locator('.account-trigger').click();
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Sign in to your workspace' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Forgot password?' })).toHaveCount(0);

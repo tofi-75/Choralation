@@ -1,5 +1,7 @@
 # Accounts and choirs
 
+Open the profile name or avatar at the top of the workspace for **Account settings** and **Sign out**. On phones, the hamburger icon opens workspace navigation.
+
 **Current release:** [Simple accounts](simple-accounts-release.md) supersedes the historical email-activation notes below. Registration is enabled; verification and emailed recovery are disabled.
 
 October 20, 2026. This supersedes the original shared-workspace permission model and brings choir collaboration forward from the deferred backlog. Google/provider setup and hosted activation remain manual owner steps. No Google sign-in is added: users can register with any email provider and a password.

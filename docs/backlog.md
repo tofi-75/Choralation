@@ -36,7 +36,7 @@ Verify the round trip with pending draft edits, insertion into the originating s
 
 #### Resume and save a draft Mass
 
-Drafts open in the editor and autosave while being prepared. **Save Mass** finalizes the current revision and opens the read-only program. In-app confirmations and transient feedback use centered floating windows. The navigation drawer retains its side placement.
+Drafts open in the editor and autosave while being prepared. **Save Mass** finalizes the current revision and opens the read-only program. Confirmations and notifications open in centered dialogs. A notification blocks interaction with the page until it closes. Tap the backdrop or the close icon, or press Escape. The hamburger button opens the side drawer. The profile menu opens Account settings or signs out.
 
 #### Use the full phone display in fullscreen
 
@@ -46,10 +46,12 @@ The local implementation requests native fullscreen for PDF reading and phone Ma
 
 **Sign in** and **Create account** share equal-size buttons. Switching forms puts the current action in the first, filled position and moves focus to the new form heading.
 
-Mass Focus has lyric size controls and a hymn menu. Within a session, each program selection retains its PDF page or lyric scroll position. Physical-device and screen-reader checks are listed in [Phone testing](phone-testing.md#current-phone-acceptance-checklist).
+Mass Focus has compact lyric zoom buttons on the side set by the text direction. The title opens the hymn picker, and the close icon shares the title and metadata header. Saved Mass hymn rows open hymn details from their full width. Within a session, each program selection retains its PDF page or lyric text position. Physical-device and screen-reader checks are listed in [Phone testing](phone-testing.md#current-phone-acceptance-checklist).
 
 ### Features for later
 
+- **Desktop sidebar fix.** Review the sidebar’s layout and behavior on desktop. Confirm what needs to change before implementation.
+- **Compact hymn cards on phones.** Reduce the height of Hymn Library cards so more results fit on screen while keeping titles readable, essential metadata easy to scan, and touch targets usable.
 - **Database storage and hymn load time.** Minimize database storage across all record types while targeting a load time under one second for every hymn, at minimum for its PDF. Define how load time will be measured, the test conditions, and storage tradeoffs when this work is discussed.
 - **Hymn search.** Improve matching and result ranking for searches in the hymn’s language and for queries across languages. Define the language pairs, expected matches, and search quality criteria when this work is scheduled.
 

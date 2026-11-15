@@ -1,7 +1,7 @@
 /** Material priority, reversible focus navigation, and screen-awake ownership. */
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { hymn, mass, category } from '../masses/fixtures.test-support';
 import { MassFocusMode } from '../masses/MassFocusMode';
 import { HymnMaterial } from './HymnMaterial';
@@ -14,7 +14,18 @@ vi.mock('./PdfSheet', () => ({
     </div>
   ),
 }));
+beforeEach(() => {
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe() {}
+      disconnect() {}
+    },
+  );
+});
 afterEach(() => {
+  sessionStorage.clear();
+  vi.unstubAllGlobals();
   Reflect.deleteProperty(navigator, 'wakeLock');
   vi.restoreAllMocks();
 });
@@ -64,16 +75,29 @@ it('navigates selections with swipes and keys, avoids wrapping, restores focus, 
   const trigger = screen.getByRole('button', { name: 'Focus mode' });
   await userEvent.click(trigger);
   const dialog = screen.getByRole('dialog', { name: 'Focus mode' });
-  expect(await within(dialog).findByText('Screen kept awake')).toBeVisible();
+  await waitFor(() => expect(dialog).toHaveFocus());
+  const titlePicker = within(dialog).getByRole('combobox', { name: 'Jump to hymn' });
+  expect(titlePicker).not.toHaveFocus();
+  await userEvent.tab();
+  expect(titlePicker).toHaveFocus();
   expect(request).toHaveBeenCalledWith('screen');
   expect(within(dialog).getByText('First lyrics')).toBeVisible();
   expect(within(dialog).getByRole('button', { name: 'Previous hymn' })).toBeDisabled();
   const reading = dialog.querySelector('.focus-reading')!;
-  fireEvent.touchStart(reading, {
-    touches: [{ clientX: 200, clientY: 100 }],
-    changedTouches: [{ clientX: 200, clientY: 100 }],
-  });
-  fireEvent.touchEnd(reading, { changedTouches: [{ clientX: 60, clientY: 105 }] });
+  const start = { clientX: 200, clientY: 100 };
+  const beginSwipe = () =>
+    fireEvent.touchStart(reading, { touches: [start], changedTouches: [start] });
+  const endSwipe = () =>
+    fireEvent.touchEnd(reading, {
+      touches: [],
+      changedTouches: [{ clientX: 60, clientY: 105 }],
+    });
+  beginSwipe();
+  fireEvent.touchCancel(reading);
+  endSwipe();
+  expect(within(dialog).getByText('Hymn 1 of 2')).toBeVisible();
+  beginSwipe();
+  endSwipe();
   expect(within(dialog).getByText('Hymn 2 of 2')).toBeVisible();
   expect(within(dialog).getByRole('button', { name: 'Next hymn' })).toBeDisabled();
   view.rerender(<MassFocusMode selections={[]} />);
@@ -85,7 +109,6 @@ it('navigates selections with swipes and keys, avoids wrapping, restores focus, 
     locks[0].released = true;
     locks[0].dispatchEvent(new Event('release'));
   });
-  expect(within(dialog).getByText('Screen awake paused.')).toBeVisible();
   fireEvent(document, new Event('visibilitychange'));
   await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
   await userEvent.keyboard('{Escape}');
@@ -116,7 +139,7 @@ it('keeps focus mode usable if the browser refuses the wake lock', async () => {
     />,
   );
   await userEvent.click(screen.getByRole('button', { name: 'Focus mode' }));
-  expect(await screen.findByText(/Screen may sleep/)).toBeVisible();
+  expect(await screen.findByRole('dialog', { name: 'Focus mode' })).toBeVisible();
   expect(screen.getByRole('button', { name: 'Exit focus mode' })).toBeVisible();
 });
 
@@ -153,5 +176,37 @@ it('releases a late wake-lock grant after focus mode has already closed', async 
     resolve(lock);
   });
   expect(lock.release).toHaveBeenCalledOnce();
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+});
+
+it('restores Focus on remount only for the same saved Mass entry and remembers an explicit exit', async () => {
+  const selections = [
+    {
+      id: 1,
+      hymn,
+      placement: category,
+      position: 0,
+      notes: null,
+      created_at: mass.created_at,
+      updated_at: mass.updated_at,
+    },
+  ];
+  const renderFocus = (resumeKey: string) =>
+    render(<MassFocusMode selections={selections} resumeKey={resumeKey} />);
+  const first = renderFocus('first-entry');
+  await userEvent.click(screen.getByRole('button', { name: 'Focus mode' }));
+  expect(screen.getByRole('dialog', { name: 'Focus mode' })).toBeVisible();
+  first.unmount();
+
+  const other = renderFocus('other-entry');
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  other.unmount();
+
+  const restored = renderFocus('first-entry');
+  expect(screen.getByRole('dialog', { name: 'Focus mode' })).toBeVisible();
+  await userEvent.click(screen.getByRole('button', { name: 'Exit focus mode' }));
+  restored.unmount();
+
+  renderFocus('first-entry');
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });

@@ -173,6 +173,7 @@ it('returns keyboard focus after a save waits for refreshed categories', async (
   await act(async () => {
     finish([row]);
   });
+  await user.click(await screen.findByRole('button', { name: 'Close notification' }));
   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   await waitFor(() => expect(trigger).toHaveFocus());
 });

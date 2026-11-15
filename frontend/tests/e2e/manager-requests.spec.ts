@@ -84,7 +84,7 @@ test('Admin reviews Manager requests and an approved user can plan their own cho
       await expect(dialog).toContainText(username);
       await dialog.getByRole('button', { name: action, exact: true }).click();
       await expect(admin.getByText('No pending requests.', { exact: true })).toBeVisible();
-      await admin.getByRole('button', { name: 'Dismiss', exact: true }).click();
+      await admin.getByRole('button', { name: 'Close notification', exact: true }).click();
     }
 
     await review('Decline');
@@ -103,6 +103,7 @@ test('Admin reviews Manager requests and an approved user can plan their own cho
     await page.getByRole('link', { name: 'Create choir', exact: true }).click();
     await page.getByRole('textbox', { name: /Choir name/ }).fill(choirName);
     await page.getByRole('button', { name: 'Create choir', exact: true }).click();
+    await page.getByRole('button', { name: 'Close notification', exact: true }).click();
     await expect(page.getByRole('heading', { name: choirName, exact: true })).toBeVisible();
     const choirId = Number(page.url().split('/').at(-1));
     const choirs = await (await page.request.get('/api/v1/choirs/')).json();

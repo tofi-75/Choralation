@@ -81,6 +81,7 @@ export function MassViewPage() {
   ]
     .filter((row) => row.is_active || selected.has(row.id))
     .sort((left, right) => left.display_order - right.display_order || left.id - right.id);
+  const focusResumeKey = `${user?.id}:${mass.id}:${location.key}`;
   const date = new Intl.DateTimeFormat('en', { dateStyle: 'long', timeZone: 'UTC' }).format(
     new Date(`${mass.date}T12:00:00Z`),
   );
@@ -114,6 +115,8 @@ export function MassViewPage() {
         </div>
         <div className="saved-mass-actions">
           <MassFocusMode
+            key={focusResumeKey}
+            resumeKey={focusResumeKey}
             selections={placements.flatMap((placement) =>
               mass.program
                 .filter((row) => row.placement.id === placement.id)
@@ -150,18 +153,21 @@ export function MassViewPage() {
                   .map((row) => (
                     <li key={row.id}>
                       <Link
+                        className="saved-hymn-link"
                         to={`/hymns/${row.hymn.id}`}
                         state={{ returnToMassId: mass.id }}
-                        dir="auto"
+                        aria-labelledby={`saved-hymn-${row.id}`}
                       >
-                        {row.hymn.title}
+                        <span className="saved-hymn-title" id={`saved-hymn-${row.id}`} dir="auto">
+                          {row.hymn.title}
+                        </span>
+                        <HymnMusicalSummary hymn={row.hymn} showLanguage />
+                        {row.notes && (
+                          <p className="tiny preserve-lines" dir="auto">
+                            {row.notes}
+                          </p>
+                        )}
                       </Link>
-                      <HymnMusicalSummary hymn={row.hymn} showLanguage />
-                      {row.notes && (
-                        <p className="tiny preserve-lines" dir="auto">
-                          {row.notes}
-                        </p>
-                      )}
                     </li>
                   ))}
               </ol>

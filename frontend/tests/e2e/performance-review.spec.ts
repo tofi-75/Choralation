@@ -123,32 +123,55 @@ async function checkFocusRotation(page: Page, focus: Locator) {
   }
 }
 
-async function swipePdf(page: Page, viewer: Locator, direction: 'left' | 'right' | 'down') {
-  const box = (await viewer.locator('.pdf-viewport').boundingBox())!;
+async function swipe(
+  page: Page,
+  surface: Locator,
+  direction: 'left' | 'right' | 'down' | 'up' | 'long-down' | 'diagonal' | 'two-finger',
+) {
+  const box = (await surface.boundingBox())!;
   const session = await page.context().newCDPSession(page);
-  const startX = box.x + box.width * (direction === 'left' ? 0.85 : 0.15);
-  const startY = box.y + box.height * 0.35;
+  const horizontal = direction === 'left' || direction === 'right';
+  const long = direction === 'long-down';
+  const startX = box.x + box.width * (direction === 'left' ? 0.82 : horizontal ? 0.18 : 0.5);
+  const startY = box.y + box.height * (long ? 0.12 : direction === 'up' ? 0.68 : 0.29);
+  const dx = horizontal
+    ? box.width * (direction === 'left' ? -0.64 : 0.64)
+    : direction === 'diagonal'
+      ? 75
+      : 0;
+  const dy = horizontal
+    ? 0
+    : long
+      ? Math.min(340, box.height * 0.8)
+      : direction === 'up'
+        ? -76
+        : 76;
+  const point = (step: number) => ({ id: 1, x: startX + dx * step, y: startY + dy * step });
   try {
-    await session.send('Input.dispatchTouchEvent', {
-      type: 'touchStart',
-      touchPoints: [{ x: startX, y: startY }],
-    });
-    await session.send('Input.dispatchTouchEvent', {
-      type: 'touchMove',
-      touchPoints: [
-        {
-          x:
-            direction === 'down'
-              ? startX
-              : box.x + box.width * (direction === 'left' ? 0.15 : 0.85),
-          y: direction === 'down' ? startY + 70 : startY,
-        },
-      ],
-    });
+    await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point(0)] });
+    const secondFinger = (step: number) => ({ ...point(step), id: 2, x: point(step).x + 25 });
+    if (direction === 'two-finger') {
+      await session.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [point(0), secondFinger(0)],
+      });
+    }
+    for (const step of [0.25, 0.5, 0.75, 1]) {
+      await session.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: direction === 'two-finger' ? [point(step), secondFinger(step)] : [point(step)],
+      });
+    }
     await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   } finally {
     await session.detach();
   }
+}
+
+async function swipePdf(page: Page, viewer: Locator, direction: Parameters<typeof swipe>[2]) {
+  const viewport = viewer.locator('.pdf-viewport');
+  await expect(viewport).toHaveAttribute('aria-busy', 'false');
+  await swipe(page, viewport, direction);
 }
 
 async function checkSideButtons(viewer: Locator) {
@@ -166,6 +189,45 @@ async function checkSideButtons(viewer: Locator) {
   expect(
     Math.abs(previous.y + previous.height / 2 - viewport.y - viewport.height / 2),
   ).toBeLessThan(2);
+}
+
+async function saveReadingProgram(
+  page: Page,
+  headers: Record<string, string>,
+  title: string,
+  season: number,
+  placement: number,
+  hymns: { id: number; notes?: string }[],
+) {
+  const massResponse = await page.request.post('/api/v1/masses/', {
+    headers,
+    data: {
+      date: '2099-10-11',
+      title,
+      liturgical_season_id: season,
+      notes: null,
+    },
+  });
+  expect(massResponse.status()).toBe(201);
+  const mass = await massResponse.json();
+  const program = await page.request.put(`/api/v1/masses/${mass.id}/program/`, {
+    headers: { ...headers, 'X-Expected-Mass-Revision': String(mass.revision) },
+    data: {
+      selections: hymns.map((hymn, position) => ({
+        hymn_id: hymn.id,
+        placement_id: placement,
+        position,
+        notes: hymn.notes ?? null,
+      })),
+    },
+  });
+  expect(program.status()).toBe(200);
+  const finalized = await page.request.post(`/api/v1/masses/${mass.id}/finalize/`, {
+    headers: { ...headers, 'X-Expected-Mass-Revision': String((await program.json()).revision) },
+    data: {},
+  });
+  expect(finalized.status()).toBe(200);
+  return mass.id as number;
 }
 
 test('Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation', async ({
@@ -196,7 +258,10 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   await login(page);
   const title = `ترنيمة ${suffix}-${info.project.name}`;
   const latin = `Tarnima ${suffix}-${info.project.name}`;
-  const lyrics = 'السطر الأول\nالسطر الثاني\n'.repeat(35).trim();
+  const lyrics = Array.from(
+    { length: 36 },
+    (_, index) => `السطر الأول ${index + 1} — Choir 👩🏽‍🎤\nالسطر الثاني e\u0301 Hallelujah`,
+  ).join('\n');
   await page.goto('/hymns/new');
   await page.getByRole('textbox', { name: /^Title/ }).fill(title);
   await page.getByRole('combobox', { name: /^Language/ }).selectOption({ label: 'Arabic' });
@@ -207,6 +272,7 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   await choose(page, 'Suitable placements', 'Communion');
   await choose(page, 'Suitable seasons', 'Ordinary Time');
   await page.getByRole('button', { name: 'Save hymn', exact: true }).click();
+  await page.getByRole('button', { name: 'Close notification', exact: true }).click();
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
   const lyricId = Number(page.url().split('/').pop());
   await expect(page.locator('.hymn-lyrics')).toHaveText(lyrics);
@@ -235,12 +301,16 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
       headers: { 'X-Choir-ID': await initialChoirId(page) },
     })
   ).json();
+  const fallbackLyrics = Array.from(
+    { length: 36 },
+    (_, index) => `PDF fallback lyrics ${index + 1}\nSing the refrain`,
+  ).join('\n');
   const payload = {
     title: `PDF ${suffix}-${info.project.name}`,
     language_id: lyric.language.id,
     placement_ids: [lyric.placements[0].id],
     season_ids: [lyric.seasons[0].id],
-    lyrics: 'PDF fallback lyrics',
+    lyrics: fallbackLyrics,
     default_key: 'G minor',
     tempo: '96 BPM',
     is_polyphonic: true,
@@ -259,11 +329,16 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   });
   expect(pdfResponse.status()).toBe(201);
   const pdf = await pdfResponse.json();
+  const longTitleDirection = info.project.use.isMobile ? 'rtl' : 'ltr';
+  const longTitle =
+    longTitleDirection === 'rtl'
+      ? `ترنيمة ${suffix}-${info.project.name} ${'عنوان طويل باللغة العربية للاختبار '.repeat(9)}`
+      : `Hymn ${suffix}-${info.project.name} ${'A long title for the choir to sing together '.repeat(9)}`;
   const plainResponse = await page.request.post('/api/v1/hymns/', {
     headers,
     data: {
       ...payload,
-      title: `Title only ${suffix}-${info.project.name}`,
+      title: longTitle.slice(0, 255).trimEnd(),
       lyrics: null,
       default_key: null,
       tempo: null,
@@ -285,7 +360,7 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
       .evaluate((canvas) => (canvas as HTMLCanvasElement).height),
   ).toBeGreaterThan(0);
   await checkPdfZoom(page.locator('.pdf-sheet'));
-  await expect(page.getByText('PDF fallback lyrics', { exact: true })).toBeVisible();
+  await expect(page.getByText(fallbackLyrics, { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Next PDF page', exact: true }).click();
   await expect(page.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();
   await page.getByRole('button', { name: `Open ${pdf.title} PDF fullscreen`, exact: true }).click();
@@ -328,7 +403,19 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
     await expect(fullscreen.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();
     await swipePdf(page, fullscreen, 'right');
     await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
+    await swipePdf(page, fullscreen, 'down');
+    await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
+    await swipePdf(page, fullscreen, 'up');
+    await expect(fullscreen.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();
+    await swipePdf(page, fullscreen, 'diagonal');
+    await swipePdf(page, fullscreen, 'two-finger');
+    await expect(fullscreen.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();
+    await swipePdf(page, fullscreen, 'up');
+    await expect(fullscreen.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();
+    await swipePdf(page, fullscreen, 'down');
+    await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
     await fullscreen.getByRole('button', { name: 'Zoom in', exact: true }).click();
+    await expect(fullscreen.getByLabel('Zoom relative to fit')).toHaveText('125%');
     await expect(readingArea).toHaveAttribute('aria-busy', 'false');
     await swipePdf(page, fullscreen, 'left');
     await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
@@ -340,8 +427,42 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
     await readingArea.evaluate((element) => {
       element.scrollTop = 75;
     });
-    await swipePdf(page, fullscreen, 'down');
+    await swipePdf(page, fullscreen, 'long-down');
     await expect(fullscreen).toBeVisible();
+    await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
+    const room = () =>
+      readingArea.evaluate(
+        (element) => element.scrollHeight - element.clientHeight - element.scrollTop,
+      );
+    const initialRoom = await room();
+    await swipePdf(page, fullscreen, 'up');
+    await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
+    await expect.poll(room).toBeLessThan(initialRoom);
+    // Let native momentum finish before positioning the viewport for a new gesture.
+    await readingArea.evaluate(
+      (element) =>
+        new Promise<void>((resolve) => {
+          let timer: number;
+          const waitForQuiet = () => {
+            window.clearTimeout(timer);
+            timer = window.setTimeout(() => {
+              element.removeEventListener('scroll', waitForQuiet);
+              resolve();
+            }, 180);
+          };
+          element.addEventListener('scroll', waitForQuiet);
+          waitForQuiet();
+        }),
+    );
+    await readingArea.evaluate((element) =>
+      element.scrollTo({ top: element.scrollHeight, behavior: 'instant' }),
+    );
+    await expect.poll(room).toBeLessThan(2);
+    await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
+    await swipePdf(page, fullscreen, 'up');
+    await expect(fullscreen.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();
+    await fullscreen.getByRole('button', { name: 'Previous PDF page', exact: true }).click();
+    await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
     for (let step = 0; step < 3; step++)
       await fullscreen.getByRole('button', { name: 'Zoom out', exact: true }).click();
   }
@@ -385,7 +506,7 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
         page.evaluate(() => document.fullscreenElement?.classList.contains('pdf-fullscreen')),
       )
       .toBe(true);
-  if (mobile) await swipePdf(page, fullscreen, 'down');
+  if (mobile) await swipePdf(page, fullscreen, 'long-down');
   else await fullscreen.getByRole('button', { name: 'Exit PDF fullscreen', exact: true }).click();
   await expect(fullscreen).toHaveCount(0);
   await expect(
@@ -402,40 +523,23 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   await page.getByRole('button', { name: 'Save hymn', exact: true }).click();
   await expect(page.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
-  async function saveProgram(massTitle: string, hymns: { id: number }[]) {
-    const massResponse = await page.request.post('/api/v1/masses/', {
-      headers,
-      data: {
-        date: '2099-10-11',
-        title: massTitle,
-        liturgical_season_id: lyric.seasons[0].id,
-        notes: null,
-      },
-    });
-    expect(massResponse.status()).toBe(201);
-    const mass = await massResponse.json();
-    const program = await page.request.put(`/api/v1/masses/${mass.id}/program/`, {
-      headers: { ...headers, 'X-Expected-Mass-Revision': String(mass.revision) },
-      data: {
-        selections: hymns.map((hymn, position) => ({
-          hymn_id: hymn.id,
-          placement_id: lyric.placements[0].id,
-          position,
-          notes: null,
-        })),
-      },
-    });
-    expect(program.status()).toBe(200);
-    const finalized = await page.request.post(`/api/v1/masses/${mass.id}/finalize/`, {
-      headers: { ...headers, 'X-Expected-Mass-Revision': String((await program.json()).revision) },
-      data: {},
-    });
-    expect(finalized.status()).toBe(200);
-    return mass.id as number;
-  }
   const massTitle = `Reading ${suffix}-${info.project.name}`;
-  const massId = await saveProgram(massTitle, [pdf, lyric, plain, pdf]);
-  const secondMassId = await saveProgram(`Second ${massTitle}`, [pdf]);
+  const massId = await saveReadingProgram(
+    page,
+    headers,
+    massTitle,
+    payload.season_ids[0],
+    payload.placement_ids[0],
+    [pdf, { ...lyric, notes: 'Start the refrain together.' }, plain, pdf],
+  );
+  const secondMassId = await saveReadingProgram(
+    page,
+    headers,
+    `Second ${massTitle}`,
+    payload.season_ids[0],
+    payload.placement_ids[0],
+    [pdf],
+  );
   await page.goto(`/masses/${secondMassId}`);
   const pdfLink = page.getByRole('link', { name: pdf.title, exact: true }).first();
   await pdfLink.click();
@@ -460,7 +564,7 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   await expect(metadata.nth(1)).toContainText('Voices 1');
   await expect(metadata.nth(2).locator('strong')).toHaveText(['—', '—', '-']);
   await expect(metadata.nth(0)).toHaveCSS('flex-wrap', 'wrap');
-  await pdfLink.click();
+  await pdfLink.locator('.hymn-musical-summary').getByText('96 BPM').click();
   await expect(back).toHaveAttribute('href', `/masses/${massId}`);
   await back.click();
   await expect(page.getByRole('heading', { name: massTitle, exact: true })).toBeVisible();
@@ -482,9 +586,30 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
     await expect
       .poll(() => page.evaluate(() => document.fullscreenElement?.className))
       .toBe('mass-focus');
-  await expect(focus.locator('.focus-header')).toHaveText('✕');
+  const focusHeader = focus.locator('.focus-header');
+  await expect(focusHeader.getByRole('button', { name: 'Exit focus mode' })).toBeVisible();
+  const jump = focusHeader.getByRole('combobox', { name: 'Jump to hymn', exact: true });
+  await expect(jump).toHaveValue('0');
+  await expect(focus).toBeFocused();
+  await expect(jump).not.toBeFocused();
+  await expect(focusHeader.locator('.focus-hymn-picker')).toHaveCSS('outline-style', 'none');
+  await page.keyboard.press('Tab');
+  await expect(jump).toBeFocused();
+  const focusTitle = focusHeader.locator('.focus-hymn-picker h2');
+  const titleSize = await focusTitle.evaluate((element) => getComputedStyle(element).fontSize);
+  const headingText = (await focusTitle.boundingBox())!;
+  const caret = (await focusHeader.locator('.focus-hymn-picker svg').boundingBox())!;
+  const headerBox = (await focusHeader.boundingBox())!;
+  expect(
+    Math.abs(headingText.x + headingText.width / 2 - headerBox.width / 2 - headerBox.x),
+  ).toBeLessThan(1);
+  expect(caret.x).toBeGreaterThan(headingText.x + headingText.width);
+  const footer = (await focus.locator('.focus-footer').boundingBox())!;
+  const dialogBox = (await focus.boundingBox())!;
+  expect(footer.y + footer.height).toBeCloseTo(dialogBox.y + dialogBox.height, 0);
+  await expect(focus.locator('.focus-footer select')).toHaveCount(0);
   await expect(focus.getByRole('heading', { name: pdf.title, exact: true })).toBeVisible();
-  const focusMetadata = focus.locator('.focus-reading > h2 + .hymn-musical-summary');
+  const focusMetadata = focusHeader.locator('.hymn-musical-summary');
   await expect(focusMetadata.locator(':scope > span')).toHaveText([
     'Key G minor',
     'Tempo 96 BPM',
@@ -493,9 +618,16 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   await expect(focusMetadata).toHaveCSS('flex-wrap', 'wrap');
   await expect(focus.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
   await expect(focus.getByText('Loading sheet music…', { exact: true })).toHaveCount(0);
-  await expect(focus.getByText('Screen kept awake', { exact: true })).toBeVisible();
+  await expect(focus.getByText('Screen kept awake', { exact: true })).toHaveCount(0);
   await checkPdfZoom(focus);
   await checkSideButtons(focus);
+  if (mobile) {
+    await swipePdf(page, focus, 'up');
+    await expect(focus.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();
+    await expect(fullscreen).toHaveCount(0);
+    await swipePdf(page, focus, 'down');
+    await expect(focus.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
+  }
   await focus.getByRole('button', { name: 'Fit to width', exact: true }).click();
   await focus.getByRole('button', { name: 'Next PDF page', exact: true }).click();
   await expect(focus.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();
@@ -509,13 +641,20 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
     .click();
   await expect(fullscreen).toBeVisible();
   await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
-  if (mobile) await swipePdf(page, fullscreen, 'down');
+  await expect(fullscreen.locator('.pdf-viewport')).toHaveAttribute('aria-busy', 'false');
+  if (mobile) await swipePdf(page, fullscreen, 'up');
+  else await fullscreen.getByRole('button', { name: 'Next PDF page', exact: true }).click();
+  await expect(fullscreen.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();
+  if (mobile) await swipePdf(page, fullscreen, 'long-down');
   else await fullscreen.getByRole('button', { name: 'Exit PDF fullscreen', exact: true }).click();
   await expect(fullscreen).toHaveCount(0);
   await expect(focus.getByText('Hymn 1 of 4', { exact: true })).toBeVisible();
+  await expect(focus.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();
+  await focus.getByRole('button', { name: 'Previous PDF page', exact: true }).click();
+  await expect(focus.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
   if (nativeFocus) {
     expect(await page.evaluate(() => document.fullscreenElement?.className)).toBe('mass-focus');
-    if (mobile) await swipePdf(page, focus, 'down');
+    if (mobile) await swipePdf(page, focus, 'long-down');
     else await focus.getByRole('button', { name: 'Exit focus mode', exact: true }).click();
     await expect(focus).toHaveCount(0);
     await expect.poll(() => page.evaluate(() => document.fullscreenElement === null)).toBe(true);
@@ -570,23 +709,94 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
     await session.detach();
   } else await page.keyboard.press('ArrowRight');
   await expect(focus.getByText('Hymn 2 of 4', { exact: true })).toBeVisible();
-  await expect(focus.locator('.hymn-lyrics')).toContainText('السطر الأول');
-  const lyricSize = focus.getByLabel('Lyric text size');
-  const lyricText = focus.locator('.hymn-lyrics');
+  await expect(focus.locator('.hymn-lyrics:not(.lyric-measure)')).toContainText('السطر الأول');
+  const zoomIn = focus.getByRole('button', { name: 'Zoom in lyrics', exact: true });
+  const zoomOut = focus.getByRole('button', { name: 'Zoom out lyrics', exact: true });
+  const lyricText = focus.locator('.hymn-lyrics:not(.lyric-measure)');
   const originalFont = await lyricText.evaluate((element) =>
     parseFloat(getComputedStyle(element).fontSize),
   );
-  await lyricSize.selectOption('extra-large');
+  await expect(zoomOut).toBeDisabled();
+  await expect(focus.locator('.lyric-panel')).toHaveCSS('direction', 'rtl');
+  await zoomIn.click();
+  await zoomIn.click();
+  await expect(zoomIn).toBeDisabled();
   expect(
     await lyricText.evaluate((element) => parseFloat(getComputedStyle(element).fontSize)),
   ).toBeGreaterThan(originalFont);
-  const focusReading = focus.locator('.focus-reading');
-  await focusReading.evaluate((element) => {
-    element.scrollTop = 160;
-  });
+  await expect(focusTitle).toHaveCSS('font-size', titleSize);
+  const lyricSurface = focus.locator('.lyric-pages');
+  const note = focus.getByText('Start the refrain together.', { exact: true });
+  await expect(note).toBeVisible();
+  const noteBox = (await note.boundingBox())!;
+  expect((await lyricSurface.boundingBox())!.y).toBeGreaterThan(noteBox.y + noteBox.height);
+  const lyricCount = focus.locator('.lyric-page-count');
+  const previousLyric = focus.getByRole('button', { name: 'Previous lyrics page' });
+  const nextLyric = focus.getByRole('button', { name: 'Next lyrics page' });
+  const words = async () => (await lyricText.textContent())!;
+
+  await expect(lyricCount).toHaveText(/^Page 1 \/ [2-9]|^Page 1 \/ \d{2,}/);
+  if (mobile) {
+    await swipe(page, lyricSurface, 'down');
+    await expect(previousLyric).toBeDisabled();
+    await swipe(page, lyricSurface, 'up');
+    await expect(lyricCount).toHaveText(/^Page 2 \//);
+    await swipe(page, lyricSurface, 'down');
+    await expect(previousLyric).toBeDisabled();
+  } else {
+    await focus.evaluate((element) => element.focus());
+    await page.keyboard.press('PageDown');
+    await expect(lyricCount).toHaveText(/^Page 2 \//);
+    await page.keyboard.press('ArrowUp');
+    await expect(previousLyric).toBeDisabled();
+  }
+  const graphemeStarts = new Set(
+    Array.from(new Intl.Segmenter().segment(lyrics), ({ index }) => index),
+  );
+  const total = Number((await lyricCount.textContent())!.split('/')[1]);
+  let allLyrics = '';
+  for (let index = 1; index <= total; index++) {
+    expect(graphemeStarts.has(allLyrics.length)).toBe(true);
+    await expect(lyricCount).toHaveText(`Page ${index} / ${total}`);
+    allLyrics += await words();
+    expect(await lyricSurface.evaluate((el) => el.scrollHeight - el.clientHeight)).toBeLessThan(2);
+    if (index < total) await nextLyric.click();
+  }
+  expect(allLyrics).toBe(lyrics);
+  await expect(nextLyric).toBeDisabled();
+  if (mobile) await swipe(page, lyricSurface, 'up');
+  await expect(nextLyric).toBeDisabled();
+  await previousLyric.click();
+  const savedLyrics = await words();
+  expect(savedLyrics.trim().length).toBeGreaterThan(5);
+  const passage = savedLyrics.slice(0, 8);
+  await zoomOut.click();
+  await expect(lyricText).toContainText(passage);
+  await zoomIn.click();
+  await expect(lyricText).toHaveText(savedLyrics);
+  const lyricPortrait = page.viewportSize()!;
+  await page.setViewportSize({ width: 844, height: 390 });
+  await expect
+    .poll(async () => Number((await lyricCount.textContent())!.split('/')[1]))
+    .not.toBe(total);
+  await expect(lyricText).toContainText(passage);
+  await page.setViewportSize(lyricPortrait);
+  await expect(lyricText).toHaveText(savedLyrics);
   await page.screenshot({ path: info.outputPath('focus-lyrics.png') });
   await focus.getByRole('button', { name: 'Next hymn', exact: true }).click();
   await expect(focus.locator('.focus-title-only')).toHaveText(plain.title);
+  await expect(focusTitle).toHaveText(plain.title);
+  await expect(focusTitle).toHaveCSS('font-size', titleSize);
+  await expect(focusTitle).toHaveCSS('direction', longTitleDirection);
+  await expect(focusTitle).toHaveCSS('white-space', 'nowrap');
+  await expect(focusTitle).toHaveCSS('text-overflow', 'ellipsis');
+  expect(await focusTitle.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(
+    true,
+  );
+  const longTitleBox = (await focusTitle.boundingBox())!;
+  const longTitleChevron = (await focusHeader.locator('.focus-hymn-picker svg').boundingBox())!;
+  expect(longTitleBox.x + longTitleBox.width).toBeLessThan(longTitleChevron.x);
+  await page.screenshot({ path: info.outputPath('focus-long-title.png') });
   await expect(focusMetadata.locator('strong')).toHaveText(['—', '—', '-']);
   await focus.getByRole('button', { name: 'Next hymn', exact: true }).click();
   await expect(focus.getByText('Hymn 4 of 4', { exact: true })).toBeVisible();
@@ -603,7 +813,6 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
     )
     .toBeLessThan(2);
   await expect(focus.getByRole('button', { name: 'Next hymn', exact: true })).toBeDisabled();
-  const jump = focus.getByRole('combobox', { name: 'Jump to hymn', exact: true });
   await jump.selectOption('0');
   await focus.getByRole('button', { name: 'Next PDF page', exact: true }).click();
   await expect(focus.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();
@@ -612,9 +821,10 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   await jump.selectOption('0');
   await expect(focus.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();
   await jump.selectOption('1');
-  await expect(lyricSize).toHaveValue('extra-large');
-  await expect.poll(() => focusReading.evaluate((element) => element.scrollTop)).toBe(160);
-  await focus.getByRole('button', { name: 'Exit focus mode', exact: true }).click();
+  await expect(lyricText).toHaveAttribute('data-text-size', 'extra-large');
+  await expect(lyricText).toHaveText(savedLyrics);
+  if (mobile) await swipe(page, lyricSurface, 'long-down');
+  else await focus.getByRole('button', { name: 'Exit focus mode', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Focus mode', exact: true })).toBeFocused();
   await expect
     .poll(() =>
@@ -631,22 +841,87 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   );
   await page.getByRole('button', { name: 'Focus mode', exact: true }).click();
   await expect(focus.getByRole('alert')).toContainText('could not be displayed');
-  await expect(focus.locator('.hymn-lyrics')).toHaveText('PDF fallback lyrics');
+  await expect(lyricText).toContainText('PDF fallback lyrics 1');
+  await expect(lyricCount).toHaveText(/^Page 1 \/ (?:[2-9]|\d{2,})$/);
+  await nextLyric.click();
+  await expect(lyricCount).toHaveText(/^Page 2 \//);
+  await expect(focus.locator('.lyric-panel')).toHaveCSS('direction', 'ltr');
+  await expect(focus.getByRole('button', { name: 'Zoom in lyrics' })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(focus).toHaveCount(0);
 
-  if (mobile) {
-    // Start a fresh focus session for device rotation so it cannot affect the fallback viewport checks.
-    await page.unroute(`**/api/v1/hymns/${pdf.id}/sheet-music/`);
-    await page.reload();
-    await page.getByRole('button', { name: 'Focus mode', exact: true }).click();
-    await expect(focus.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
-    await expect(focus.locator('.pdf-viewport')).toHaveAttribute('aria-busy', 'false');
-    await checkFocusRotation(page, focus);
-    await swipePdf(page, focus, 'down');
-    await expect(focus).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Focus mode', exact: true })).toBeFocused();
+  // Start again with the browser's normal fullscreen behavior before reloading Focus.
+  await page.unroute(`**/api/v1/hymns/${pdf.id}/sheet-music/`);
+  await page.reload();
+  const launchFocus = page.getByRole('button', { name: 'Focus mode', exact: true });
+  await launchFocus.click();
+  await expect(focus).toBeVisible();
+  if (nativeFocus)
+    await expect
+      .poll(() => page.evaluate(() => document.fullscreenElement?.className))
+      .toBe('mass-focus');
+
+  await page.reload();
+  await expect(focus).toBeFocused();
+  await expect(focus.getByRole('heading', { name: pdf.title, exact: true })).toBeVisible();
+  await focus.getByRole('button', { name: 'Exit focus mode', exact: true }).click();
+  await expect(launchFocus).toBeFocused();
+  await page.reload();
+  await expect(launchFocus).toBeVisible();
+  await expect(focus).toHaveCount(0);
+});
+
+test('Phone Focus preserves PDF fit and exits on a long swipe after rotation', async ({
+  page,
+}, info) => {
+  test.skip(!info.project.use.isMobile, 'This scenario uses phone orientation and touch.');
+  test.setTimeout(60_000);
+  await login(page);
+  const headers = {
+    'X-Choir-ID': await initialChoirId(page),
+    'X-CSRFToken': (await (await page.request.get('/api/v1/auth/csrf/')).json())
+      .csrf_token as string,
+  };
+  async function firstCategory(collection: string) {
+    const response = await page.request.get(`/api/v1/${collection}/?is_active=all`, { headers });
+    expect(response.ok()).toBe(true);
+    const categories = await response.json();
+    return categories[0].id as number;
   }
+  const [language, placement, season] = await Promise.all(
+    ['languages', 'mass-placements', 'liturgical-seasons'].map(firstCategory),
+  );
+  const title = `Rotation score ${info.project.name}`;
+  const response = await page.request.post('/api/v1/hymns/', {
+    headers,
+    multipart: {
+      data: JSON.stringify({
+        title,
+        language_id: language,
+        placement_ids: [placement],
+        season_ids: [season],
+      }),
+      sheet_music_pdf: {
+        name: 'score.pdf',
+        mimeType: 'application/pdf',
+        buffer: readFileSync('tests/fixtures/two-page-sheet-music.pdf'),
+      },
+    },
+  });
+  expect(response.status()).toBe(201);
+  const hymn = await response.json();
+  const mass = await saveReadingProgram(page, headers, `Reading ${title}`, season, placement, [
+    hymn,
+  ]);
+  await page.goto(`/masses/${mass}`);
+  const launch = page.getByRole('button', { name: 'Focus mode', exact: true });
+  await launch.click();
+  const focus = page.getByRole('dialog', { name: 'Focus mode', exact: true });
+  await expect(focus.locator('.pdf-viewport')).toHaveAttribute('aria-busy', 'false');
+  await checkFocusRotation(page, focus);
+  await swipePdf(page, focus, 'long-down');
+  await expect(focus).toHaveCount(0);
+  await expect(launch).toBeFocused();
 });
 
 test('Home heading alignment and Mass actions stay on one line at narrow widths', async ({

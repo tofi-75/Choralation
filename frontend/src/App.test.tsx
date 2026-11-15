@@ -40,6 +40,7 @@ it('protects a direct workspace visit and associates required errors with inputs
       ),
   );
   renderApp('/dashboard');
+  await userEvent.click(await screen.findByRole('button', { name: 'Close notification' }));
   await screen.findByRole('heading', { name: 'Sign in to your workspace' });
   await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
   expect(await screen.findByText('Enter your username.')).toBeVisible();
@@ -95,10 +96,12 @@ it('preserves credentials after a failure and supports retry, login, and logout'
   await userEvent.type(screen.getByLabelText('Password', { exact: true }), 'kept-secret');
   await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
   expect(await screen.findByRole('alert')).toHaveTextContent('Incorrect credentials.');
+  await userEvent.click(screen.getByRole('button', { name: 'Close notification' }));
   expect(screen.getByLabelText('Password', { exact: true })).toHaveValue('kept-secret');
   await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
   expect(await screen.findByRole('heading', { name: 'Masses' })).toBeVisible();
   expect(screen.getByText('Planner', { selector: '.role-badge' })).toBeVisible();
+  await userEvent.click(screen.getByText('Account menu', { exact: true }));
   await userEvent.click(screen.getByRole('button', { name: 'Sign out' }));
   expect(await screen.findByRole('heading', { name: 'Sign in to your workspace' })).toBeVisible();
 });

@@ -1,6 +1,6 @@
 /** Responsive protected shell exposes only implemented routes; mobile menu traps focus. */
 import * as Dialog from '@radix-ui/react-dialog';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router';
 
 import { signOut } from '../api/auth';
@@ -26,6 +26,28 @@ export function AppShell() {
   const [collapsed, setCollapsed] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
+  const accountMenu = useRef<HTMLDetailsElement>(null);
+  const role =
+    session.user?.role !== 'Admin' && session.user?.can_create_choirs
+      ? 'Manager'
+      : session.user?.role;
+
+  function closeAccountMenu(restoreFocus = false) {
+    const menu = accountMenu.current;
+    if (!menu) return;
+    menu.open = false;
+    if (restoreFocus) menu.querySelector('summary')?.focus();
+  }
+
+  useEffect(() => {
+    function closeOutside(event: PointerEvent) {
+      if (event.target instanceof Node && !accountMenu.current?.contains(event.target))
+        closeAccountMenu();
+    }
+    document.addEventListener('pointerdown', closeOutside);
+    return () => document.removeEventListener('pointerdown', closeOutside);
+  }, []);
+
   const settingsLink = ['/settings', 'Settings', '⚙'];
 
   function desktopLink([path, label, icon]: string[]) {
@@ -108,7 +130,20 @@ export function AppShell() {
         <header className="topbar">
           <div className="mobile-navigation">
             <Dialog.Root>
-              <Dialog.Trigger className="button secondary">Menu</Dialog.Trigger>
+              <Dialog.Trigger className="button secondary icon-button" aria-label="Menu">
+                <svg
+                  aria-hidden="true"
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                >
+                  <path d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </Dialog.Trigger>
               <Dialog.Portal>
                 <Dialog.Overlay className="dialog-overlay" />
                 <Dialog.Content className="dialog-content workspace-menu">
@@ -138,23 +173,56 @@ export function AppShell() {
               ))}
             </select>
           </label>
-          <div className="account-controls">
-            <span className="account-name" dir="auto">
-              {session.user?.username}
-            </span>
-            <span className="role-badge">
-              {session.user?.role !== 'Admin' && session.user?.can_create_choirs
-                ? 'Manager'
-                : session.user?.role}
-            </span>
-            <button
-              className="button secondary"
-              onClick={() => void logout()}
-              disabled={signingOut}
-            >
-              {signingOut ? 'Signing out…' : 'Sign out'}
-            </button>
-          </div>
+          <details
+            className="account-controls"
+            ref={accountMenu}
+            onBlur={(event) => {
+              if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget))
+                event.currentTarget.open = false;
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape' && event.currentTarget.open) {
+                event.stopPropagation();
+                closeAccountMenu(true);
+              }
+            }}
+          >
+            <summary className="account-trigger">
+              <span className="account-avatar" aria-hidden="true">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                >
+                  <circle cx="12" cy="8" r="3" />
+                  <path d="M5.5 20v-1a6.5 6.5 0 0 1 13 0v1" />
+                </svg>
+              </span>
+              <span className="account-name" dir="auto">
+                {session.user?.username}
+              </span>
+              <span className="role-badge">{role}</span>
+              <span className="sr-only">Account menu</span>
+            </summary>
+            <div className="account-dropdown">
+              <Link to="/settings?tab=account" onClick={() => closeAccountMenu()}>
+                Account settings
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  closeAccountMenu(true);
+                  void logout();
+                }}
+                disabled={signingOut}
+              >
+                {signingOut ? 'Signing out…' : 'Sign out'}
+              </button>
+            </div>
+          </details>
         </header>
         {failure && (
           <FloatingNotice error dismiss={() => setFailure(null)}>

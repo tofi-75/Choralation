@@ -312,7 +312,11 @@ function CategoryManager({ kind }: { kind: CategoryKind }) {
           {query.error.message} <button onClick={() => void query.refetch()}>Retry</button>
         </p>
       )}
-      {notice && <FloatingNotice dismiss={() => setNotice('')}>{notice}</FloatingNotice>}
+      {notice && (
+        <FloatingNotice dismiss={() => setNotice('')} returnFocus={focusTarget.current}>
+          {notice}
+        </FloatingNotice>
+      )}
       {error && edit === undefined && !action && (
         <FloatingNotice error dismiss={() => setError('')}>
           {error}

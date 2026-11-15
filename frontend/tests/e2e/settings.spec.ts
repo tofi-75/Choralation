@@ -32,27 +32,33 @@ test('Admin classification lifecycle, reference safety, keyboard order and stale
       .getByRole('textbox', { name: 'Description', exact: true })
       .fill('Fictional M6 acceptance');
     await page.getByRole('button', { name: 'Save category', exact: true }).click();
+    await page.getByRole('button', { name: 'Close notification', exact: true }).click();
     const row = page.locator('.settings-row').filter({ hasText: name });
     await expect(row).toBeVisible();
     await row.getByRole('button', { name: `Edit ${name}`, exact: true }).click();
     await page.getByRole('textbox', { name: /^Name/ }).fill(name + ' renamed');
     await page.getByRole('button', { name: 'Save category', exact: true }).click();
+    await page.getByRole('button', { name: 'Close notification', exact: true }).click();
     await expect(row.locator('strong').filter({ hasText: name + ' renamed' })).toBeVisible();
     const move = row.getByRole('button', { name: /^Move .* down$/ });
     if (await move.isEnabled()) {
       await move.focus();
       await page.keyboard.press('Enter');
       await page.getByRole('button', { name: 'Save order', exact: true }).click();
+      await page.getByRole('button', { name: 'Close notification', exact: true }).click();
       await expect(page.getByRole('button', { name: 'Save order', exact: true })).toHaveCount(0);
     }
     await row.getByRole('button', { name: /^Deactivate/ }).click();
     await page.getByRole('button', { name: 'Confirm deactivation', exact: true }).click();
+    await page.getByRole('button', { name: 'Close notification', exact: true }).click();
     await expect(row.getByText('Inactive', { exact: true })).toBeVisible();
     await row.getByRole('button', { name: /^Activate/ }).click();
     await page.getByRole('button', { name: 'Confirm activation', exact: true }).click();
+    await page.getByRole('button', { name: 'Close notification', exact: true }).click();
     await expect(row.getByText('Active', { exact: true })).toBeVisible();
     await row.getByRole('button', { name: /^Delete / }).click();
     await page.getByRole('button', { name: 'Confirm delete', exact: true }).click();
+    await page.getByRole('button', { name: 'Close notification', exact: true }).click();
     await expect(row).toHaveCount(0);
   }
   await page
@@ -127,6 +133,7 @@ test('choir calendar preview, overrides, version conflicts and read-only member 
     .getByRole('combobox', { name: 'Timezone', exact: true })
     .selectOption('Pacific/Honolulu');
   await page.getByRole('button', { name: 'Save calendar settings', exact: true }).click();
+  await page.getByRole('button', { name: 'Close notification', exact: true }).click();
   await expect(
     page.getByRole('button', { name: 'Save calendar settings', exact: true }),
   ).toBeDisabled();
@@ -135,6 +142,7 @@ test('choir calendar preview, overrides, version conflicts and read-only member 
     .getByRole('combobox', { name: 'Override season', exact: true })
     .selectOption({ label: 'Resurrection' });
   await page.getByRole('button', { name: 'Save date override', exact: true }).click();
+  await page.getByRole('button', { name: 'Close notification', exact: true }).click();
   await expect(page.locator('.settings-row').filter({ hasText: '2027-03-28' })).toBeVisible();
   await page.getByLabel('Preview date', { exact: true }).fill('2027-03-28');
   await page.getByRole('button', { name: 'Preview suggestion', exact: true }).click();
@@ -194,6 +202,7 @@ test('choir calendar preview, overrides, version conflicts and read-only member 
     .getByRole('dialog', { name: 'Confirm action' })
     .getByRole('button', { name: 'Remove override', exact: true })
     .click();
+  await page.getByRole('button', { name: 'Close notification', exact: true }).click();
   await expect(page.getByText('No date overrides.', { exact: true })).toBeVisible();
   await page.getByLabel('Preview date', { exact: true }).fill('2027-03-28');
   await page.getByRole('button', { name: 'Preview suggestion', exact: true }).click();
@@ -206,6 +215,7 @@ test('choir calendar preview, overrides, version conflicts and read-only member 
   await page.getByRole('combobox', { name: 'Calendar', exact: true }).selectOption('maronite');
   await page.getByRole('combobox', { name: 'Timezone', exact: true }).selectOption('Asia/Beirut');
   await page.getByRole('button', { name: 'Save calendar settings', exact: true }).click();
+  await page.getByRole('button', { name: 'Close notification', exact: true }).click();
   await expect(
     page.getByRole('button', { name: 'Save calendar settings', exact: true }),
   ).toBeDisabled();

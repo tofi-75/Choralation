@@ -80,7 +80,14 @@ test('Browser review: duplicate date, compact inline picker, HTTP random selecti
   await page.getByRole('button', { name: 'Random hymns', exact: true }).click();
   const notification = page.getByRole('dialog', { name: 'Notification' });
   await expect(notification).toContainText('random hymn');
-  await notification.getByRole('button', { name: 'Dismiss' }).click();
+  const close = notification.getByRole('button', { name: 'Close notification' });
+  await expect(close).toBeFocused();
+  await expect(page.getByRole('combobox', { name: 'Active choir' })).toHaveCount(0);
+  const account = (await page.locator('.account-trigger').boundingBox())!;
+  await page.mouse.click(account.x + account.width / 2, account.y + account.height / 2);
+  await expect(notification).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Sign out', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('combobox', { name: 'Active choir' })).toBeVisible();
   for (const name of ['first', 'second']) {
     const hymn = await page.request.post('/api/v1/hymns/', {
       headers,

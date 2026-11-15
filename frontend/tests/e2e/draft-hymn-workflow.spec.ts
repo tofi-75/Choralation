@@ -131,7 +131,8 @@ test('Settings combines Account and the saved default choir', async ({ page }, i
   const feedback = page.getByRole('dialog', { name: 'Notification' });
   await expectCentered(page, feedback);
   await expect(feedback).toContainText('Default choir saved.');
-  await feedback.getByRole('button', { name: 'Dismiss' }).click();
+  await feedback.getByRole('button', { name: 'Close notification' }).click();
+  await page.locator('.account-trigger').click();
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   await signIn(page);
   await expect(page.getByRole('combobox', { name: 'Active choir' })).toHaveValue(String(choir.id));

@@ -2,7 +2,7 @@
 
 ## Delivered behavior
 
-- A compact 44 px search bar and adjacent Filters icon replace the large filter box. Search covers titles/notes in the selected list; its accessible label and helper remain available to screen readers. Filters expands date bounds and season controls.
+- A compact 44 px search bar and adjacent Filters icon replace the large filter box. Search covers titles/notes in the selected list; its accessible label and helper remain available to screen readers. Filters expands date bounds and season controls. On phones the date and season inputs stack at equal widths, and **New Mass** aligns to the right edge of the list heading.
 - **Ready Masses** is the default and requests `status=finalized`. **Pending drafts** requests `status=draft`, including autosaved and explicitly saved drafts until finalization. Existing lifecycle data is unchanged: Save draft does not mean finalized.
 - Status filtering happens on the server before counting, date ordering and pagination. Both lists retain closest-upcoming-first order and past Masses in the Archived group at the end. URL parameters preserve selected list, search, dates, season and pagination on reload/deep links. Switching lists keeps search/date/season and resets page; Clear filters keeps the selected lifecycle list.
 - The return-to-top action shows only an arrow, with the accessible name **Scroll to top** and a 44 px target. Its existing appearance trigger and focus restoration remain.

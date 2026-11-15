@@ -15,6 +15,8 @@ import { useHymn, useRefreshLibrary } from '../features/hymns/queries';
 import { UsageSummary } from '../features/hymns/UsageSummary';
 import { HymnUsage } from '../features/hymns/HymnUsage';
 
+const compactDate = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
+
 export function HymnDetailPage() {
   const { id } = useParams();
   const { user } = useSession();
@@ -216,18 +218,24 @@ export function HymnDetailPage() {
               </dd>
             </div>
           )}
-          <div>
-            <dt>Added</dt>
-            <dd>
-              <time dateTime={saved.created_at}>{new Date(saved.created_at).toLocaleString()}</time>
-            </dd>
-          </div>
-          <div>
-            <dt>Last updated</dt>
-            <dd>
-              <time dateTime={saved.updated_at}>{new Date(saved.updated_at).toLocaleString()}</time>
-            </dd>
-          </div>
+        </dl>
+        <dl className="hymn-timestamps">
+          {[
+            ['Added', saved.created_at],
+            ['Edited', saved.updated_at],
+          ].map(([label, timestamp]) => {
+            const date = new Date(timestamp);
+            return (
+              <div key={label}>
+                <dt>{label}</dt>
+                <dd>
+                  <time dateTime={timestamp} title={date.toLocaleString()}>
+                    {compactDate.format(date)}
+                  </time>
+                </dd>
+              </div>
+            );
+          })}
         </dl>
       </section>
       {published && <HymnUsage key={saved.id} id={saved.id} />}

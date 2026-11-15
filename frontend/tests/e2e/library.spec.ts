@@ -28,7 +28,7 @@ async function choose(
 }
 
 async function signIn(page: import('@playwright/test').Page, role: string) {
-  await page.goto('/hymns');
+  await page.goto('/login');
   await page.getByLabel('Email or username').fill(`e2e-${suffix}-${role.toLowerCase()}`);
   await page.getByLabel('Password', { exact: true }).fill(password!);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
@@ -94,6 +94,7 @@ test('Planner: create Unicode hymn, save recovery, URL filters, refresh, and edi
   await expect(
     page.getByText('This file does not have valid PDF framing.', { exact: true }),
   ).toBeVisible();
+  await page.getByRole('button', { name: 'Close notification', exact: true }).click();
   await expect(page.getByRole('textbox', { name: 'Voice 2', exact: true })).toHaveValue('Alto');
   await page
     .getByLabel('Sheet music PDF', { exact: true })
@@ -114,10 +115,18 @@ test('Planner: create Unicode hymn, save recovery, URL filters, refresh, and edi
   });
   await page.getByRole('button', { name: 'Save hymn', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('Your input has been kept');
+  await page.getByRole('button', { name: 'Close notification', exact: true }).click();
   await expect(page.getByRole('textbox', { name: /^Title/ })).toHaveValue(title);
   await page.getByRole('button', { name: 'Save hymn', exact: true }).click();
+  await page.getByRole('button', { name: 'Close notification', exact: true }).click();
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
   const detailUrl = page.url();
+  const timestamps = page.locator('.hymn-timestamps');
+  await expect(timestamps.locator('dt')).toHaveText(['Added', 'Edited']);
+  const added = (await timestamps.locator('time').nth(0).boundingBox())!;
+  const edited = (await timestamps.locator('time').nth(1).boundingBox())!;
+  expect(added.y).toBeCloseTo(edited.y, 0);
+  await expect(timestamps.locator('time').first()).toHaveAttribute('datetime', /T/);
   await page.reload();
   await expect(page.getByText('ܩܠܐ', { exact: true })).toBeVisible();
   await expect(page.getByText('3.50 minutes', { exact: true })).toBeVisible();
@@ -171,6 +180,11 @@ test('Planner: create Unicode hymn, save recovery, URL filters, refresh, and edi
   await expect(
     page.getByRole('link', { name: title, exact: true }).filter({ visible: true }),
   ).toBeVisible();
+  const pagination = page.getByRole('navigation', { name: 'Library pages' });
+  const previous = (await pagination.getByRole('button', { name: 'Previous' }).boundingBox())!;
+  const next = (await pagination.getByRole('button', { name: 'Next' }).boundingBox())!;
+  expect(previous.width).toBeCloseTo(next.width, 0);
+  expect(previous.height).toBeCloseTo(next.height, 0);
   const filteredUrl = page.url();
   expect(filteredUrl).toContain('languages=');
   await page.reload();
@@ -239,6 +253,7 @@ test('Admin: confirmation cancel, deactivate/reactivate, and safe delete', async
   await choose(page, 'Suitable placements', ['Communion']);
   await choose(page, 'Suitable seasons', ['Ordinary Time']);
   await page.getByRole('button', { name: 'Save hymn', exact: true }).click();
+  await page.getByRole('button', { name: 'Close notification', exact: true }).click();
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
   const detailUrl = page.url();
   await page.getByRole('button', { name: 'Deactivate hymn', exact: true }).click();

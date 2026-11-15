@@ -50,6 +50,7 @@ test('Weekly workflow: create hymn, draft, finalize, usage/history, reopen and r
   await seasons.getByRole('button', { name: /^Choose / }).click();
   await seasons.getByRole('checkbox', { name: 'Ordinary Time', exact: true }).check();
   await page.getByRole('button', { name: 'Save hymn', exact: true }).click();
+  await page.getByRole('button', { name: 'Close notification', exact: true }).click();
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
   const hymnId = Number(page.url().split('/').pop());
   await expect(page.getByText('Never used', { exact: true })).toBeVisible();
@@ -86,7 +87,7 @@ test('Weekly workflow: create hymn, draft, finalize, usage/history, reopen and r
   await saveMass(page);
   await expect(page.getByRole('alert')).toHaveText('Temporary failure');
   await expect(page).toHaveURL(new RegExp(`/masses/${massId}/edit$`));
-  await page.getByRole('button', { name: 'Dismiss' }).click();
+  await page.getByRole('button', { name: 'Close notification' }).click();
   await saveMass(page);
   await expect(page.getByText('Finalized Mass program', { exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Edit Mass', exact: true })).toHaveCount(0);
@@ -169,7 +170,7 @@ test('Stale finalization notice and background finalization preserve editor work
   });
   await saveMass(page);
   await expect(page.getByRole('alert')).toBeVisible();
-  await page.getByRole('button', { name: 'Dismiss' }).click();
+  await page.getByRole('button', { name: 'Close notification' }).click();
   await expect(page.getByText('Another planner saved', { exact: false }).first()).toBeVisible();
   await page.getByRole('button', { name: 'Discard local edits and reload' }).click();
   await page.getByRole('button', { name: 'Load saved version' }).click();
@@ -189,6 +190,7 @@ test('Stale finalization notice and background finalization preserve editor work
   });
   await editor.getByRole('textbox', { name: /^Mass notes/ }).fill('Keep my local notes');
   await expect(editor.getByText('Unable to save', { exact: true })).toBeVisible();
+  await editor.getByRole('button', { name: 'Close notification', exact: true }).click();
   await page.bringToFront();
   await saveMass(page);
   await expect(page.getByText('Finalized Mass program', { exact: true })).toBeVisible();

@@ -206,6 +206,7 @@ it('searches classifications and retains values plus field errors after a failed
   await userEvent.type(screen.getByRole('textbox', { name: 'Notes' }), 'Kept after failure');
   await userEvent.click(screen.getByRole('button', { name: 'Save hymn' }));
   expect(await screen.findByRole('alert')).toHaveTextContent('Your input has been kept.');
+  await userEvent.click(screen.getByRole('button', { name: 'Close notification' }));
   expect(screen.getByRole('textbox', { name: /^Title/ })).toHaveValue('ترنيمة محفوظة');
   expect(screen.getByRole('textbox', { name: 'Notes' })).toHaveValue('Kept after failure');
   expect(screen.getByRole('textbox', { name: /^Title/ })).toHaveAccessibleDescription(
@@ -248,6 +249,7 @@ it('keeps polyphony voices, numeric duration, and PDF values on a failed save', 
   );
   await userEvent.click(screen.getByRole('button', { name: 'Save hymn' }));
   expect(await screen.findByRole('alert')).toHaveTextContent('Your input has been kept');
+  await userEvent.click(screen.getByRole('button', { name: 'Close notification' }));
   expect(screen.getByRole('spinbutton', { name: 'Duration (minutes)' })).toHaveValue(3.5);
   expect(screen.getByRole('textbox', { name: 'Voice 1' })).toHaveValue('Soprano');
   expect(writes[0]).toMatchObject({

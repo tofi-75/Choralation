@@ -232,10 +232,7 @@ export function ChoirPages({ mode }: { mode: 'list' | 'join' | 'new' | 'detail' 
         </div>
       </div>
       {mode === 'list' && ['approved', 'declined'].includes(hymnReview ?? '') && (
-        <FloatingNotice
-          dismiss={() => navigate(location.pathname, { replace: true, state: null })}
-          dismissOnOutsideInteraction={false}
-        >
+        <FloatingNotice dismiss={() => navigate(location.pathname, { replace: true, state: null })}>
           {hymnReview === 'approved'
             ? 'Hymn approved and published.'
             : 'Changes requested. The hymn remains private.'}

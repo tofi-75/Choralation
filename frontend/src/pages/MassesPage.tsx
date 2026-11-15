@@ -90,7 +90,7 @@ export function MassesPage() {
             </Link>
           )}
           {active.role === 'Planner' && (
-            <Link ref={createButton} className="button primary" to="/masses/new">
+            <Link ref={createButton} className="button primary new-mass-action" to="/masses/new">
               New Mass
             </Link>
           )}
@@ -136,6 +136,7 @@ export function MassesPage() {
             <label className="field">
               From date
               <input
+                className="mass-date-control"
                 type="date"
                 value={params.get('from') ?? ''}
                 onChange={(event) => filter('from', event.target.value)}
@@ -144,6 +145,7 @@ export function MassesPage() {
             <label className="field">
               To date
               <input
+                className="mass-date-control"
                 type="date"
                 value={params.get('to') ?? ''}
                 onChange={(event) => filter('to', event.target.value)}

@@ -225,6 +225,7 @@ test('Section picker and saved view: preference, scrolling, failed save and edit
     .fill('Keep final selection notes');
   await page.getByRole('button', { name: 'Save Mass', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Retry save', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Close notification', exact: true }).click();
   await expect(page).toHaveURL(/\/edit$/);
   await expect(
     page.getByRole('textbox', { name: `Selection notes for ${matching}`, exact: true }),
@@ -328,7 +329,11 @@ test('Random picker: matching choices, retained notes, failed save retry and rel
   );
   const randomButton = page.getByRole('button', { name: 'Random hymns', exact: true });
   await randomButton.click();
-  await expect(page.getByText(/\d+ random hymns? added\./)).toBeVisible();
+  const randomNotice = page.getByRole('dialog', { name: 'Notification' });
+  await expect(randomNotice).toContainText(/\d+ random hymns? added\./);
+  await randomNotice.getByRole('button', { name: 'Close notification' }).click();
+  const saveError = page.getByRole('dialog', { name: 'Something went wrong' });
+  await saveError.getByRole('button', { name: 'Close notification' }).click();
   await expect(page.getByRole('button', { name: 'Retry save', exact: true })).toBeVisible();
   await expect(
     page.getByRole('textbox', { name: `Selection notes for ${manualTitle}`, exact: true }),
@@ -471,6 +476,7 @@ test('Planner: multiple rows, reorder, retry, conflict review, and navigation gu
     .getByRole('textbox', { name: `Selection notes for ${second}`, exact: true })
     .fill('Kept after failure');
   await expect(page.getByRole('alert')).toContainText('Your local edits have been kept.');
+  await page.getByRole('button', { name: 'Close notification', exact: true }).click();
   await expect(
     page.getByRole('textbox', { name: `Selection notes for ${second}`, exact: true }),
   ).toHaveValue('Kept after failure');
@@ -499,6 +505,7 @@ test('Planner: multiple rows, reorder, retry, conflict review, and navigation gu
     .getByRole('textbox', { name: `Selection notes for ${second}`, exact: true })
     .fill('Conflicting local version');
   await expect(other.getByRole('alert')).toContainText('Another planner changed this Mass');
+  await other.getByRole('button', { name: 'Close notification', exact: true }).click();
   await expect(
     other.getByRole('textbox', { name: `Selection notes for ${second}`, exact: true }),
   ).toHaveValue('Conflicting local version');
@@ -545,6 +552,7 @@ test('Planner: multiple rows, reorder, retry, conflict review, and navigation gu
   await page.getByRole('button', { name: `Remove ${first}`, exact: true }).click();
   await saved(page);
   const url = page.url();
+  await page.locator('.account-trigger').click();
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   await page.getByLabel('Email or username').fill(`e2e-${suffix}-viewer`);
   await page.getByLabel('Password', { exact: true }).fill(password!);
@@ -619,6 +627,7 @@ test('Planner: optional details, create retry, saved filters, and picker sorting
   );
   await continueMassCreation(page);
   await expect(page.getByRole('alert')).toContainText('Your input has been kept.');
+  await page.getByRole('button', { name: 'Close notification', exact: true }).click();
   await expect(page.getByLabel('Title', { exact: true })).toHaveValue(title);
   await continueMassCreation(page);
   await expect(page).toHaveURL(/\/masses\/\d+\/edit$/);

@@ -9,19 +9,23 @@ Prepared October 9, 2026. **Physical-device results are pending.** This guide su
 
 ## Connect and launch
 
-Connect the phone and computer to the same Wi-Fi. Keep the computer awake. The current Wi-Fi address is **192.168.1.95**; it can change after reconnecting. Open **http://192.168.1.95:5173** on the phone and sign in with your existing account. The phone has a separate browser session. Use an Admin account for reopening.
+Connect the phone and computer to the same Wi-Fi and keep the computer awake. Use the PC’s current Wi-Fi IPv4 address. Windows can assign a different address after reconnecting.
 
-To reproduce this session from the project folder, start the database, then keep the application servers running in separate terminals:
+Start the database from the project folder, then run the backend and frontend in separate PowerShell terminals. The example uses the PC’s `Wi-Fi` interface. If yours has a different name, use the IPv4 address shown for your connected adapter in `ipconfig`.
 
 ```powershell
 .\dev.cmd db-start
 
 # Terminal 1
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\phone.ps1 backend -LanAddress 192.168.1.95
+$choralationLan = (Get-NetIPConfiguration -InterfaceAlias 'Wi-Fi').IPv4Address.IPAddress
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\phone.ps1 backend -LanAddress $choralationLan
 
 # Terminal 2
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\phone.ps1 frontend -LanAddress 192.168.1.95
+$choralationLan = (Get-NetIPConfiguration -InterfaceAlias 'Wi-Fi').IPv4Address.IPAddress
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\phone.ps1 frontend -LanAddress $choralationLan
 ```
+
+Open the Wi-Fi **Network** URL printed by the frontend, using `http://`. If the app stalls, add `/phone-check.html` to that URL. The check page loads without JavaScript and links to the backend check and Choralation. Sign in with an account from the local database. The phone uses its own browser session.
 
 The frontend command builds and serves optimized assets for realistic phone loading. It waits for TypeScript/build checks to pass and uses the same API/health proxies. It does not hot-reload: restart the frontend command after code changes to rebuild. This local preview is not production deployment.
 
@@ -248,8 +252,11 @@ Use the left drag handle to reorder hymns within a placement. Verify finger drag
 
 Run on iPhone Safari and Android Chrome. Record the device, OS and browser version, app revision, orientation, and any step that fails.
 
-- Open the sidebar and use its links. Check that the date and season share the Mass creation row and that the keyboard leaves the active field and its actions reachable.
+- Open the hamburger menu and use its links. Open the profile menu, verify **Account settings**, and check that an outside tap closes the menu. On Mass plans, check that **New Mass** is on the right and that From, To and Season stay inside the screen. Check that the date and season share the Mass creation row and that the keyboard leaves the active field and its actions reachable.
 - Reopen a draft and verify that it opens in edit mode. Search for a missing hymn, check that both actions are visible together, and confirm that searching all placements keeps the text. Create a hymn from the picker and check that it returns to the same section. Verify the centered warning and cancellation, then use **Save Mass** to finalize the draft.
 - Request Manager access from Account in Settings. Use a separate Admin session to review the request. Return to Choirs as the requester and confirm that **Create choir** becomes available.
-- Read a multipage PDF on its own and from Mass Focus. Rotate a phone while reading at default fit and again while zoomed. Swipe down from the top to dismiss the active reader. Verify that returning from PDF fullscreen keeps the same page and that a scrolled page can be panned.
-- In Mass Focus, resize lyrics and jump to another hymn. Return to verify the lyric scroll position and PDF page. Check the account form switch and the reader controls with VoiceOver or TalkBack where available.
+- On physical iPhone Safari and Android Chrome, read a multipage PDF in standalone fullscreen and within Mass Focus. Short swipes up and down should go forward and back page by page. Check the first, middle and last pages and try diagonal and two-finger gestures. Zoom or fit to width, pan to either edge, then start a fresh swipe to turn a page. Rotate the phone at default fit and again while zoomed.
+- From the top of a middle PDF page, try a long downward swipe. PDF fullscreen should close and retain its page in the preview. When the active reader is Focus, the same gesture should return to the saved Mass. Check the close icon and focus restoration as well.
+- In Mass Focus, confirm the title starts unfocused and the first Tab reaches the hymn selector when using a keyboard. Check the centered title, compact footer and bottom safe area in both orientations.
+- Read English, Arabic and mixed-script lyrics. Check the zoom controls on each script’s side, page turns with short vertical swipes, and the same passage after changing text size, rotating, or returning to the hymn. Use a long downward swipe from a later lyric page to exit Focus. Verify PDF failure also uses lyric pages.
+- In the saved program, tap a hymn’s metadata or notes and use **Back to Mass**. Close a notification with its icon or by tapping the backdrop and confirm that the tap does not activate the page behind it. Check the profile menu and reader controls with VoiceOver or TalkBack where available.

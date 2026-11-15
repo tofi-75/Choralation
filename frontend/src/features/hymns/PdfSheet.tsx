@@ -22,6 +22,8 @@ export default function PdfSheet({
   onFitChange,
   page: selectedPage,
   onPageChange,
+  onExitFocus,
+  onHymnSwipe,
 }: {
   url: string;
   title: string;
@@ -31,6 +33,8 @@ export default function PdfSheet({
   onFitChange?: (fit: PdfFit) => void;
   page?: number;
   onPageChange?: (page: number) => void;
+  onExitFocus?: () => void;
+  onHymnSwipe?: (direction: -1 | 1) => void;
 }) {
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
@@ -38,6 +42,7 @@ export default function PdfSheet({
   const [localPage, setLocalPage] = useState(1);
   const page = selectedPage ?? localPage;
   const [expanded, setExpanded] = useState(false);
+  const [expandedReader, setExpandedReader] = useState<HTMLDivElement | null>(null);
   const [portalContainer, setPortalContainer] = useState<Element | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [localFit, setLocalFit] = useState<PdfFit>('height');
@@ -93,7 +98,6 @@ export default function PdfSheet({
     setExpanded(open);
   }, []);
   const closeFullscreen = useCallback(() => changeExpanded(false), [changeExpanded]);
-  const swipe = useReaderSwipe({ dismiss: closeFullscreen, isolate: true });
   const { rootRef: fullscreenRoot, requestFullscreen } = useReaderFullscreen(
     expanded,
     closeFullscreen,
@@ -113,6 +117,24 @@ export default function PdfSheet({
       onPageChange?.(next);
     }
   }
+  const embeddedReader = useRef<HTMLDivElement>(null);
+  useReaderSwipe(embeddedReader, {
+    enabled: focus && !expanded,
+    dismiss: onExitFocus,
+    turnPage: movePage,
+    turnHorizontal: zoom <= 1 ? onHymnSwipe : undefined,
+  });
+  function swipePage(direction: -1 | 1) {
+    movePage(direction);
+    revealControls();
+  }
+  useReaderSwipe(expandedReader, {
+    enabled: expanded,
+    dismiss: closeFullscreen,
+    turnPage: swipePage,
+    turnHorizontal: canSwipePages ? swipePage : undefined,
+    horizontalThreshold: 45,
+  });
   function pageButton(delta: -1 | 1) {
     const disabled = delta === -1 ? page === 1 : page === pdfDocument?.numPages;
     return (
@@ -345,7 +367,7 @@ export default function PdfSheet({
           role="region"
           aria-label="Sheet music viewport"
           onPointerDown={(event) => {
-            if (!canSwipePages || event.pointerType === 'mouse') return;
+            if (!canSwipePages || event.pointerType !== 'pen') return;
             if (!event.isPrimary) {
               pointer.current = null;
               return;
@@ -367,10 +389,6 @@ export default function PdfSheet({
           }}
           onPointerCancel={() => {
             pointer.current = null;
-          }}
-          onTouchMove={(event) => {
-            // A second finger cancels page navigation; pinch/vertical pan remain native.
-            if (event.touches.length !== 1) pointer.current = null;
           }}
           onClick={(event) => {
             const viewport = event.currentTarget;
@@ -422,7 +440,12 @@ export default function PdfSheet({
   return (
     <Dialog.Root open={expanded} onOpenChange={changeExpanded}>
       {!expanded && (
-        <div className="pdf-sheet" data-controls-visible="true">
+        <div
+          className="pdf-sheet"
+          data-controls-visible="true"
+          data-reader-swipe={focus ? true : undefined}
+          ref={embeddedReader}
+        >
           {content}
         </div>
       )}
@@ -449,7 +472,6 @@ export default function PdfSheet({
                 previewButton.current?.focus();
               }}
               onEscapeKeyDown={(event) => event.stopPropagation()}
-              {...swipe}
               onKeyDown={(event) => {
                 event.stopPropagation();
                 if (!pdfDocument || event.altKey || event.ctrlKey || event.metaKey) return;
@@ -460,7 +482,13 @@ export default function PdfSheet({
               }}
             >
               <Dialog.Title className="sr-only">{title} · PDF</Dialog.Title>
-              <div className="pdf-sheet pdf-fullscreen-reading">{content}</div>
+              <div
+                className="pdf-sheet pdf-fullscreen-reading"
+                ref={setExpandedReader}
+                data-reader-swipe
+              >
+                {content}
+              </div>
             </Dialog.Content>
           </>
         )}

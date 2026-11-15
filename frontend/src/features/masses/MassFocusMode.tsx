@@ -1,12 +1,12 @@
 /** A read-only performance session; each selection retains its program position. */
 import * as Dialog from '@radix-ui/react-dialog';
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
-import type { Ref } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import type { RefObject } from 'react';
 import { flushSync } from 'react-dom';
 import type { Mass } from '../../api/masses';
 import { HymnMaterial } from '../hymns/HymnMaterial';
 import { HymnMusicalSummary } from '../hymns/HymnMusicalSummary';
-import type { LyricSize } from '../hymns/HymnMaterial';
+import type { LyricPageNavigation, LyricSize } from '../hymns/FocusLyrics';
 import { useReaderFullscreen } from '../hymns/useReaderFullscreen';
 import { useReaderSwipe } from '../hymns/useReaderSwipe';
 
@@ -15,8 +15,6 @@ import type { PdfFit } from '../hymns/PdfSheet';
 type Selection = Mass['program'][number];
 
 function useScreenAwake() {
-  const [status, setStatus] = useState('Requesting screen awake…');
-  const request = useRef<() => void>(() => {});
   useEffect(() => {
     let active = true;
     let lock: WakeLockSentinel | null = null;
@@ -26,13 +24,10 @@ function useScreenAwake() {
         !active ||
         requesting ||
         document.visibilityState !== 'visible' ||
-        (lock && !lock.released)
+        (lock && !lock.released) ||
+        !navigator.wakeLock
       )
         return;
-      if (!navigator.wakeLock) {
-        setStatus('Screen awake is unavailable in this browser.');
-        return;
-      }
       requesting = true;
       try {
         const acquired = await navigator.wakeLock.request('screen');
@@ -41,32 +36,23 @@ function useScreenAwake() {
           return;
         }
         lock = acquired;
-        setStatus('Screen kept awake');
         acquired.addEventListener('release', () => {
-          if (active && lock === acquired) {
-            lock = null;
-            setStatus('Screen awake paused.');
-          }
+          if (lock === acquired) lock = null;
         });
       } catch {
-        if (active) setStatus('Screen may sleep. Screen-awake request was declined.');
+        // Focus remains usable when the browser declines the wake lock.
       } finally {
         requesting = false;
       }
     };
-    request.current = () => {
-      void acquire();
-    };
     void acquire();
-    document.addEventListener('visibilitychange', request.current);
+    document.addEventListener('visibilitychange', acquire);
     return () => {
       active = false;
-      document.removeEventListener('visibilitychange', request.current);
-      request.current = () => {};
+      document.removeEventListener('visibilitychange', acquire);
       void lock?.release().catch(() => {});
     };
   }, []);
-  return { status, retry: () => request.current() };
 }
 
 function FocusSession({
@@ -75,7 +61,7 @@ function FocusSession({
   closeFocus,
 }: {
   selections: Selection[];
-  rootRef: Ref<HTMLDivElement>;
+  rootRef: RefObject<HTMLDivElement | null>;
   closeFocus: () => void;
 }) {
   // Keep the reading sequence stable if another session edits/refetches the Mass.
@@ -83,29 +69,24 @@ function FocusSession({
   const [index, setIndex] = useState(0);
   const [pages, setPages] = useState<Record<number, number>>({});
   const [lyricSize, setLyricSize] = useState<LyricSize>('standard');
-  const scrollPositions = useRef<Record<number, number>>({});
-  const reading = useRef<HTMLDivElement>(null);
+  const [lyricPositions, setLyricPositions] = useState<Record<number, number>>({});
+  const turnLyricPage = useRef<LyricPageNavigation>(null);
   const titleId = useId();
-  const jumpId = useId();
   const [fit, setFit] = useState<PdfFit>(() =>
     window.matchMedia?.('(any-pointer: coarse) and (orientation: landscape)').matches
       ? 'width'
       : 'height',
   );
-  const awake = useScreenAwake();
+  useScreenAwake();
   const selected = selections[index];
-  useLayoutEffect(() => {
-    if (reading.current) reading.current.scrollTop = scrollPositions.current[selected.id] ?? 0;
-  }, [selected.id]);
   function jump(nextIndex: number) {
     if (nextIndex !== index) setIndex(nextIndex);
   }
   const move = (delta: number) => jump(Math.max(0, Math.min(selections.length - 1, index + delta)));
-  const swipe = useReaderSwipe({
+  useReaderSwipe(rootRef, {
     dismiss: closeFocus,
-    turn: (direction, target) => {
-      if (target.closest('.focus-reading') && !target.closest('.pdf-viewport[data-zoomed="true"]'))
-        move(direction);
+    turnHorizontal: (direction, target) => {
+      if (target.closest('.focus-reading')) move(direction);
     },
   });
   return (
@@ -113,7 +94,11 @@ function FocusSession({
       className="mass-focus"
       ref={rootRef}
       aria-describedby={undefined}
-      {...swipe}
+      data-reader-swipe
+      onOpenAutoFocus={(event) => {
+        event.preventDefault();
+        rootRef.current?.focus({ preventScroll: true });
+      }}
       onKeyDown={(event) => {
         if (
           event.altKey ||
@@ -123,6 +108,13 @@ function FocusSession({
           (event.target instanceof Element && event.target.closest('select'))
         )
           return;
+        if (
+          turnLyricPage.current &&
+          ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown'].includes(event.key)
+        ) {
+          event.preventDefault();
+          turnLyricPage.current(event.key === 'ArrowUp' || event.key === 'PageUp' ? -1 : 1);
+        }
         if (event.key === 'ArrowRight') {
           event.preventDefault();
           move(1);
@@ -135,28 +127,63 @@ function FocusSession({
     >
       <Dialog.Title className="sr-only">Focus mode</Dialog.Title>
       <header className="focus-header">
-        <Dialog.Close className="button secondary focus-close" aria-label="Exit focus mode">
-          ✕
+        <div className="focus-heading">
+          <p className="focus-placement" dir="auto">
+            {selected.placement.name}
+          </p>
+          <div className="focus-hymn-picker">
+            <h2 id={titleId} dir="auto">
+              {selected.hymn.title}
+            </h2>
+            <svg
+              aria-hidden="true"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+            <select
+              aria-label="Jump to hymn"
+              value={index}
+              onChange={(event) => jump(Number(event.target.value))}
+            >
+              {selections.map((selection, position) => (
+                <option key={selection.id} value={position}>
+                  {`${position + 1}. \u2068${selection.hymn.title}\u2069 · \u2068${selection.placement.name}\u2069`}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <Dialog.Close
+          className="button secondary reader-icon-button focus-close"
+          aria-label="Exit focus mode"
+        >
+          <svg
+            aria-hidden="true"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="m6 6 12 12M18 6 6 18" />
+          </svg>
         </Dialog.Close>
+        <HymnMusicalSummary hymn={selected.hymn} />
       </header>
       <div
         className="focus-reading"
         key={selected.id}
-        ref={reading}
-        onScroll={(event) => {
-          scrollPositions.current[selected.id] = event.currentTarget.scrollTop;
-        }}
         role="region"
         aria-labelledby={titleId}
         tabIndex={0}
       >
-        <p className="focus-placement" dir="auto">
-          {selected.placement.name}
-        </p>
-        <h2 id={titleId} dir="auto">
-          {selected.hymn.title}
-        </h2>
-        <HymnMusicalSummary hymn={selected.hymn} />
         {selected.notes && (
           <p className="focus-notes preserve-lines" dir="auto">
             {selected.notes}
@@ -171,6 +198,13 @@ function FocusSession({
           onPageChange={(page) => setPages((previous) => ({ ...previous, [selected.id]: page }))}
           lyricSize={lyricSize}
           onLyricSizeChange={setLyricSize}
+          lyricPosition={lyricPositions[selected.id] ?? 0}
+          onLyricPositionChange={(position) =>
+            setLyricPositions((previous) => ({ ...previous, [selected.id]: position }))
+          }
+          lyricNavigationRef={turnLyricPage}
+          onExitFocus={closeFocus}
+          onHymnSwipe={move}
         />
       </div>
       <footer className="focus-footer">
@@ -181,62 +215,67 @@ function FocusSession({
             disabled={index === 0}
             aria-label="Previous hymn"
           >
-            ←
+            <span aria-hidden="true">&lt;</span>
           </button>
-          <div className="focus-jump">
-            <label className="sr-only" htmlFor={jumpId}>
-              Jump to hymn
-            </label>
-            <select
-              id={jumpId}
-              value={index}
-              onChange={(event) => jump(Number(event.target.value))}
-            >
-              {selections.map((selection, position) => (
-                <option key={selection.id} value={position}>
-                  {`${position + 1}. \u2068${selection.hymn.title}\u2069 · \u2068${selection.placement.name}\u2069`}
-                </option>
-              ))}
-            </select>
-            <span role="status">
-              Hymn {index + 1} of {selections.length}
-            </span>
-          </div>
+          <span className="focus-count" role="status">
+            Hymn {index + 1} of {selections.length}
+          </span>
           <button
             className="button primary"
             onClick={() => move(1)}
             disabled={index === selections.length - 1}
             aria-label="Next hymn"
           >
-            →
+            <span aria-hidden="true">&gt;</span>
           </button>
         </nav>
-        <div className="awake-status">
-          <span role="status">{awake.status}</span>
-          {navigator.wakeLock && awake.status !== 'Screen kept awake' && (
-            <button className="text-button" onClick={awake.retry}>
-              Retry screen awake
-            </button>
-          )}
-        </div>
       </footer>
     </Dialog.Content>
   );
 }
 
-export function MassFocusMode({ selections }: { selections: Selection[] }) {
-  const [open, setOpen] = useState(false);
-  const closeFocus = useCallback(() => setOpen(false), []);
+const activeFocusStorageKey = 'choralation-active-mass-focus';
+
+export function MassFocusMode({
+  selections,
+  resumeKey,
+}: {
+  selections: Selection[];
+  resumeKey?: string;
+}) {
+  const [open, setOpen] = useState(() => {
+    if (!resumeKey || !selections.length) return false;
+    try {
+      return sessionStorage.getItem(activeFocusStorageKey) === resumeKey;
+    } catch {
+      return false;
+    }
+  });
+  const changeOpen = useCallback(
+    (next: boolean) => {
+      setOpen(next);
+      if (!resumeKey) return;
+      try {
+        if (next) sessionStorage.setItem(activeFocusStorageKey, resumeKey);
+        else if (sessionStorage.getItem(activeFocusStorageKey) === resumeKey)
+          sessionStorage.removeItem(activeFocusStorageKey);
+      } catch {
+        // Focus can still open and close if session storage is unavailable.
+      }
+    },
+    [resumeKey],
+  );
+  const closeFocus = useCallback(() => changeOpen(false), [changeOpen]);
   const { rootRef, requestFullscreen } = useReaderFullscreen(open, closeFocus);
   return (
-    <Dialog.Root open={open} onOpenChange={setOpen}>
+    <Dialog.Root open={open} onOpenChange={changeOpen}>
       <Dialog.Trigger
         className="button secondary focus-trigger"
         disabled={!selections.length}
         onClick={(event) => {
           if (!window.matchMedia?.('(any-pointer: coarse)').matches) return;
           event.preventDefault();
-          flushSync(() => setOpen(true));
+          flushSync(() => changeOpen(true));
           requestFullscreen();
         }}
       >

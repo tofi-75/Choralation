@@ -9,11 +9,13 @@ for (const role of ['Admin', 'Planner', 'Viewer'] as const) {
   test(`${role}: login, refresh, expiry, mobile focus, and logout`, async ({ page }, testInfo) => {
     const username = `e2e-${suffix}-${role.toLowerCase()}`;
     await page.goto('/dashboard');
+    await page.getByRole('button', { name: 'Close notification', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Sign in to your workspace' })).toBeVisible();
     await page.getByLabel('Email or username').fill(username);
     await page.getByLabel('Password', { exact: true }).fill('deliberately-wrong');
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page.getByRole('alert')).toContainText('incorrect');
+    await page.getByRole('button', { name: 'Close notification', exact: true }).click();
     await expect(page.getByLabel('Email or username')).toHaveValue(username);
     await page.getByLabel('Password', { exact: true }).fill(password);
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
@@ -37,6 +39,13 @@ for (const role of ['Admin', 'Planner', 'Viewer'] as const) {
       await expect(page.getByRole('dialog')).toBeHidden();
       await expect(page.getByRole('button', { name: 'Menu', exact: true })).toBeFocused();
     }
+    const account = page.locator('.account-trigger');
+    await account.click();
+    const accountSettings = page.getByRole('link', { name: 'Account settings', exact: true });
+    await expect(accountSettings).toHaveAttribute('href', '/settings?tab=account');
+    await page.keyboard.press('Escape');
+    await expect(accountSettings).toHaveCount(0);
+    await expect(account).toBeFocused();
     // Invalidate the real session using the browser context, not a mocked /me.
     const token = await page.request.get('/api/v1/auth/csrf/');
     const { csrf_token: csrfToken } = await token.json();
@@ -46,11 +55,13 @@ for (const role of ['Admin', 'Planner', 'Viewer'] as const) {
     });
     expect(invalidated.status()).toBe(204);
     await page.reload();
+    await page.getByRole('button', { name: 'Close notification', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Sign in to your workspace' })).toBeVisible();
     await page.getByLabel('Email or username').fill(username);
     await page.getByLabel('Password', { exact: true }).fill(password);
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Sign out' })).toHaveCount(0);
+    await page.locator('.account-trigger').click();
     await page.getByRole('button', { name: 'Sign out' }).click();
     await expect(page.getByRole('heading', { name: 'Sign in to your workspace' })).toBeVisible();
     await page.reload();

@@ -101,6 +101,7 @@ export function AccountPages({
   const [pending, setPending] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
+  const [errorNoticeClosed, setErrorNoticeClosed] = useState(false);
   const verificationRequest = useRef<{
     token: string;
     promise: ReturnType<typeof verifyEmail>;
@@ -137,6 +138,7 @@ export function AccountPages({
     let active = true;
     setPending(true);
     setError('');
+    setErrorNoticeClosed(false);
     void verificationRequest.current.promise
       .then((user) => {
         if (!active) return;
@@ -213,6 +215,7 @@ export function AccountPages({
   async function run(action: () => Promise<void>) {
     if (pending) return;
     setError('');
+    setErrorNoticeClosed(false);
     setNotice('');
     setPending(true);
     try {
@@ -246,8 +249,8 @@ export function AccountPages({
           </>
         )}
         {mode === 'account' && session.user?.role !== 'Admin' && <ManagerAccessPanel />}
-        {error && (
-          <FloatingNotice error dismiss={() => setError('')}>
+        {error && !errorNoticeClosed && (
+          <FloatingNotice error dismiss={() => setErrorNoticeClosed(true)}>
             {error}
           </FloatingNotice>
         )}

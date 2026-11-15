@@ -50,7 +50,13 @@ function ProtectedRoute() {
   const session = useSession();
   const location = useLocation();
   if (!session.user)
-    return <Navigate to="/login" replace state={{ expired: location.pathname !== '/' }} />;
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ expired: !session.signedOut && location.pathname !== '/' }}
+      />
+    );
   if (session.user.verification_required) return <Navigate to="/verify-email" replace />;
   return <Outlet />;
 }

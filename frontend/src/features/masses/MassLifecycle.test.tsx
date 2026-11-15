@@ -74,8 +74,9 @@ it('blocks a stale finalization until the refreshed program is explicitly acknow
   const user = userEvent.setup();
   await user.click(await screen.findByRole('button', { name: 'Finalize Mass' }));
   expect(await screen.findByRole('alert')).toHaveTextContent('This Mass changed.');
-  expect(screen.getByRole('button', { name: 'Finalize Mass' })).toBeDisabled();
   expect(screen.getByRole('dialog', { name: 'Something went wrong' })).toBeVisible();
+  await user.click(screen.getByRole('button', { name: 'Close notification' }));
+  expect(screen.getByRole('button', { name: 'Finalize Mass' })).toBeDisabled();
   expect(writes).toHaveLength(1);
   await user.click(screen.getByRole('button', { name: "I've reviewed the refreshed program" }));
   expect(screen.getByRole('button', { name: 'Finalize Mass' })).toBeEnabled();

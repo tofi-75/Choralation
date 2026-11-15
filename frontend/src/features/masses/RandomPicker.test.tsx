@@ -114,6 +114,9 @@ it('reports an empty eligible pool and leaves choices intact after a failed requ
   await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Random hymns' })));
   expect(screen.getByRole('status')).toHaveTextContent('Still empty: Communion, Entrance');
   expect(saver.state.status).toBe('Saved');
+  await act(async () =>
+    fireEvent.click(screen.getByRole('button', { name: 'Close notification' })),
+  );
   vi.mocked(fetchRandomPicks).mockRejectedValueOnce(new Error('Connection failed.'));
   await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Random hymns' })));
   expect(screen.getByRole('alert')).toHaveTextContent('Your selections are unchanged. Try again.');

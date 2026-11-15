@@ -46,7 +46,18 @@ test('Mass lists: chronological saved programs, separate archive and drafts, fil
   const dates = await page.locator('.mass-card .eyebrow').allTextContents();
   expect(dates).toEqual([...dates].sort());
   await page.getByRole('button', { name: 'Filters', exact: true }).click();
-  await expect(page.getByLabel('From date')).toBeVisible();
+  const fromInput = page.getByLabel('From date');
+  const toInput = page.getByLabel('To date');
+  const seasonInput = page.getByLabel('Season filter');
+  await expect(fromInput).toBeVisible();
+  const seasonBox = (await seasonInput.boundingBox())!;
+  for (const input of [fromInput, toInput]) {
+    const bounds = (await input.boundingBox())!;
+    expect(bounds.width).toBeCloseTo(seasonBox.width, 0);
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+    if (page.viewportSize()!.width <= 600)
+      expect(bounds.x + bounds.width).toBeCloseTo(seasonBox.x + seasonBox.width, 0);
+  }
   await page.getByRole('button', { name: 'Next', exact: true }).click();
   await expect(page.locator('.mass-card')).toHaveCount(2);
   await expect(page.getByText('End of matching Mass plans', { exact: true })).toBeVisible();
@@ -69,7 +80,11 @@ test('Mass lists: chronological saved programs, separate archive and drafts, fil
   const top = page.getByRole('button', { name: 'Scroll to top', exact: true });
   await expect(top).toHaveText('↑');
   await top.click();
-  await expect(page.getByRole('link', { name: 'New Mass', exact: true })).toBeInViewport();
+  const newMass = page.getByRole('link', { name: 'New Mass', exact: true });
+  await expect(newMass).toBeInViewport();
+  const actions = (await page.locator('.mass-page-actions').boundingBox())!;
+  const create = (await newMass.boundingBox())!;
+  expect(create.x + create.width).toBeCloseTo(actions.x + actions.width, 0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: info.outputPath('saved-masses.png'), fullPage: true });
 });
