@@ -5,9 +5,8 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from accounts.permissions import Role
 from hymns.models import CATEGORY_TYPES, Hymn
-from hymns.services import require_role, save_hymn
+from hymns.services import require_hymn_editor, save_hymn
 
 SOURCE = "Mass Hymn Picker fictional demo; no real lyrics or usage"
 TITLES = [
@@ -74,7 +73,7 @@ class Command(BaseCommand):
             actor = get_user_model().objects.get(username=options["username"])
         except get_user_model().DoesNotExist as error:
             raise CommandError("Provide an existing Admin or Planner username.") from error
-        require_role(actor, Role.PLANNER)
+        require_hymn_editor(actor)
         choices = {
             kind: list(model.objects.filter(is_active=True).order_by("display_order", "id"))
             for kind, model in CATEGORY_TYPES.items()

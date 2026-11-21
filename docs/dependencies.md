@@ -1,6 +1,9 @@
 # Dependency decisions — M0 and M1
 
-**Verified:** October 6, 2026. **State:** M0 direct selections are now installed and resolved in M1 on Windows. Python version locks and npm's generated lock are committed; container execution remains unverified. No global tool/configuration was changed.
+> Reviewed November 20, 2026. [Current project status](current-status.md) records the live release. Dated verification notes below describe their original test sessions.
+
+
+**Verified:** October 6, 2026. **State:** M0 direct selections are now installed and resolved in M1 on Windows. Python version locks and npm's generated lock are committed; the production image and fresh-container PDF persistence have since passed Linux release CI. No global tool/configuration was changed.
 
 ## Runtime decisions
 
@@ -12,7 +15,7 @@
 | Node | 24.19.0, supported 24.x | M1 uses the available executable copied into `.local/node`; corrects M0's proposed 24.21.0; [Node downloads](https://nodejs.org/en/download) |
 | Frontend package manager | npm 11.21.0 | Project-local archive verified against registry SHA512; `packageManager` captures this version |
 
-Django 5.2 explicitly supports Python 3.14 starting with 5.2.8; see its [release notes](https://docs.djangoproject.com/en/5.2/releases/5.2/). Python 3.15 was still presented as prerelease by the checked page, so it is not selected. Container digests were verified through the official Docker Hub registry in M1 and are recorded below.
+Django 5.2 explicitly supports Python 3.14 starting with 5.2.8; see its [release notes](https://docs.djangoproject.com/en/5.2/releases/5.2/). The original October 6 selection excluded Python 3.15 based on the release page at that time. This is historical selection evidence; use the committed locks for reproducibility. Container digests were verified through the official Docker Hub registry in M1 and are recorded below.
 
 ## Direct dependency pins
 

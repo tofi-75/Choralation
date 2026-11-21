@@ -1,5 +1,7 @@
 # Choralation Render deployment analysis and repair plan
 
+> Historical delivery record. Test counts, commit state, UI labels, and pending actions describe the dated work below. For the deployed release and current workflow, read [Current project status](current-status.md).
+
 **Subsequent deployment succeeded:** Commit `8f6a2b4` was pushed and deployment `dep-dbaiqnom7kps739128lg` reached Live on October 18. Public HTTPS readiness and production smoke checks passed. See the [deployment verification report](render-deployment-verification-2026-10-18.md). The analysis-phase observations below are preserved as the record before that deployment; private-storage and acceptance follow-ups remain.
 
 **Date:** October 18, 2026 (Asia/Beirut).

@@ -18,7 +18,7 @@ def test_inbox_admin_sees_all_planner_only_owned_choirs_and_members_none(setting
     applicant = User.objects.create_user(username="inbox-applicant", email="private@example.test")
     a = Choir.objects.create(name="Private A")
     b = Choir.objects.create(name="Private B")
-    Membership.objects.create(choir=a, user=planner, role="Planner")
+    Membership.objects.create(choir=a, user=planner, role="Leader")
     Membership.objects.create(choir=b, user=planner, role="Member")
     Membership.objects.create(choir=a, user=member)
     first = JoinRequest.objects.create(choir=a, user=applicant)

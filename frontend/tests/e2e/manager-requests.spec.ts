@@ -23,7 +23,7 @@ async function openChoirs(page: Page) {
   await link.click();
 }
 
-test('Admin reviews Manager requests and an approved user can plan their own choir', async ({
+test('Admin reviews Choirmaster requests and an approved user can plan their own choir', async ({
   page,
   browser,
 }, info) => {
@@ -46,13 +46,16 @@ test('Admin reviews Manager requests and an approved user can plan their own cho
     await page.goto(`/verify-email#token=${verificationToken(email)}`);
   }
   await expect(page.getByRole('heading', { name: 'Masses', exact: true })).toBeVisible();
-  await expect(page.locator('.role-badge')).toHaveText('Viewer');
+  await expect(page.locator('.role-badge')).toHaveText('User');
   await openChoirs(page);
   await expect(page.getByRole('link', { name: 'Create choir', exact: true })).toHaveCount(0);
-  await page.getByRole('link', { name: 'Request Manager access', exact: true }).click();
-  await expect(page.getByRole('link', { name: /^Manager requests/ })).toHaveCount(0);
-  const access = page.getByRole('region', { name: 'Manager access' });
-  const requestAccess = access.getByRole('button', { name: 'Request Manager access', exact: true });
+  await page.getByRole('link', { name: 'Request Choirmaster access', exact: true }).click();
+  await expect(page.getByRole('link', { name: /^Choirmaster requests/ })).toHaveCount(0);
+  const access = page.getByRole('region', { name: 'Choirmaster access' });
+  const requestAccess = access.getByRole('button', {
+    name: 'Request Choirmaster access',
+    exact: true,
+  });
   await requestAccess.click();
   await expect(access).toContainText('Your request is pending Admin review.');
   await expect(requestAccess).toHaveCount(0);
@@ -72,13 +75,16 @@ test('Admin reviews Manager requests and an approved user can plan their own cho
     await expect(admin.getByRole('heading', { name: 'Masses', exact: true })).toBeVisible();
     const otherChoirId = await initialChoirId(admin);
     await admin.goto('/settings');
-    const tab = admin.getByRole('link', { name: /^Manager requests/ });
-    await expect(tab).toHaveText('Manager requests (1)');
+    const tab = admin.getByRole('link', { name: /^Choirmaster requests/ });
+    await expect(tab).toHaveText('Choirmaster requests (1)');
     await tab.click();
 
     async function review(action: 'Decline' | 'Approve') {
       await admin
-        .getByRole('button', { name: `${action} Manager request from ${username}`, exact: true })
+        .getByRole('button', {
+          name: `${action} Choirmaster request from ${username}`,
+          exact: true,
+        })
         .click();
       const dialog = admin.getByRole('dialog', { name: 'Confirm action' });
       await expect(dialog).toContainText(username);
@@ -97,9 +103,9 @@ test('Admin reviews Manager requests and an approved user can plan their own cho
 
     // This is the original signed-in page. Opening Choirs picks up approval.
     await openChoirs(page);
-    await expect(page.locator('.role-badge')).toHaveText('Manager');
+    await expect(page.locator('.role-badge')).toHaveText('Choirmaster');
     expect((await page.request.get(`/api/v1/choirs/${otherChoirId}/`)).status()).toBe(404);
-    const choirName = `Manager choir ${info.project.name}`;
+    const choirName = `Choirmaster choir ${info.project.name}`;
     await page.getByRole('link', { name: 'Create choir', exact: true }).click();
     await page.getByRole('textbox', { name: /Choir name/ }).fill(choirName);
     await page.getByRole('button', { name: 'Create choir', exact: true }).click();
@@ -107,7 +113,7 @@ test('Admin reviews Manager requests and an approved user can plan their own cho
     await expect(page.getByRole('heading', { name: choirName, exact: true })).toBeVisible();
     const choirId = Number(page.url().split('/').at(-1));
     const choirs = await (await page.request.get('/api/v1/choirs/')).json();
-    expect(choirs).toMatchObject([{ id: choirId, role: 'Planner' }]);
+    expect(choirs).toMatchObject([{ id: choirId, role: 'Leader' }]);
     await page.getByLabel('Active choir').selectOption(String(choirId));
     await expect(page).toHaveURL(/\/dashboard$/);
     await page.goto('/masses');

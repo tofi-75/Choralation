@@ -78,7 +78,7 @@ test('private approval, scoped counts and code rotation', async ({ page, browser
     await expect(card).toBeVisible();
     await expect(card).not.toContainText('members');
     await card.getByRole('button', { name: 'Request to join' }).click();
-    await dismissNotice(page, 'Request sent. A choir planner will review it.');
+    await dismissNotice(page, 'Request sent. A Choir Leader will review it.');
     await expect(card.getByRole('button', { name: 'Request pending' })).toBeDisabled();
     expect((await page.request.get(`/api/v1/choirs/${choirA}/`)).status()).toBe(404);
     await planner.reload();

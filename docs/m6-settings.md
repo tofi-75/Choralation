@@ -1,5 +1,10 @@
 # M6 — Classification and choir calendar settings
 
+> **Local implementation, November 21:** [Choir roles, Mass reading and lossless PDFs](roles-reader-pdf-update.md) describes the current checkout and staged rollout. These changes are not part of the live `91a8c56` release.
+
+> Reviewed November 20, 2026. [Current project status](current-status.md) records the live release. Dated verification notes below describe their original test sessions.
+
+
 M6 delivers Admin classification management and choir-scoped calendar settings. Physical-phone/coordinator acceptance, recommendations, Arabic translation, Practice, a full diocesan Ordo and a broad date-range editor remain separate work.
 
 ## Use the new screens
@@ -39,7 +44,7 @@ Before hosted migration, make a fresh hosted database backup using the existing 
 
 The helper uses a hidden memory-only password and exports the application schema without changing it. Keep original PDFs and the separate bucket backup. Never paste passwords/URLs, save secrets in source or include archives in Git.
 
-Review the diff and secret/artifact scan, commit/push reviewed source, wait for GitHub checks (including Docker/container serving) to pass, then manually deploy that exact commit to the existing service. Preserve the compute plan and automatic-deployment setting. The November 1 read-only service check confirmed automatic deployment remains off; its HTTP health-check path is empty in the live service, so verify/configure `/health/ready/` as part of the hosted release rather than assuming the Blueprint has already synchronized it. Startup applies the additive migration. After readiness passes, confirm Admin-only Settings, member read-only calendar access, Planner writes, choir isolation, and existing programs/PDF access on the public URL.
+Review the diff and secret/artifact scan, commit/push reviewed source, wait for GitHub checks (including Docker/container serving) to pass, then manually deploy that exact commit to the existing service. Preserve the compute plan and automatic-deployment setting. The November 20 read-only service check confirmed automatic deployment remains off and its HTTP health-check path is empty. Verify `/health/ready/` after release. Changing the service configuration requires separate authorization. Startup applies the additive migration. After readiness passes, confirm Admin-only Settings, member read-only calendar access, Planner writes, choir isolation, and existing programs/PDF access on the public URL.
 
 Application rollback does not reverse migrations. Keep the additive tables when rolling application code back; do not undo migrations containing useful calendar settings without a separately reviewed backup/restore plan.
 
@@ -47,4 +52,4 @@ Application rollback does not reverse migrations. Keep the additive tables when 
 
 The full backend suite passed **419 tests**, and frontend unit validation passed **117 tests**. Schema validation, migration consistency, Django checks, type checking, lint/format, the production build and actual production-serving smoke checks passed. Focused concurrency tests confirm simultaneous first calendar saves and category edits produce one successful write and one stale-version conflict. The full email-enabled browser suite passed **120 scenarios**; its eight expected mode-specific skips were exercised separately with email features disabled and **all eight passed**. That verifies **128 browser scenarios across desktop, 390px, 360px and 430px**, including all eight new M6 settings scenarios. The disposable databases were removed. No real account emails were sent. The pending-source scan found no credentials, database archives, logs or generated evidence in the release source set.
 
-**Hosted release is pending.** A fresh hosted backup, exact-commit CI/deployment, and authenticated hosted acceptance must be recorded before calling M6 live. Simulated phone viewports do not complete physical-phone acceptance.
+**Release update, November 20.** M6 code and migrations are included in live commit `91a8c56`. Release CI passed. Future deployments still require a fresh backup. No new authenticated hosted calendar edit was performed during this documentation review. Simulated phone viewports do not complete physical-phone acceptance.

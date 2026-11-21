@@ -62,6 +62,7 @@ def main():
         "DJANGO_ALLOWED_HOSTS": "127.0.0.1,localhost,testserver",
         "DJANGO_TRUST_PROXY_HTTPS": "true",
         "DJANGO_STORAGE_BACKEND": "s3",
+        "PDF_COMPRESSED_WRITES": "true",
         "ACCOUNT_REGISTRATION_ENABLED": "true",
         "ACCOUNT_EMAIL_VERIFICATION_ENABLED": "false",
         "ACCOUNT_PASSWORD_RESET_ENABLED": "false",

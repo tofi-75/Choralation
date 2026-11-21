@@ -7,7 +7,7 @@ from accounts.permissions import Role
 
 
 class Command(BaseCommand):
-    help = "Idempotently create Admin, Planner, and Viewer groups; no users or passwords."
+    help = "Idempotently create Admin, Choirmaster, and User groups; no users or passwords."
 
     def handle(self, *args, **options):
         for role in Role:

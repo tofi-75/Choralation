@@ -1,22 +1,20 @@
-# Deploy Choralation: Render + Supabase
+# Deploy Choralation — Render and Supabase
 
-**October 26 PDF storage repair:** The live service was missing `DJANGO_STORAGE_BACKEND`, so uploads used temporary Render files. Follow the [durable PDF setup and cutover guide](pdf-storage-setup.md) before any further deployment. Production now requires S3 and verifies actual write/read/cleanup before startup; owner settings and real cross-deployment acceptance remain required.
+> **Local implementation, November 21:** [Choir roles, Mass reading and lossless PDFs](roles-reader-pdf-update.md) describes the current checkout and staged rollout. These changes are not part of the live `91a8c56` release.
 
-**October 25 release:** [Simple accounts and owner-assisted recovery](simple-accounts-release.md) supersedes earlier registration/verification activation instructions. Gmail is retained for future use; both email features remain explicitly disabled. No Google submission or billing change is part of this release.
+**Reviewed November 20, 2026.** [Choralation is live](https://choralation.onrender.com) on commit `91a8c56`. Both jobs in [the release CI run](https://github.com/tofi-75/Choralation/actions/runs/43712740786) passed. The current service uses manual deployment, Free runtime compute, private S3 storage, and Supabase PostgreSQL. See [current status](current-status.md) for evidence and outstanding acceptance.
 
-**October 18, 2026 deployment result:** [Choralation is live](https://choralation.onrender.com). Commit `8f6a2b4` built and deployed successfully; public HTTPS readiness, application routes/assets, and anonymous-access checks passed. Private PDF storage configuration and authenticated persistence acceptance remain pending. See the [deployment verification report](render-deployment-verification-2026-10-18.md).
+**Existing service.** Use [Choralation on Render](https://dashboard.render.com/web/srv-db78nlbbc2fs73e83qi0) in the owner-confirmed Toufic’s workspace. Automatic deployment is off, and the live HTTP health-check path is empty. The Blueprint declares `checksPass` and `/health/ready/`, but those values have not been applied to the live service. Verify public readiness after each deployment. Configure a health-check path or enable automatic deployment only with authorization.
 
-**October 18, 2026 deployment investigation:** The existing [Choralation service](https://dashboard.render.com/web/srv-db78nlbbc2fs73e83qi0) has two failed startup attempts. The latest log rejected `DATABASE_URL`; the current saved value now has a PostgreSQL scheme, but has not been verified in a new deploy. Private S3 settings are also missing from the service environment. See the [analysis, repair plan, work log, and verification report](render-repair-report-2026-10-18.md). The October 13 preparation notes below retain their original context; live acceptance remains pending.
+**Before another release.** Confirm a fresh database backup and a separate PDF bucket backup. Review the commit, wait for the intended CI checks, manually deploy the reviewed revision, then verify its live status, public readiness, assets, and relevant authenticated workflows. Record any remaining acceptance. [Simple accounts](simple-accounts-release.md) documents the active registration mode and owner-assisted recovery. [Durable PDF storage](pdf-storage-setup.md) documents S3 safeguards and file recovery.
 
-**Prepared October 13, 2026.** Code preparation is separate from deployment acceptance. Accounts, provider login, credentials, GitHub publishing and live verification are owner tasks to complete manually later. No cloud resources or public URL have been created by this preparation. See [hosting verification](hosting-report.md).
-
-One Render Docker service serves React, Django, admin and the existing APIs on one HTTPS origin. Supabase holds PostgreSQL and private PDFs. Existing local data is not copied. Start with fictional hymns and newly provisioned accounts. Physical-phone acceptance moves to M5; saved-Mass performance redesign and recommendations are deferred.
+The setup sections below support new installations and authorized configuration changes. Existing infrastructure is already provisioned.
 
 ## 1. Prepare accounts and GitHub (manual owner steps)
 
 1. Create/sign in to GitHub, Supabase and Render.
 2. Create a **private** GitHub repository named `Choralation`. Do not initialize it with a README, license or Gitignore: this folder already has history.
-3. Review all local changes, including the existing uncommitted M4 work. The deployment needs those application files as well as the new hosting files. Nothing has been staged or committed automatically.
+3. Review the current diff and intended release commit. Exclude private files, generated artifacts, and unrelated changes.
 4. From PowerShell in this project:
 
 ```powershell
@@ -39,7 +37,7 @@ If `origin` already exists, inspect `git remote -v` and use the existing correct
 
 1. Create a Free project named `Choralation Testing`, in **Frankfurt / eu-central-1**. Save its database password privately.
 2. Disable the **Data API** in project API settings (or choose connection-string-only during creation). Django uses PostgreSQL directly and owns account/role checks; no Supabase frontend key or Supabase Auth integration is needed. [Official API security guide](https://supabase.com/docs/guides/api/securing-your-api)
-3. Open **Connect â†’ Session pooler**. Copy its PostgreSQL URL on **5432**, not transaction mode on 6543. Replace the password placeholder with the URL-encoded password and append `?sslmode=require` (use `&sslmode=require` if the URL already has a query). Keep the supplied pooler hostname and `postgres.PROJECT_REF` username. [Connection guide](https://supabase.com/docs/guides/database/connecting-to-postgres)
+3. Open **Connect → Session pooler**. Copy its PostgreSQL URL on **5432**, not transaction mode on 6543. Replace the password placeholder with the URL-encoded password and append `?sslmode=require` (use `&sslmode=require` if the URL already has a query). Keep the supplied pooler hostname and `postgres.PROJECT_REF` username. [Connection guide](https://supabase.com/docs/guides/database/connecting-to-postgres)
 4. Under Storage, create a bucket named **sheet-music** with **Public bucket disabled**. PDFs are served only through the authenticated Django download endpoint. Do not make the bucket public to resolve permission errors.
 5. In Storage S3 settings, obtain the S3 endpoint, region, access-key ID and secret. Copy the exact endpoint displayed by Supabase; do not guess its hostname. These credentials are powerful and must remain server-side. [S3 authentication](https://supabase.com/docs/guides/storage/s3/authentication)
 6. Keep the project reference and secrets in your password manager and provider settings, not Git or chat.
@@ -52,27 +50,27 @@ Both modes use the same Dockerfile, database and settings. You do not need two R
 
 ### Option A: deploy manually
 
-1. In Render, choose **New â†’ Web Service**, connect your GitHub account and grant access to the private repository.
+1. In Render, choose **New → Web Service**, connect your GitHub account and grant access to the private repository.
 2. Select repository `Choralation`, branch **main**, region **Frankfurt**, runtime **Docker**, and instance plan **Free**.
 3. Leave Root Directory empty. Set Dockerfile Path to **./Dockerfile** and Docker Build Context to **.**. Do not select the development `backend/Dockerfile`.
 4. Use the Dockerfile's default command. No separate build command is needed. Set the health-check path to **/health/ready/**.
 5. Set **Auto-Deploy: Off**. Enter the settings in section 4 before creating/deploying the service.
 6. Click **Create Web Service**. The image builds on Render, then startup runs migrations, provisions roles and creates missing classification defaults. No accounts or fictional hymns are automatically created.
 7. Once live, follow sections 5 and 6.
-8. For later changes, push the reviewed commit to `main`, check GitHub results, then choose **Manual Deploy â†’ Deploy latest commit**. Render rebuilds that commit. Use Deploy a specific commit if you intentionally need a reviewed older revision.
+8. For later changes, push the reviewed commit to `main`, check GitHub results, then choose **Manual Deploy → Deploy latest commit**. Render rebuilds that commit. Use Deploy a specific commit if you intentionally need a reviewed older revision.
 
 ### Option B: GitHub pipeline with automatic deployment
 
 1. Ensure the committed repository contains `.github/workflows/ci.yml`, `Dockerfile` and `render.yaml`.
-2. In Render, connect GitHub and select **New â†’ Blueprint**. Choose the private repository and branch **main**, using the root `render.yaml`.
+2. In Render, connect GitHub and select **New → Blueprint**. Choose the private repository and branch **main**, using the root `render.yaml`.
 3. Confirm **one free web service**, Frankfurt, and **no Render database or disk**. PostgreSQL and files belong to Supabase.
 4. Supply the secret settings when prompted. Supply your own `DJANGO_SECRET_KEY` of at least 50 characters using the generation command below; keep it stable on subsequent deployments. Render's automatic generator produces 44 characters and does not satisfy this app's validation. The Blueprint supplies other fixed settings.
 5. Confirm service settings show **Auto-Deploy: After CI Checks Pass**. The Blueprint uses `autoDeployTrigger: checksPass`. Native integration requires a connected GitHub account; using only a public repository URL is insufficient.
-6. Watch GitHub **Actions â†’ Application checks**. It runs backend tests, migration/schema/lint checks, frontend checks/build, all browser projects, and a Linux Docker build/production smoke check. Its databases and file storage are disposable, not Supabase. No hosted secret or deployment hook is needed in GitHub Actions.
+6. Watch GitHub **Actions → Application checks**. It runs backend tests, migration/schema/lint checks, frontend checks/build, all browser projects, and a Linux Docker build/production smoke check. Its databases and file storage are disposable, not Supabase. No hosted secret or deployment hook is needed in GitHub Actions.
 7. The initial Blueprint creation can deploy immediately; require the checks to pass before accepting the hosted app. Subsequent pushes/merges to `main` deploy only after checks pass. A failed check blocks auto-deploy; zero detected checks also blocks it. [Render deployment behavior](https://render.com/docs/deploys)
 8. Complete account and live acceptance steps below.
 
-Normal pipeline: **push/merge main â†’ checks pass â†’ Render builds that revision â†’ startup migrations/defaults â†’ readiness passes â†’ app goes live**. Development branches run PR checks but do not deploy to this service. Do not add pipeline filters that skip all checks on a `main` commit intended for deployment.
+Normal pipeline: **push/merge main → checks pass → Render builds that revision → startup migrations/defaults → readiness passes → app goes live**. Development branches run PR checks but do not deploy to this service. Do not add pipeline filters that skip all checks on a `main` commit intended for deployment.
 
 To enable the pipeline on an existing manually created service, keep that service and change Auto-Deploy to **After CI Checks Pass** after the workflow is present. Do not create a second service just to switch deployment modes.
 
@@ -104,7 +102,7 @@ For either deployment mode, generate the Django secret privately on your compute
 .\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(64))"
 ```
 
-Copy the output into Render's **Environment â†’ DJANGO_SECRET_KEY** value, without additional quotes, and your ignored `.env.hosted` file. Keep it stable. Do not use Render's Generate button for this variable: its 44-character value is shorter than the required 50 characters. Do not paste the generated value into chat or Git. Database/S3 secrets never belong in frontend environment variables or GitHub Actions.
+Copy the output into Render's **Environment → DJANGO_SECRET_KEY** value, without additional quotes, and your ignored `.env.hosted` file. Keep it stable. Do not use Render's Generate button for this variable: its 44-character value is shorter than the required 50 characters. Do not paste the generated value into chat or Git. Database/S3 secrets never belong in frontend environment variables or GitHub Actions.
 
 ## 5. Provision hosted accounts and fictional hymns (manual owner steps)
 
@@ -132,7 +130,7 @@ Each command prints the Supabase pooler hostname and asks you to type **HOSTED**
 
 Record actual results rather than assuming a passing local test is a hosted test:
 
-- [ ] Record the assigned `https://YOUR_SERVICE.onrender.com` URL here: **pending deployment**.
+- [x] Public URL is [Choralation](https://choralation.onrender.com); current deployed commit is recorded in [Current project status](current-status.md).
 - [ ] `/login` loads; anonymous API access and PDF downloads are denied.
 - [ ] Admin/Planner/Viewer login works with the correct permissions; logout works.
 - [ ] Open and refresh `/hymns/ID` and `/masses/ID/edit`; JS/CSS and admin static files load without redirect loops.
@@ -142,7 +140,7 @@ Record actual results rather than assuming a passing local test is a hosted test
 - [ ] Deploy another reviewed version; the same records and PDF persist.
 - [ ] Pipeline mode: on the testing branch/service, verify a failing check prevents auto-deploy, then correct it and verify a passing `main` commit deploys. Record the deployed commit and URL.
 
-**Hosting is complete only when the real URL, Supabase record/PDF persistence and one automatic deployment have been verified.** Physical phone testing is deferred to M5 and does not prevent initial desktop hosted acceptance. Do not intentionally introduce failing commits during a real Mass.
+Manual hosting is deployed. A configured automatic pipeline requires its own failed-check blocking and successful-deployment acceptance. Physical phone testing is deferred to M5 and does not prevent initial desktop hosted acceptance. Do not intentionally introduce failing commits during a real Mass.
 
 ## Troubleshooting, upgrades and portability
 
@@ -153,7 +151,7 @@ Record actual results rather than assuming a passing local test is a hosted test
 - **PDF failure:** check the private bucket name and S3 credentials/endpoint. Storage outages return generic retryable errors; do not expose the bucket publicly.
 - **Blank/stale frontend:** HTML revalidates; hashed assets cache indefinitely. Hard-refresh once after a deployment and verify the commit and asset responses. A missing asset is a 404, not the React shell.
 - **Free-tier delays:** Render sleeps after 15 minutes without requests and wakes on the next request. Supabase Free can pause after a week of inactivity. Check both before testing; do not rely on these plans for uninterrupted live Mass access.
-- **Paid Render upgrade:** change the Blueprint plan to the current Starter-equivalent `0.5c-512mb`, add `preDeployCommand: python manage.py migrate --noinput && python manage.py provision_roles && python manage.py seed_initial_data`, and change `RUN_STARTUP_MIGRATIONS` to `false`. The image works from `/app/backend`. For a manual service, configure these in its dashboard. Upgrade the existing service; its URL/data remain in place. Paid pre-deploy executes before switching the app version. Verify Render's current plan IDs before changing costs.
+- **Paid Render upgrade:** check current Render plan identifiers and pricing when an upgrade is authorized. Add `preDeployCommand: python manage.py migrate --noinput && python manage.py provision_roles && python manage.py seed_initial_data`, and change `RUN_STARTUP_MIGRATIONS` to `false`. The image works from `/app/backend`. For a manual service, configure these in its dashboard. Upgrade the existing service; its URL/data remain in place. Paid pre-deploy executes before switching the app version. Keep a paid upgrade separate from routine application deployment.
 - **Supabase Pro:** upgrade the existing organization/project when no inactivity pause, daily DB backups or more capacity is needed. No provider switch is required. Database backups do not include PDF objects; maintain a separate bucket backup.
 - **Bad release:** disable auto-deploy temporarily if needed, revert the bad commit locally and push the correction after review, or manually deploy a known compatible commit. Code rollback does not undo DB migrations. Use additive/backward-compatible migrations, export before destructive schema changes, and never reset hosted data as a rollback.
 - **Export/migrate later:** export PostgreSQL with a compatible `pg_dump` using securely supplied connection settings and export the private bucket through Supabase's Storage tooling/S3 client. Store backup files under ignored `.local/backups`, protect them, and test restoring DB plus PDF objects into a separate destination. Preserve object keys; the DB stores those keys. Accounts use standard Django password hashes. Change `DATABASE_URL` and S3 settings to move providers; no Supabase client SDK/auth coupling has been added.

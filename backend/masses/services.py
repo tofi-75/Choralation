@@ -11,10 +11,9 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import APIException, ValidationError
 
-from accounts.permissions import Role
 from choirs.access import require_choir
 from hymns.models import Hymn, LiturgicalSeason, MassPlacement
-from hymns.services import locked_record, require_role
+from hymns.services import locked_record
 from masses.models import Mass, MassHymnSelection
 
 
@@ -41,13 +40,11 @@ class MassFinalized(APIException):
 
 
 def checked_mass(
-    pk: int, actor, expected: str | None, minimum: Role = Role.PLANNER, *, draft_only: bool = True
+    pk: int, actor, expected: str | None, *, draft_only: bool = True, leader: bool = False
 ) -> Mass:
     """Require a transaction; authorize before parsing, then check revision/state."""
-    if minimum == Role.ADMIN:
-        require_role(actor, minimum)
     mass = locked_record(Mass, pk)
-    require_choir(actor, mass.choir_id, planner=True, lock=True)
+    require_choir(actor, mass.choir_id, planner=not leader, leader=leader, lock=True)
     if expected is None:
         raise RevisionRequired()
     if not re.fullmatch(r"[1-9][0-9]*", expected) or len(expected) > 19:
@@ -182,8 +179,8 @@ def save_program(pk: int, rows: list[dict], actor, expected: str | None) -> Mass
 
 @transaction.atomic
 def delete_mass(pk: int, actor, expected: str | None) -> None:
-    """Admin-only deletion of any saved Mass; usage follows its removed selections."""
-    checked_mass(pk, actor, expected, Role.ADMIN, draft_only=False).delete()
+    """Choir Leader/Admin deletion of any saved Mass; usage follows its removed selections."""
+    checked_mass(pk, actor, expected, leader=True, draft_only=False).delete()
 
 
 @transaction.atomic
@@ -194,7 +191,7 @@ def transition_mass(pk: int, actor, expected: str | None, *, reopen: bool = Fals
     Selection identities/order/notes never change. Usage is derived from status,
     so the transaction exposes both the lifecycle and history change together.
     """
-    mass = checked_mass(pk, actor, expected, Role.PLANNER, draft_only=False)
+    mass = checked_mass(pk, actor, expected, draft_only=False)
     target = "draft" if reopen else "finalized"
     if mass.status != target:
         mass.status = target

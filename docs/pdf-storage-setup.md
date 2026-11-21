@@ -1,10 +1,15 @@
 # Durable PDF storage: owner setup and release checklist
 
+> **Local implementation, November 21:** [Choir roles, Mass reading and lossless PDFs](roles-reader-pdf-update.md) describes the current checkout and staged rollout. These changes are not part of the live `91a8c56` release.
+
+> Reviewed November 20, 2026. [Current project status](current-status.md) records the live release. Dated verification notes below describe their original test sessions.
+
+
 The PDF repair keeps the existing Render compute plan, Supabase project, PostgreSQL records, and private download APIs. No schema migration or email setup is required. Uploads must use Supabase Storage; production no longer accepts temporary local files.
 
 ## 1. Preserve files before changing the service
 
-Download every currently readable PDF and keep original copies on your computer. A Render deployment or instance replacement can discard the existing local copies. The owner confirmed on 26 October 2026 that PDF copies and originals are secured.
+Keep original PDFs and a separate backup of the current private S3 bucket before release or recovery. The October 26 incident involved local copies on ephemeral Render storage; S3 safeguards have since shipped. The owner confirmed securing the readable PDFs and originals during that incident. A successful S3 setup does not reconstruct previously lost bytes.
 
 Keep a current database backup too. The existing hidden-password helper is `scripts/backup-hosted.py`; run it in an interactive project terminal if a new export is needed. Do not paste its password or database URL into chat. A database export does not contain the actual PDFs. Export any existing Supabase Storage objects separately before a recovery/import operation.
 
@@ -70,3 +75,7 @@ After recovery, repeat the audit and confirm the originals remain readable after
 - **404 for an attached PDF:** audit the record. A genuinely missing object needs recovery from its original/file backup; unauthorized records remain inaccessible.
 
 Sources: [Supabase S3 authentication](https://supabase.com/docs/guides/storage/s3/authentication), [Render environment save options](https://render.com/docs/configure-environment-variables), [Render ephemeral filesystems](https://render.com/docs/disks), [database backups exclude Storage objects](https://supabase.com/docs/guides/platform/backups).
+
+## Lossless compressed objects (local November 21 batch)
+
+See [dual-format storage and staged conversion](roles-reader-pdf-update.md). Keep `PDF_COMPRESSED_WRITES=false` for the initial dual-reader deployment; enable compressed writes separately after verification. Ordinary upload validation remains 10MB of original bytes. Backups must copy all object keys, including `.pdf.gz`, alongside the database's encoding/hash metadata. The startup canary now uses a unique gzip object and validates exact readback and decompression. The attachment audit checks object existence for either representation; a present object is not a checksum-integrity verdict.

@@ -1,6 +1,8 @@
 # M4 — finalization and trustworthy history
 
-> **October 13, 2026 priority update:** Render + Supabase hosting preparation is the current delivery task; see [deployment guide](hosting.md). All account/login/provider setup and publishing are manual owner steps deferred until later. Physical-phone acceptance moves from M4 to M5. Saved-Mass performance redesign and recommendations are deferred. Historical milestone statements below retain their original dates; hosted completion requires actual URL, persistence and pipeline verification.
+> Historical delivery record. Test counts, commit state, UI labels, and pending actions describe the dated work below. For the deployed release and current workflow, read [Current project status](current-status.md).
+
+
 
 
 **Date:** October 8, 2026. **Engineering status:** M4.1–M4.5 implemented and verified. M4 remains open for required M4.6 human/phone acceptance. M3 was committed as `daefc9b` — Complete M3 draft planning and review improvements. M4 changes remain uncommitted; the owner's authorization covered the M3 checkpoint only. Required physical-phone/coordinator acceptance is pending.

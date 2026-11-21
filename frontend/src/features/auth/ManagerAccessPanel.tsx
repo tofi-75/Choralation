@@ -25,7 +25,7 @@ export function ManagerAccessPanel() {
   return (
     <section className="form-section" aria-labelledby="manager-access-heading">
       <div className="section-heading">
-        <h2 id="manager-access-heading">Manager access</h2>
+        <h2 id="manager-access-heading">Choirmaster access</h2>
         <button
           className="text-button"
           disabled={access.isFetching || submission.isPending}
@@ -34,11 +34,14 @@ export function ManagerAccessPanel() {
           Refresh status
         </button>
       </div>
-      <p>Managers can create choirs and plan Masses for the choirs they create.</p>
-      {access.isPending && <p role="status">Checking Manager access…</p>}
+      <p>
+        Choirmasters can create choirs. You become Choir Leader of each choir you create. Roles in
+        other choirs are assigned separately.
+      </p>
+      {access.isPending && <p role="status">Checking Choirmaster access…</p>}
       {access.error && <p role="alert">{access.error.message}</p>}
       {submission.error && <p role="alert">{submission.error.message}</p>}
-      {canCreate && <p role="status">You have Manager access.</p>}
+      {canCreate && <p role="status">You have Choirmaster access.</p>}
       {!canCreate && status === 'pending' && (
         <p role="status">Your request is pending Admin review.</p>
       )}
@@ -51,7 +54,7 @@ export function ManagerAccessPanel() {
           disabled={submission.isPending || access.isFetching}
           onClick={() => submission.mutate()}
         >
-          {submission.isPending ? 'Submitting…' : 'Request Manager access'}
+          {submission.isPending ? 'Submitting…' : 'Request Choirmaster access'}
         </button>
       )}
     </section>

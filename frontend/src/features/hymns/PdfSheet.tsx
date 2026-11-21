@@ -45,7 +45,8 @@ export default function PdfSheet({
   const [expandedReader, setExpandedReader] = useState<HTMLDivElement | null>(null);
   const [portalContainer, setPortalContainer] = useState<Element | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
-  const [localFit, setLocalFit] = useState<PdfFit>('height');
+  const phoneReader = Boolean(window.matchMedia?.('(any-pointer: coarse)').matches);
+  const [localFit, setLocalFit] = useState<PdfFit>(() => (phoneReader ? 'width' : 'height'));
   const fit = preferredFit ?? localFit;
   const setFit = (value: PdfFit) => {
     setLocalFit(value);
@@ -68,30 +69,38 @@ export default function PdfSheet({
   }, [expanded]);
   const [zoom, setZoom] = useState(1);
   const [zoomReference, setZoomReference] = useState<typeof size | null>(null);
-  const phoneFocus = focus && window.matchMedia?.('(any-pointer: coarse)').matches;
+  const previousSize = useRef(size);
   const fitSize = zoomReference ?? size;
 
   function changeZoom(delta: number) {
     const next = Math.max(0.5, Math.min(3, zoom + delta));
-    if (phoneFocus && size.width && size.height) {
+    if (phoneReader && size.width && size.height) {
       // Keep the rendered scale while zoomed, even when rotation resizes the viewport.
       setZoomReference(next === 1 ? null : (zoomReference ?? size));
     }
     setZoom(next);
   }
 
-  const applyOrientationFit = useEffectEvent((landscape: boolean) => {
+  const applyOrientationFit = useEffectEvent(() => {
     if (zoom === 1 && (window.visualViewport?.scale ?? 1) <= 1.01) {
-      setFit(landscape ? 'width' : 'height');
+      setFit('width');
     }
   });
+  const releaseBrowserZoom = useEffectEvent(() => {
+    if (zoom === 1 && (window.visualViewport?.scale ?? 1) <= 1.01) setZoomReference(null);
+  });
   useEffect(() => {
-    if (!phoneFocus) return;
+    if (!phoneReader) return;
+    window.visualViewport?.addEventListener('resize', releaseBrowserZoom);
+    return () => window.visualViewport?.removeEventListener('resize', releaseBrowserZoom);
+  }, [phoneReader]);
+  useEffect(() => {
+    if (!phoneReader) return;
     const orientation = window.matchMedia('(orientation: landscape)');
-    const rotate = (event: MediaQueryListEvent) => applyOrientationFit(event.matches);
+    const rotate = () => applyOrientationFit();
     orientation.addEventListener('change', rotate);
     return () => orientation.removeEventListener('change', rotate);
-  }, [phoneFocus]);
+  }, [phoneReader]);
   const [rendering, setRendering] = useState(true);
   const changeExpanded = useCallback((open: boolean) => {
     setRendering(true);
@@ -171,13 +180,18 @@ export default function PdfSheet({
     const observer = new ResizeObserver(([entry]) => {
       const width = Math.floor(entry.contentRect.width);
       const height = Math.floor(entry.contentRect.height);
+      if (phoneReader && (window.visualViewport?.scale ?? 1) > 1.01 && previousSize.current.width) {
+        const beforeResize = previousSize.current;
+        setZoomReference((previous) => previous ?? beforeResize);
+      }
+      previousSize.current = { width, height };
       setSize((previous) =>
         previous.width === width && previous.height === height ? previous : { width, height },
       );
     });
     observer.observe(element);
     return () => observer.disconnect();
-  }, [container]);
+  }, [container, phoneReader]);
   useEffect(() => {
     let active = true;
     const task = getDocument({

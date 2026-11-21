@@ -45,7 +45,7 @@ def test_concurrent_removals_cannot_remove_both_last_planners():
     choir = Choir.objects.create(name="Removal race")
     members = [
         Membership.objects.create(
-            choir=choir, user=User.objects.create_user(username=f"last-{i}"), role="Planner"
+            choir=choir, user=User.objects.create_user(username=f"last-{i}"), role="Leader"
         )
         for i in range(2)
     ]
@@ -67,4 +67,4 @@ def test_concurrent_removals_cannot_remove_both_last_planners():
     with ThreadPoolExecutor(max_workers=2) as workers:
         result = list(workers.map(remove, members))
     assert sorted(result) == ["protected", "removed"]
-    assert Membership.objects.filter(choir=choir, role="Planner").count() == 1
+    assert Membership.objects.filter(choir=choir, role="Leader").count() == 1

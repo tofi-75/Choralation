@@ -1,7 +1,8 @@
 # Code documentation and review standard
 
-> **October 13, 2026 priority update:** Render + Supabase hosting preparation is the current delivery task; see [deployment guide](hosting.md). All account/login/provider setup and publishing are manual owner steps deferred until later. Physical-phone acceptance moves from M4 to M5. Saved-Mass performance redesign and recommendations are deferred. Historical milestone statements below retain their original dates; hosted completion requires actual URL, persistence and pipeline verification.
+> **Local implementation, November 21:** [Choir roles, Mass reading and lossless PDFs](roles-reader-pdf-update.md) describes the current checkout and staged rollout. These changes are not part of the live `91a8c56` release.
 
+> Reviewed November 20, 2026. [Current project status](current-status.md) records the live release. Dated verification notes below describe their original test sessions.
 
 **Applies from M1 onward**, and to the M0 verification helper. This document implements the user's request for well-documented code.
 
@@ -50,7 +51,7 @@ Future virtual environments, dependency caches, test output, Playwright browsers
 
 `seasonSuitability.ts` documents advisory season mismatch and actual label formatting; preserve Any-season precedence separately from eligibility rules. `SortableProgram.tsx` documents local preview, pointer capture/scrolling, keyboard operation, cancellation and latest-draft placement-only commits. Keep `HymnPicker` column names, backend ordering allow-list/OpenAPI, and both sort controls synchronized. Tests cover global ordering, relation filtering, classification notices and stable saved identities.
 
-The [details/table/finalization refinement](planning-refinement.md) documents compact field/table styles and native grip semantics. MassLifecycle captures the displayed revision for a direct finalization write, suppresses duplicate submissions and requires explicit review acknowledgement after a conflict.
+The [details/table/finalization refinement](planning-refinement.md) documents compact field/table styles and native grip semantics. Save Mass drains the editor saver before revision-guarded finalization. MassLifecycle handles confirmed reopening and deletion from the saved view. Keep duplicate submission suppression and explicit conflict review aligned with those entry points.
 
 ## Hosting code contracts — October 13, 2026
 

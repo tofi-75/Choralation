@@ -1,5 +1,7 @@
 # M2 completion report — useful hymn library
 
+> Historical delivery record. Test counts, commit state, UI labels, and pending actions describe the dated work below. For the deployed release and current workflow, read [Current project status](current-status.md).
+
 **Date:** October 6, 2026. **Engineering status:** Implemented and verified on Windows with real PostgreSQL. Coordinator acceptance remains pending. The project owner requested a Git checkpoint on October 7, 2026. The original specification is unchanged.
 
 **Review follow-up (October 7, 2026):** Background query failures now preserve the mounted hymn form, including unsaved voices and PDFs; three regression cases verify failure and retry. The Docker image provisions private media storage for its non-root user and Compose persists it in a named volume. All 79 backend and 16 frontend tests, migration/schema checks, lint, formatting, typing, and production build passed. Docker runtime verification remains unavailable.

@@ -1,5 +1,8 @@
 # October 10 details, table and finalization refinement
 
+> Historical delivery record. Test counts, commit state, UI labels, and pending actions describe the dated work below. For the deployed release and current workflow, read [Current project status](current-status.md).
+
+
 ## Delivered behavior
 
 - Date and liturgical-season fields use the same 44 px height in creation and the edit details step. Optional Title and Notes each occupy a full row.

@@ -60,6 +60,11 @@ test('A draft resumes in edit mode and can create or review a hymn in the same s
     await page.getByRole('combobox', { name: /^Language/ }).selectOption({ label: 'English' });
     const placements = page.getByRole('group', { name: 'Suitable placements', exact: true });
     await placements.getByRole('button', { name: /^Choose / }).click();
+    await expect(
+      placements.getByRole('checkbox', { name: 'Communion', exact: true }),
+    ).toBeChecked();
+    if (placement !== 'Communion')
+      await placements.getByRole('checkbox', { name: 'Communion', exact: true }).uncheck();
     await placements.getByRole('checkbox', { name: placement, exact: true }).check();
     const seasons = page.getByRole('group', { name: 'Suitable seasons', exact: true });
     await seasons.getByRole('button', { name: /^Choose / }).click();

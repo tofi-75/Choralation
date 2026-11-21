@@ -90,9 +90,9 @@ it.each(['approved', 'declined'])(
     expect(mocks.refresh).toHaveBeenCalled();
   },
 );
-it('shows incoming requests to a choir planner', async () => {
+it('shows incoming requests to a Choir Leader', async () => {
   mocks.role = 'Planner';
-  mocks.choirRole = 'Planner';
+  mocks.choirRole = 'Leader';
   mount();
   expect(await screen.findByRole('region', { name: 'Join requests (1)' })).toBeVisible();
 });

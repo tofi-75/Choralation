@@ -1,18 +1,32 @@
 # Accounts and choirs
 
+> **Local implementation, November 21:** [Choir roles, Mass reading and lossless PDFs](roles-reader-pdf-update.md) describes the current checkout and staged rollout. These changes are not part of the live `91a8c56` release.
+
+> Reviewed November 20, 2026. [Current project status](current-status.md) records the live release. Dated verification notes below describe their original test sessions.
+
 Open the profile name or avatar at the top of the workspace for **Account settings** and **Sign out**. On phones, the hamburger icon opens workspace navigation.
 
 **Current release:** [Simple accounts](simple-accounts-release.md) supersedes the historical email-activation notes below. Registration is enabled; verification and emailed recovery are disabled.
 
-October 20, 2026. This supersedes the original shared-workspace permission model and brings choir collaboration forward from the deferred backlog. Google/provider setup and hosted activation remain manual owner steps. No Google sign-in is added: users can register with any email provider and a password.
+October 20, 2026. This supersedes the original shared-workspace permission model and brings choir collaboration forward from the deferred backlog. Accounts, choir membership, and Manager requests are deployed. Email activation remains future owner-controlled work. No Google sign-in is added: users can register with any email provider and a password.
 
 ## Permissions and privacy
 
-The hymn library and its PDF files are shared by signed-in users in simple-account mode (verified users when verification is enabled). A choir owns its Masses, drafts, archives and usage history. Each finalized selection contributes once to **that choir's** count; repeated selections count independently, drafts never count, and reopening/deletion updates only the owning choir's derived totals. Future finalized selections remain scheduled use. There is no global usage counter. Without an active choir, the UI hides usage and disables usage filters.
+Published hymns and their PDF files are shared by signed-in users in simple-account mode (verified users when required). Unpublished copies are restricted to their author and authorized reviewers. A choir owns its Masses, drafts, archives and usage history. Each finalized selection contributes once to **that choir's** count; repeated selections count independently, drafts never count, and reopening/deletion updates only the owning choir's derived totals. Future finalized selections remain scheduled use. There is no global usage counter. Without an active choir, the UI hides usage and disables usage filters.
 
-App Admins can administer all choirs and delete Masses/hymns. Choir planners manage only their choir's programs, settings and membership; they can also edit the shared library. Users can request Manager access from **Settings → Account**. App Admins review requests in **Settings → Manager requests** and can also grant or revoke access manually there. Approval lets the user create choirs and become a Planner of the choirs they create. Choir planner promotion does not confer this permission. Global classifications remain Admin-only. Legacy Planner groups do not bypass choir membership.
+Global roles are **Admin**, **Choirmaster** and **User**. New accounts are Users. Only Admins and approved Choirmasters create choirs. Approval does not grant membership or shared hymn editing. Creating a choir assigns its creator **Choir Leader**. Leaders and Planners are independent per-choir assignments; any member can be appointed by that choir's Leaders or an Admin.
 
-My choirs includes memberships and applications. Public directory/code previews contain only name, description and optional count; no roster, planner identities, email addresses or programs. Members see usernames in the roster. Join codes never grant membership: a planner must approve every request. Only planners/Admins can see/share/regenerate codes. Retired codes stay reserved. Regeneration invalidates the old code but preserves pending requests/memberships. The final planner cannot leave or be demoted/removed until a replacement is appointed.
+Leaders manage their choir's settings, calendar, codes, memberships and join requests. Leaders and Planners create/edit/finalize/reopen that choir's Masses and review its private hymn submissions. Leaders can confirm deletion of their choir's draft/finalized Masses; Planners cannot delete Masses. Either assignment permits shared hymn editing. Global classifications and shared hymn deletion remain Admin-only. Choirmasters can join other choirs as ordinary Members. The final Leader cannot leave or be demoted/removed without a replacement. See the [full permission matrix and migration](roles-reader-pdf-update.md).
+
+My choirs includes memberships and applications. Directory/code previews expose no roster, leader identities, emails or programs. Members see usernames in the roster. Join codes require Leader/Admin approval and never grant membership directly. Only Leaders/Admins see/share/regenerate codes. Regeneration preserves memberships and requests.
+
+## Choirmaster requests and account settings
+
+Regular users choose **Request Choirmaster access** in **Settings → Account**, also linked from Choirs. Status is shown there; declined applicants can reapply with one pending request at a time. Admins open **Settings → Choirmaster requests**, with a pending count and paginated oldest-first queue. Confirm Approve or Decline; approval and the permission grant commit together, and competing decisions conflict.
+
+Manual grant/revoke controls remain in that tab. Granting resolves a pending request; revocation preserves all choir assignments. Existing creation permissions receive the Choirmaster label. Checking status or opening Choirs refreshes identity without signing out. Existing manager-request API URLs and request history are preserved.
+
+Choose an accessible default choir in **Settings → Account**. The current tab’s active choice takes precedence. A fresh session prefers the saved default, then the first accessible choir. Account preferences grant no additional choir access. The profile name/avatar opens Account settings or Sign out.
 
 ## Local setup and migration
 
@@ -20,9 +34,9 @@ My choirs includes memberships and applications. Public directory/code previews 
 2. Run `.\dev.cmd migrate`. The additive migration creates a private **Initial choir**, preserves all existing Masses and selections there, and adds existing users with their corresponding Member/Planner access. Passwords and PDFs are untouched. Legacy normalized email conflicts are left unresolved, never merged or verified automatically.
 3. Run `.\.venv\Scripts\python.exe backend/manage.py audit_accounts`. Resolve reported duplicate identifiers manually in Django administration before opening registration. This command only reports counts, never passwords or tokens.
 4. In ignored `.env`, set `ACCOUNT_REGISTRATION_ENABLED=true`, `ACCOUNT_EMAIL_VERIFICATION_ENABLED=false`, `ACCOUNT_PASSWORD_RESET_ENABLED=false`, `ACCOUNT_VERIFICATION_REQUIRED=false`, and `APP_PUBLIC_URL=http://localhost:5173`. Restart Django. Gmail credentials are unnecessary in this mode; no account email is sent.
-5. Existing accounts sign in with their previous username/password or unique case-insensitive email/password. New registrations open Home immediately. Stored email-verification evidence is preserved. The first authorized planner can rename Initial choir or create additional choirs. See [simple-account configuration and owner recovery](simple-accounts-release.md).
+5. Existing accounts sign in with their previous username/password or unique case-insensitive email/password. New registrations open Home immediately. Stored email-verification evidence is preserved. An Admin or assigned Choir Leader can rename Initial choir or create additional choirs. See [simple-account configuration and owner recovery](simple-accounts-release.md).
 
-Account creation tools create new accounts without automatically adding them to a choir. A manually provisioned Planner receives choir-creation permission, then creates or requests membership of a choir. App Admins retain oversight.
+Account creation tools create new accounts without automatically adding them to a choir. A manually provisioned Choirmaster receives choir-creation permission, then creates or requests membership of a choir. App Admins retain oversight.
 
 ## Gmail setup — owner actions only
 
@@ -59,15 +73,13 @@ Run `cleanup_account_security` periodically through the local/hosted helper to r
 
 The app passes choir context using `X-Choir-ID` for collection and usage queries. Direct Mass URLs authorize against the object's choir. Server services recheck membership; the browser selector is not an authorization boundary. Switching choir cancels/removes private queries and keys new results by choir. Unsaved planning changes keep the existing navigation guard.
 
-Hosting acceptance carried forward: core flows accepted, record persistence confirmed, PDF persistence untested, automatic deployment deferred. Real hosted email delivery/recovery remains pending until the owner completes the above steps; local captured-email tests do not establish delivery. Physical-phone acceptance stays M5. Arabic translation, Practice, recommendations, parish hierarchy and choir deletion remain deferred.
-
+Current hosting status is recorded in [Current project status](current-status.md). The deployed release passed production image/PDF persistence CI; automatic deployment remains off. Real hosted email delivery/recovery remains pending until the owner completes the above steps; local captured-email tests do not establish delivery. Physical-phone acceptance stays M5. Arabic translation, Practice, recommendations, parish hierarchy and choir deletion remain deferred.
 
 ## Rollout and verification notes
 
-The migration assigns legacy records to Initial choir and gives the new database column an Initial-choir default for old workers that omit it during Render’s rolling handover. New application writes still require an explicit authorized choir; the ORM does not supply an application default. Once additional private choirs exist, recover using a choir-aware version or a forward fix: deploying the earlier shared-workspace code would lose the privacy boundary even though the database remains intact. Back up the hosted database before the owner’s first feature deployment.
+The migration assigns legacy records to Initial choir and gives the new database column an Initial-choir default for old workers that omit it during Render’s rolling handover. New application writes still require an explicit authorized choir; the ORM does not supply an application default. Once additional private choirs exist, recover using a choir-aware version or a forward fix: deploying the earlier shared-workspace code would lose the privacy boundary even though the database remains intact. Back up the hosted database and PDF objects separately before another deployment.
 
 Automated browser files use run-specific cache storage, never the owner’s sheet-music folder or hosted bucket. Physical-device and actual Gmail delivery acceptance remain separate manual gates.
-
 
 ## Engineering verification — October 20, 2026
 
@@ -80,11 +92,9 @@ Automated browser files use run-specific cache storage, never the owner’s shee
 
 No provider accounts were created, no Google consent was performed, no messages were sent through a live email provider, and hosted settings were not changed. Registration and mandatory legacy verification retain their disabled defaults.
 
-
 ## Privacy and Gmail readiness — October 24, 2026
 
 Public server-rendered information pages and the hardened send-only Gmail transport are documented in [Google verification readiness](google-verification.md). Do not claim Google/domain approval from local tests. Existing activation flags and hosted settings remain owner-controlled. Owner-assisted privacy requests use the public contact email with a 30-day response target. Synchronous recovery delivery retains its documented timing limitation.
-
 
 ## October 24 account-flow revision
 

@@ -73,7 +73,7 @@ test('simple accounts register, email-login and change password without account 
   await expect(page.getByRole('heading', { name: 'Masses', exact: true })).toBeVisible();
   await expect((await page.request.get('/api/v1/auth/me/')).json()).resolves.toMatchObject({
     username,
-    role: 'Viewer',
+    role: 'User',
     email_verified: false,
     verification_required: false,
     can_create_choirs: false,

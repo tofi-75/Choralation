@@ -90,7 +90,7 @@ test('member PDF stays private, receives feedback and becomes shared only after 
     await expect(feedbackNotice).toHaveCount(0);
     await page.reload();
     await expect(
-      page.getByText('Planner feedback: Please check the key.', { exact: true }),
+      page.getByText('Reviewer feedback: Please check the key.', { exact: true }),
     ).toBeVisible();
     await page.getByRole('link', { name: 'Edit hymn', exact: true }).click();
     await page.getByRole('textbox', { name: 'Default key', exact: true }).fill('D minor');

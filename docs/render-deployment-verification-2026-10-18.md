@@ -1,5 +1,7 @@
 # Render deployment verification — October 18, 2026
 
+> Historical delivery record. Test counts, commit state, UI labels, and pending actions describe the dated work below. For the deployed release and current workflow, read [Current project status](current-status.md).
+
 ## Result
 
 **The production image build succeeded, application startup succeeded, and Render marked Choralation Live.** Read-only checks against the public HTTPS application also passed. No new failure-repair plan is required for this deployment.

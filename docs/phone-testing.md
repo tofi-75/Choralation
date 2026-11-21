@@ -1,11 +1,10 @@
-# M4 physical-phone test session
+# Physical-phone testing
 
-> **October 13, 2026 priority update:** Render + Supabase hosting preparation is the current delivery task; see [deployment guide](hosting.md). All account/login/provider setup and publishing are manual owner steps deferred until later. Physical-phone acceptance moves from M4 to M5. Saved-Mass performance redesign and recommendations are deferred. Historical milestone statements below retain their original dates; hosted completion requires actual URL, persistence and pipeline verification.
+> **Local implementation, November 21:** [Choir roles, Mass reading and lossless PDFs](roles-reader-pdf-update.md) describes the current checkout and staged rollout. These changes are not part of the live `91a8c56` release.
 
+**Current status, November 20.** The local app uses 5173/8000 and PostgreSQL 55432. Phone testing needs the LAN launcher below and the current Wi-Fi address. Prior requests from the work PC timed out before reaching the server. Keep the owner’s firewall preference unchanged. The October Cloudflare session is historical and was removed.
 
-**Current status — October 10:** Cloudflare HTTPS was removed at the owner's request. The tunnel, its private preview on 5174 and backend on 8001 are stopped. The project-local Cloudflare client, launchers and runtime origin/session files were removed. Local HTTP development remains available on 5173 with the backend on 8000. The Cloudflare sections below are historical evidence, not current launch instructions; diagnostic logs are retained. No firewall, clock or external account settings were changed.
-
-Prepared October 9, 2026. **Physical-device results are pending.** This guide supports the required [M4 acceptance gate](m4-report.md#required-physical-phone-acceptance--a10p). Desktop or emulated checks do not complete it.
+**Physical-device results remain pending.** This checklist tracks A10P under M5 acceptance for the deployed app. Desktop and emulated checks are supporting evidence. See [current status](current-status.md).
 
 ## Connect and launch
 
@@ -51,20 +50,20 @@ Conditions: Edge/Chromium at 390 px, 120 ms simulated network latency, 1 MB/s do
 These measurements demonstrate the development-loading overhead; they are not measurements on the owner's physical phone or a guarantee about Wi-Fi performance. The phone launcher now builds current source and serves the optimized preview at the same address. Static assets reuse browser cache; private API responses remain no-store. The existing shared-entry size warning is still tracked for M7. Physical-device retry and acceptance remain pending.
 ## Test a dedicated Mass
 
-Create a new Mass titled **Phone test — 2026-10-09** so existing programs are not changed. Use seeded hymns, including one repeated selection. Record defects with device/browser, step, expected/actual behavior and screenshots where useful. Keep the test Mass until results are reviewed.
+Create a new Mass titled **Phone test — YYYY-MM-DD**, using the test date, so existing programs are not changed. Use seeded hymns, including one repeated selection. Record defects with device/browser, step, expected/actual behavior and screenshots where useful. Keep the test Mass until results are reviewed.
 
 - [ ] Sign in, open navigation and create a Mass; verify the default Sunday and date-based Maronite season, then a manual override.
 - [ ] Open placement pickers; confirm placement suggestions and season/neutral preference. Search, expand filters, and scroll a long list.
-- [ ] Add several hymns, acknowledge repeat/classification warnings, edit selection notes, remove one selection and reorder with the left arrows.
+- [ ] Add several hymns, acknowledge repeat/classification warnings, edit selection notes, remove one selection and reorder with the drag grip and available keyboard controls.
 - [ ] Enter Mass and selection notes with the keyboard open; scroll to actions and confirm input/focus remain usable.
-- [ ] Save draft; verify compact view, order/notes and **Hymn not selected** for empty sections. Reload, select Edit and verify the saved program.
-- [ ] Read the inline notice, finalize with one click and verify read-only state without a popup. Check hymn usage/history and Mass history. Repeats count separately.
-- [ ] As Admin, reopen and verify usage disappears. Re-finalize and verify counts return once without duplicates. Check Viewer access remains read-only if an account is available.
+- [ ] Leave and reopen an autosaved draft. Confirm it returns to edit mode with notes and order intact. Choose **Save Mass** to finalize and open the saved program; empty sections show **Hymn not selected**.
+- [ ] Verify the finalized program is read-only. Check hymn usage and Mass history within the selected choir. Repeated selections count separately.
+- [ ] As Planner or Admin, confirm reopening and verify usage disappears. Re-finalize and verify counts return once without duplicates. Check Viewer access remains read-only if an account is available.
 - [ ] Repeat in portrait and landscape: dialogs scroll, actions are reachable, labels wrap, and there is no horizontal page overflow.
 - [ ] With a draft open, disable Wi-Fi **and mobile data**, edit notes and wait for save failure. Reconnect, retry, confirm success, then reload to verify notes/order. Do not reload before retrying unsaved changes.
 - [ ] Open the same draft on phone and computer. Make competing edits and verify conflict review retains the local copy. Confirm finalization rejects a stale displayed revision after the other session changes the Mass, refreshes the program and requires explicit review acknowledgement before retry.
 
-Record real-device evidence below and copy accepted results to the M4 report. Unavailable devices remain pending. M4 requires recorded coordinator/phone results and resolved blockers.
+Record real-device evidence below and copy accepted results to the M4 report. Unavailable devices remain pending. M5 acceptance requires recorded coordinator/phone results and resolved blockers.
 
 | Surface | Device / OS / browser version | Date / reviewer | Result / defects |
 | --- | --- | --- | --- |
@@ -149,19 +148,7 @@ project/port allowance was found. This identifies a likely host-policy blocker,
 not a captured packet-drop diagnosis. No policy, rule, routing, or network-profile
 changes were made and no administrator prompt was retried.
 
-A firewall-free alternative has been prepared, but **not started**: a temporary
-Cloudflare Quick Tunnel restricted to one owner-approved email address. The
-2026.10.0 Windows client was downloaded into ignored .local/cloudflared and its
-SHA256 matched the official GitHub release asset digest. Help output confirms
---allowed-mail support. The reviewed launch helper is in ignored
-.cache/phone-tunnel-launch.ps1; it always requires an exact email allow list,
-disables auto-updates and directs explicit logs into the project. Starting it
-would route app traffic through Cloudflare and let Cloudflare send the allowed
-visitor a login code, so owner approval and the intended email are required.
-Nothing has been published or sent by this preparation. After approval, allow only
-the generated hostname/origin in the application processes, verify session/CSRF
-handling, then obtain physical Safari acceptance. Stopping cloudflared removes
-the temporary URL. This is a testing workaround, not a repair of LAN policy.
+During the October 10 diagnosis, a temporary email-restricted Cloudflare tunnel was prepared and subsequently used in the historical session below. It was later stopped and its client and launcher removed at the owner’s request. Those paths and URLs are obsolete. Use the current local launch instructions or the deployed HTTPS app for new testing.
 
 References: [Windows Firewall rule behavior](https://learn.microsoft.com/en-us/windows/security/operating-system-security/network-security/windows-firewall/rules),
 [Cloudflare Quick Tunnels and email protection](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/).
@@ -253,10 +240,19 @@ Use the left drag handle to reorder hymns within a placement. Verify finger drag
 Run on iPhone Safari and Android Chrome. Record the device, OS and browser version, app revision, orientation, and any step that fails.
 
 - Open the hamburger menu and use its links. Open the profile menu, verify **Account settings**, and check that an outside tap closes the menu. On Mass plans, check that **New Mass** is on the right and that From, To and Season stay inside the screen. Check that the date and season share the Mass creation row and that the keyboard leaves the active field and its actions reachable.
-- Reopen a draft and verify that it opens in edit mode. Search for a missing hymn, check that both actions are visible together, and confirm that searching all placements keeps the text. Create a hymn from the picker and check that it returns to the same section. Verify the centered warning and cancellation, then use **Save Mass** to finalize the draft.
+- Reopen a draft and verify that it opens in edit mode. Search for a missing hymn, check that both actions are visible together, and confirm that searching all placements keeps the text. The current add-new action appears only after the shared-library no-match check; showing it immediately is backlog work. Create a hymn from the picker and check that it returns to the same section. Verify the centered warning and cancellation, then use **Save Mass** to finalize the draft.
 - Request Manager access from Account in Settings. Use a separate Admin session to review the request. Return to Choirs as the requester and confirm that **Create choir** becomes available.
 - On physical iPhone Safari and Android Chrome, read a multipage PDF in standalone fullscreen and within Mass Focus. Short swipes up and down should go forward and back page by page. Check the first, middle and last pages and try diagonal and two-finger gestures. Zoom or fit to width, pan to either edge, then start a fresh swipe to turn a page. Rotate the phone at default fit and again while zoomed.
 - From the top of a middle PDF page, try a long downward swipe. PDF fullscreen should close and retain its page in the preview. When the active reader is Focus, the same gesture should return to the saved Mass. Check the close icon and focus restoration as well.
-- In Mass Focus, confirm the title starts unfocused and the first Tab reaches the hymn selector when using a keyboard. Check the centered title, compact footer and bottom safe area in both orientations.
+- In Mass Focus, confirm the title starts unfocused and the first Tab reaches the hymn selector when using a keyboard. Check consistent title size, long-title ellipsis, compact footer and bottom safe area in both orientations. Reload the same Mass page while Focus is open. It should restore Focus at the first hymn. Exit, reload again, and confirm the saved program stays visible. Native fullscreen needs another interaction after reload.
 - Read English, Arabic and mixed-script lyrics. Check the zoom controls on each script’s side, page turns with short vertical swipes, and the same passage after changing text size, rotating, or returning to the hymn. Use a long downward swipe from a later lyric page to exit Focus. Verify PDF failure also uses lyric pages.
 - In the saved program, tap a hymn’s metadata or notes and use **Back to Mass**. Close a notification with its icon or by tapping the backdrop and confirm that the tap does not activate the page behind it. Check the profile menu and reader controls with VoiceOver or TalkBack where available.
+
+## November 21 local acceptance additions
+
+- [ ] Phone hymn-detail, Focus and PDF fullscreen start at width fit in portrait and landscape. Rotate at 100%, explicit PDF zoom and browser pinch zoom; keep the selected page.
+- [ ] Tap metadata/notes in a saved Mass row: Focus opens at that occurrence. Repeat the same hymn twice and check each row. Exit restores the row and scroll position. Reload starts the first hymn as before.
+- [ ] Hold 500ms for Go to hymn; release must not open Focus. Cancel with movement over 10px, scrolling or multitouch. Test rightclick/Shift+F10 and Escape on laptop. Follow Back to Mass.
+- [ ] Create a hymn from a Mass placement, verify the active placement is preselected, change it, force a failed save, and verify the choice is retained. Return and confirm any insertion warnings.
+- [ ] In separate sessions check Admin approval gives Choirmaster, new choir gives Leader, Planner cannot manage members/calendar or delete Masses, and Leader cannot create a new choir without global approval.
+- [ ] Test exact PDF download and PDF.js display for legacy and compressed files. Record real iPhone Safari/Android Chrome results; automated viewports do not complete this list.

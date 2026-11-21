@@ -173,7 +173,7 @@ test('choir calendar preview, overrides, version conflicts and read-only member 
     );
     expect(approved.status()).toBe(204);
     await member.goto(url);
-    await expect(member.getByText('Your choir planners manage these settings.')).toBeVisible();
+    await expect(member.getByText('Your Choir Leaders manage these settings.')).toBeVisible();
     await expect(member.getByRole('combobox', { name: 'Calendar', exact: true })).toBeDisabled();
     await expect(
       member.getByRole('button', { name: 'Save calendar settings', exact: true }),

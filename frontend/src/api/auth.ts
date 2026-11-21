@@ -6,7 +6,7 @@ import { clearCsrfToken, request } from './client';
 export const userSchema = z.object({
   id: z.number().int().positive(),
   username: z.string().min(1),
-  role: z.enum(['Admin', 'Planner', 'Viewer']),
+  role: z.enum(['Admin', 'Choirmaster', 'User']),
   email: z.string().nullable().optional(),
   email_verified: z.boolean().optional(),
   verification_required: z.boolean().optional(),

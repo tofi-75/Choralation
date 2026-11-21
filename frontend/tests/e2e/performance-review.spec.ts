@@ -24,6 +24,8 @@ async function checkPdfZoom(viewer: Locator) {
   const viewport = viewer.locator('.pdf-viewport');
   const canvas = viewer.locator('canvas');
   await expect(viewport).toHaveAttribute('aria-busy', 'false');
+  if (await viewer.getByRole('button', { name: 'Fit to height', exact: true }).count())
+    await viewer.getByRole('button', { name: 'Fit to height', exact: true }).click();
   const fits = () =>
     viewport.evaluate((element) => {
       const page = element.querySelector('canvas')!.getBoundingClientRect();
@@ -66,7 +68,7 @@ async function checkFocusRotation(page: Page, focus: Locator) {
   const fitsPage = () =>
     viewport.evaluate((element) => {
       const page = element.querySelector('canvas')!.getBoundingClientRect();
-      return page.width <= element.clientWidth + 1 && page.height <= element.clientHeight + 1;
+      return Math.abs(page.width - element.clientWidth) < 2;
     });
   const rotate = (landscape: boolean) =>
     rotation.send('Emulation.setDeviceMetricsOverride', {
@@ -92,7 +94,7 @@ async function checkFocusRotation(page: Page, focus: Locator) {
       )
       .toBeLessThan(2);
     await rotate(false);
-    await expect(focus.getByRole('button', { name: 'Fit to width', exact: true })).toBeVisible();
+    await expect(focus.getByRole('button', { name: 'Fit to height', exact: true })).toBeVisible();
     await expect.poll(fitsPage).toBe(true);
 
     const fitWidth = (await canvas.boundingBox())!.width;
@@ -106,7 +108,7 @@ async function checkFocusRotation(page: Page, focus: Locator) {
     await expect
       .poll(() => viewport.evaluate((element) => element.clientWidth))
       .toBeGreaterThan(portraitWidth);
-    await expect(focus.getByRole('button', { name: 'Fit to width', exact: true })).toBeVisible();
+    await expect(focus.getByRole('button', { name: 'Fit to height', exact: true })).toBeVisible();
     await expect(focus.getByLabel('Zoom relative to fit')).toHaveText('125%');
     expect((await canvas.boundingBox())!.width).toBeCloseTo(zoomed.width, 0);
     expect((await canvas.boundingBox())!.height).toBeCloseTo(zoomed.height, 0);
@@ -483,10 +485,14 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
     .poll(() =>
       fullscreen
         .locator('.pdf-viewport')
-        .evaluate(
-          (element) =>
-            element.querySelector('canvas')!.getBoundingClientRect().height <=
-            element.clientHeight + 1,
+        .evaluate((element) =>
+          matchMedia('(any-pointer: coarse)').matches
+            ? Math.abs(
+                element.querySelector('canvas')!.getBoundingClientRect().width -
+                  element.clientWidth,
+              ) < 2
+            : element.querySelector('canvas')!.getBoundingClientRect().height <=
+              element.clientHeight + 1,
         ),
     )
     .toBe(true);
@@ -541,8 +547,9 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
     [pdf],
   );
   await page.goto(`/masses/${secondMassId}`);
-  const pdfLink = page.getByRole('link', { name: pdf.title, exact: true }).first();
-  await pdfLink.click();
+  const pdfLink = page.getByRole('button', { name: pdf.title, exact: true }).first();
+  await pdfLink.click({ button: 'right' });
+  await page.getByRole('link', { name: 'Go to hymn', exact: true }).click();
   const back = page.getByRole('link', { name: '← Back to Mass', exact: true });
   await expect(back).toHaveAttribute('href', `/masses/${secondMassId}`);
   await back.click();
@@ -564,18 +571,33 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   await expect(metadata.nth(1)).toContainText('Voices 1');
   await expect(metadata.nth(2).locator('strong')).toHaveText(['—', '—', '-']);
   await expect(metadata.nth(0)).toHaveCSS('flex-wrap', 'wrap');
-  await pdfLink.locator('.hymn-musical-summary').getByText('96 BPM').click();
+  await pdfLink.locator('.hymn-musical-summary').getByText('96 BPM').click({ button: 'right' });
+  await page.getByRole('link', { name: 'Go to hymn', exact: true }).click();
   await expect(back).toHaveAttribute('href', `/masses/${massId}`);
   await back.click();
   await expect(page.getByRole('heading', { name: massTitle, exact: true })).toBeVisible();
 
   const plainUrl = `**/api/v1/hymns/${plain.id}/`;
   await page.route(plainUrl, (route) => route.fulfill({ status: 404 }));
-  await savedProgram.getByRole('link', { name: plain.title, exact: true }).click();
+  await savedProgram
+    .getByRole('button', { name: plain.title, exact: true })
+    .click({ button: 'right' });
+  await page.getByRole('link', { name: 'Go to hymn', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Unable to open hymn' })).toBeVisible();
   await back.click();
   await expect(page.getByRole('heading', { name: massTitle, exact: true })).toBeVisible();
   await page.unroute(plainUrl);
+
+  const repeatedRow = savedProgram.getByRole('button', { name: pdf.title, exact: true }).last();
+  await repeatedRow.click();
+  const selectedFocus = page.getByRole('dialog', { name: 'Focus mode', exact: true });
+  await expect(selectedFocus.getByRole('combobox', { name: 'Jump to hymn' })).toHaveValue('3');
+  await selectedFocus.getByRole('button', { name: 'Exit focus mode' }).click();
+  await expect(repeatedRow).toBeFocused();
+  await repeatedRow.press('Shift+F10');
+  await expect(page.getByRole('dialog', { name: 'Hymn actions' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(repeatedRow).toBeFocused();
 
   await page.getByRole('button', { name: 'Focus mode', exact: true }).click();
   const focus = page.getByRole('dialog', { name: 'Focus mode', exact: true });
@@ -668,7 +690,7 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   });
   if (nativeFocus) {
     await page.getByRole('button', { name: 'Focus mode', exact: true }).click();
-    await focus.getByRole('button', { name: 'Fit to width', exact: true }).click();
+    await expect(focus.getByRole('button', { name: 'Fit to height', exact: true })).toBeVisible();
   }
   await focus
     .getByRole('button', { name: `Open ${pdf.title} PDF fullscreen`, exact: true })

@@ -87,7 +87,9 @@ def visible_hymns(user, choir_id=None):
                 can_review_submission=Value(False, output_field=BooleanField())
             ),
         )
-    managed = Membership.objects.filter(user=user, role="Planner").values("choir_id")
+    managed = Membership.objects.filter(user=user, role__in=["Leader", "Planner"]).values(
+        "choir_id"
+    )
     visibility = Q(publication_status="published") | Q(created_by=user)
     reviewable = Q(publication_status="pending", submitted_to_id__in=managed)
     rows = (
@@ -100,7 +102,7 @@ def visible_hymns(user, choir_id=None):
         if is_admin(user)
         else Exists(
             Membership.objects.filter(
-                user=user, role="Planner", choir_id=OuterRef("submitted_to_id")
+                user=user, role__in=["Leader", "Planner"], choir_id=OuterRef("submitted_to_id")
             )
         )
     )

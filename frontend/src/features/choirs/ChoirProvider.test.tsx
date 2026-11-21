@@ -9,7 +9,7 @@ import { ChoirProvider, useChoir } from './ChoirProvider';
 import { useChoirQuery } from './useChoirQuery';
 
 vi.mock('../auth/SessionProvider', () => ({
-  useSession: () => ({ user: { id: 812, role: 'Viewer' } }),
+  useSession: () => ({ user: { id: 812, role: 'User' } }),
 }));
 afterEach(() => {
   vi.unstubAllGlobals();

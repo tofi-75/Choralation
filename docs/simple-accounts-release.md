@@ -1,5 +1,8 @@
 # Simple accounts release — October 25, 2026
 
+> Reviewed November 20, 2026. [Current project status](current-status.md) records the live release. Dated verification notes below describe their original test sessions.
+
+
 This release supersedes earlier instructions to require email verification. Registration creates a signed-in session and opens Home. Existing accounts awaiting verification can sign in with their previous password. Email login is case-insensitive; a password is always required. Email ownership is unverified unless previously verified: timestamps and pending flags are preserved, not fabricated.
 
 ## Configuration
@@ -27,7 +30,7 @@ For local accounts, run Django's `changepassword` command. For hosted accounts, 
 .\.venv\Scripts\python.exe scripts/hosted-admin.py change-password --username existing-username
 ```
 
-The helper identifies the Supabase target and requires the existing `HOSTED` confirmation. Django prompts for the new password without echoing it; never pass passwords in command arguments or chat. Communicate temporary credentials through an independently agreed private channel and ask the owner to change them immediately. A signed-in user can change their password using the current password; success invalidates sessions and opens Sign in.
+The helper identifies the Supabase target and requires the existing `HOSTED` confirmation. Django prompts for the new password without echoing it; never pass passwords in command arguments or chat. Communicate temporary credentials through an independently agreed private channel and ask the owner to change them immediately. A signed-in user can change their password using the current password; success invalidates sessions and opens Sign in. Account settings also contains the default choir preference and Request Manager access.
 
 ## Backup and release gates
 

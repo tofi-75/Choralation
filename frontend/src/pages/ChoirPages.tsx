@@ -137,7 +137,7 @@ export function ChoirPages({ mode }: { mode: 'list' | 'join' | 'new' | 'detail' 
   function requestJoin(choir: Choir, privateCode?: string) {
     void run(
       () => joinChoir(choir.id, privateCode),
-      'Request sent. A choir planner will review it.',
+      'Request sent. A Choir Leader will review it.',
     );
   }
   function card(choir: Choir, canJoin = false, privateCode?: string) {
@@ -158,7 +158,7 @@ export function ChoirPages({ mode }: { mode: 'list' | 'join' | 'new' | 'detail' 
             {choir.is_public ? 'Public' : 'Private'}
             {choir.member_count !== null &&
               ` · ${choir.member_count} ${choir.member_count === 1 ? 'member' : 'members'}`}
-            {!canJoin && ` · ${choir.role}`}
+            {!canJoin && ` · ${choir.role === 'Leader' ? 'Choir Leader' : choir.role}`}
           </p>
         </div>
         {canJoin ? (
@@ -172,7 +172,7 @@ export function ChoirPages({ mode }: { mode: 'list' | 'join' | 'new' | 'detail' 
         ) : (
           <div className="form-actions">
             <Link className="button secondary" to={`/choirs/${choir.id}`}>
-              {choir.role === 'Planner' || user?.role === 'Admin' ? 'Manage choir' : 'View choir'}
+              {choir.role === 'Leader' || user?.role === 'Admin' ? 'Manage choir' : 'View choir'}
             </Link>
             <button
               className="button secondary"
@@ -220,7 +220,7 @@ export function ChoirPages({ mode }: { mode: 'list' | 'join' | 'new' | 'detail' 
                 </Link>
               ) : (
                 <Link className="button secondary" to="/settings?tab=account">
-                  Request Manager access
+                  Request Choirmaster access
                 </Link>
               )}
             </>
@@ -246,7 +246,7 @@ export function ChoirPages({ mode }: { mode: 'list' | 'join' | 'new' | 'detail' 
       {notice && <FloatingNotice dismiss={() => setNotice('')}>{notice}</FloatingNotice>}
       {mode === 'list' && (
         <>
-          {(user?.role === 'Admin' || context.choirs.some((choir) => choir.role === 'Planner')) && (
+          {(user?.role === 'Admin' || context.choirs.some((choir) => choir.role === 'Leader')) && (
             <ChoirJoinRequests
               pending={pending}
               onDecision={(choir, request, status) =>
@@ -257,15 +257,16 @@ export function ChoirPages({ mode }: { mode: 'list' | 'join' | 'new' | 'detail' 
               }
             />
           )}
-          {(user?.role === 'Admin' || context.choirs.some((choir) => choir.role === 'Planner')) && (
+          {(user?.role === 'Admin' ||
+            context.choirs.some((choir) => ['Leader', 'Planner'].includes(choir.role ?? ''))) && (
             <HymnReviewQueue />
           )}
           {context.choirs.length === 0 && (
             <section className="form-section">
               <h2>Find your choir</h2>
               <p>
-                Join a public choir or ask a planner for a private choir’s eight-character code.
-                Your request needs planner approval.
+                Join a public choir or ask a Choir Leader for a private choir’s eight-character
+                code. Your request needs Choir Leader approval.
               </p>
             </section>
           )}
@@ -392,8 +393,8 @@ export function ChoirPages({ mode }: { mode: 'list' | 'join' | 'new' | 'detail' 
           </form>
         ) : (
           <p className="notice">
-            An Admin must approve Manager access before you can create a choir.{' '}
-            <Link to="/settings?tab=account">Request Manager access</Link>
+            An Admin must approve Choirmaster access before you can create a choir.{' '}
+            <Link to="/settings?tab=account">Request Choirmaster access</Link>
           </p>
         ))}
       {mode === 'detail' && (
@@ -412,8 +413,10 @@ export function ChoirPages({ mode }: { mode: 'list' | 'join' | 'new' | 'detail' 
               <p className="tiny">
                 {saved.is_public ? 'Public' : 'Private'} · {saved.members.length} members
               </p>
-              {saved.role === 'Planner' && <HymnReviewQueue choirId={saved.id} />}
-              {saved.role === 'Planner' && (
+              {['Leader', 'Planner'].includes(saved.role ?? '') && (
+                <HymnReviewQueue choirId={saved.id} />
+              )}
+              {saved.role === 'Leader' && (
                 <>
                   <details className="form-section">
                     <summary>Choir settings</summary>
@@ -509,31 +512,32 @@ export function ChoirPages({ mode }: { mode: 'list' | 'join' | 'new' | 'detail' 
                     <li className="member-row" key={m.id}>
                       <span>
                         <strong>{m.username}</strong>
-                        <small className="muted"> · {m.role}</small>
+                        <small className="muted">
+                          {' '}
+                          · {m.role === 'Leader' ? 'Choir Leader' : m.role}
+                        </small>
                       </span>
                       <div className="form-actions">
-                        {saved.role === 'Planner' && (
-                          <button
-                            className="text-button"
-                            disabled={pending}
-                            onClick={() =>
-                              setConfirmation({
-                                title:
-                                  m.role === 'Planner' ? 'Demote planner?' : 'Appoint planner?',
-                                description: `Change ${m.username} to ${m.role === 'Planner' ? 'Member' : 'Planner'} in this choir?`,
-                                action: () =>
-                                  changeMember(
-                                    saved.id,
-                                    m.id,
-                                    m.role === 'Planner' ? 'Member' : 'Planner',
-                                  ),
-                              })
-                            }
-                          >
-                            {m.role === 'Planner' ? 'Make member' : 'Make planner'}
-                          </button>
-                        )}
-                        {(saved.role === 'Planner' || m.user_id === user?.id) && (
+                        {saved.role === 'Leader' &&
+                          (['Member', 'Planner', 'Leader'] as const)
+                            .filter((role) => role !== m.role)
+                            .map((role) => (
+                              <button
+                                key={role}
+                                className="text-button"
+                                disabled={pending}
+                                onClick={() =>
+                                  setConfirmation({
+                                    title: 'Change choir role?',
+                                    description: `Change ${m.username} to ${role === 'Leader' ? 'Choir Leader' : role} in this choir?`,
+                                    action: () => changeMember(saved.id, m.id, role),
+                                  })
+                                }
+                              >
+                                Make {role === 'Leader' ? 'Choir Leader' : role.toLowerCase()}
+                              </button>
+                            ))}
+                        {(saved.role === 'Leader' || m.user_id === user?.id) && (
                           <button
                             className="text-button"
                             disabled={pending}
@@ -542,7 +546,7 @@ export function ChoirPages({ mode }: { mode: 'list' | 'join' | 'new' | 'detail' 
                                 title:
                                   m.user_id === user?.id ? 'Leave this choir?' : 'Remove member?',
                                 description:
-                                  'This removes access to the choir’s Masses. The last planner must appoint a replacement first.',
+                                  'This removes access to the choir’s Masses. The last Choir Leader must appoint a replacement first.',
                                 action: async () => {
                                   await changeMember(saved.id, m.id);
                                   if (m.user_id === user?.id) navigate('/choirs');

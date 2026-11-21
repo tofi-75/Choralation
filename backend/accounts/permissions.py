@@ -13,21 +13,33 @@ from rest_framework.permissions import BasePermission
 
 
 class Role(StrEnum):
-    VIEWER = "Viewer"
-    PLANNER = "Planner"
+    USER = "User"
+    CHOIRMASTER = "Choirmaster"
     ADMIN = "Admin"
 
 
 def role_for(user) -> Role:
-    """Resolve highest recognized role; ungrouped users default to Viewer."""
+    """Global approval is independent of every choir membership."""
     if user.is_authenticated and user.is_superuser:
         return Role.ADMIN
     names = set(user.groups.values_list("name", flat=True)) if user.is_authenticated else set()
     if Role.ADMIN in names:
         return Role.ADMIN
-    if user.is_authenticated and user.choir_memberships.filter(role="Planner").exists():
-        return Role.PLANNER
-    return Role.VIEWER
+    from accounts.models import AccountProfile
+
+    if (
+        user.is_authenticated
+        and AccountProfile.objects.filter(user=user, can_create_choirs=True).exists()
+    ):
+        return Role.CHOIRMASTER
+    return Role.USER
+
+
+def can_edit_shared_hymns(user):
+    return verified_access(user) and (
+        role_for(user) == Role.ADMIN
+        or user.choir_memberships.filter(role__in=["Leader", "Planner"]).exists()
+    )
 
 
 def verified_access(user):
@@ -54,12 +66,10 @@ class VerifiedPermission(BasePermission):
 
 
 class PlannerPermission(BasePermission):
-    """Require an authenticated Planner/Admin, including for direct HTTP writes."""
+    """Require a shared-hymn editor: scoped Leader/Planner or global Admin."""
 
     def has_permission(self, request, view):
-        return bool(
-            verified_access(request.user) and role_for(request.user) in {Role.PLANNER, Role.ADMIN}
-        )
+        return bool(can_edit_shared_hymns(request.user))
 
 
 class AdminPermission(BasePermission):

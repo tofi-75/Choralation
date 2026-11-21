@@ -1,5 +1,8 @@
 # Maronite calendar suggestions
 
+> Reviewed November 20, 2026. [Current project status](current-status.md) records the live release. Dated verification notes below describe their original test sessions.
+
+
 Requested October 8, 2026. The owner selected **Maronite** for now and requested calendar editing/selection in future Settings. This supersedes the original manual-only season rule for the planning UI. The Mass API still accepts explicit seasons; opening saved plans never recalculates them.
 
 ## Current behavior

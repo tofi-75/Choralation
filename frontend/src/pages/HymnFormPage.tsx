@@ -56,7 +56,7 @@ export function HymnFormPage() {
   const location = useLocation();
   const context = id ? undefined : massHymnContext(location.state);
   const fromMass =
-    context?.choirId === choir.active?.id && user?.role !== 'Viewer' ? context : undefined;
+    context?.choirId === choir.active?.id && user?.can_edit_hymns ? context : undefined;
   const categories = useCategories();
   const hymn = useHymn(id);
   function retry() {
@@ -64,7 +64,7 @@ export function HymnFormPage() {
     if (id) void hymn.refetch();
   }
   if (
-    user?.role === 'Viewer' &&
+    !user?.can_edit_hymns &&
     id &&
     hymn.data &&
     (hymn.data.publication_status ?? 'published') === 'published'
@@ -124,7 +124,7 @@ function HymnForm({
   const { user } = useSession();
   const privateMode = hymn
     ? (hymn.publication_status ?? 'published') !== 'published'
-    : user?.role === 'Viewer';
+    : !user?.can_edit_hymns;
   const refresh = useRefreshLibrary();
   const [failure, setFailure] = useState<string | null>(null);
   const [pdf, setPdf] = useState<File | null>(null);
@@ -153,7 +153,13 @@ function HymnForm({
           ...(hymn?.is_season_neutral && ordinaryTime ? [ordinaryTime.id] : []),
         ]),
       ],
-      placement_ids: hymn?.placements.map((row) => row.id) ?? [],
+      placement_ids:
+        hymn?.placements.map((row) => row.id) ??
+        (categories['mass-placements'].some(
+          (row) => row.id === fromMass?.placementId && row.is_active,
+        )
+          ? [fromMass!.placementId]
+          : []),
       tag_ids: hymn?.tags.map((row) => row.id) ?? [],
       estimated_duration_minutes: hymn?.estimated_duration_minutes ?? '',
       is_polyphonic: hymn?.is_polyphonic ?? false,

@@ -1,11 +1,12 @@
 # API contract — implementation baseline
 
+> **Local implementation, November 21:** [Choir roles, Mass reading and lossless PDFs](roles-reader-pdf-update.md) describes the current checkout and staged rollout. These changes are not part of the live `91a8c56` release.
+
 > **October 25 simple-account mode:** `GET /api/v1/auth/config/` returns `registration_enabled`, `email_verification_enabled`, and `password_reset_enabled`. Release values are `true`, `false`, `false`. Registration authenticates and returns identity with truthful `email_verified` and effective `verification_required=false`. Verification, resend, email-setting and emailed-reset APIs return sanitized `email_unavailable` without sending mail or consuming tokens when their feature is disabled. Email/username login still requires the password. Signed-in current-password changes remain available. [Configuration and recovery](simple-accounts-release.md) supersedes earlier activation instructions.
 
-> **October 20, 2026 — Accounts and choirs:** Self-service email verification, recovery, choir membership and choir-specific hymn counts supersede the shared-workspace rules below. See [account and choir setup](accounts-and-choirs.md). Existing local data is preserved in Initial choir. Registration and mandatory legacy verification ship disabled pending owner email setup. Hosting checks: core flows accepted, records persist; PDF persistence and CI-gated deployment remain pending.
 
 
-**Date:** October 8, 2026. **Status:** M1 sessions, M2 hymn/category endpoints, M3 draft Mass/program endpoints and Maronite calendar suggestions are implemented. M4 lifecycle, usage and saved history endpoints are implemented and verified; physical-phone acceptance remains pending. Recommendations (M5) and dashboard (M7) remain planned.
+**Reviewed November 20, 2026.** Sessions, accounts/choirs, Choirmaster requests, hymn publication, classifications, calendar settings, draft planning, lifecycle, usage, history, and the Home interface are implemented. Recommendation and future dashboard endpoints below remain planned. See [current status](current-status.md).
 **Owner:** Implementation owner. **Base:** `/api/v1/`.  
 Changes to this contract must update [architecture decisions](architecture.md), frontend types, OpenAPI schemas, and relevant tests together.
 
@@ -21,7 +22,7 @@ Optional metadata reads as null when empty; lists read as `[]`, never null. Unkn
 
 Paginated hymn collections return `{count, next, previous, results}`. `next`/`previous` are URLs or null. `page` starts at 1, `page_size` defaults to 25 and accepts only 25/50/100. Invalid sizes return 400; nonexistent pages return 404. Small category collections return unpaginated arrays. Unknown, repeated, or invalid query parameters return 400, not silently ignored.
 
-App reads require authentication, except CSRF bootstrap, login, and infrastructure health checks. Authenticated Viewer reads all team data. Permissions in [ADR-002](architecture.md) apply to each write action. The implemented `GET /api/v1/schema/` requires authentication in development and production and returns JSON OpenAPI. No interactive docs route is exposed yet.
+Protected data reads require authentication. CSRF bootstrap, account capability configuration, and infrastructure health checks are available anonymously; registration/login use their public guarded endpoints. A signed-in user can read shared published hymns and classifications. Masses/history require choir membership or Admin oversight. Unpublished hymns require author or authorized reviewer access. Permissions in [ADR-002](architecture.md) apply to each write action. The implemented `GET /api/v1/schema/` requires authentication in development and production and returns JSON OpenAPI. No interactive docs route is exposed yet.
 
 ## 2. Sessions and CSRF — M1
 
@@ -29,10 +30,10 @@ App reads require authentication, except CSRF bootstrap, login, and infrastructu
 | --- | --- |
 | `GET auth/csrf/` | 200 `{csrf_token: "..."}` and CSRF cookie; callable anonymously, `Cache-Control: no-store` |
 | `POST auth/login/` | JSON `{username, password}` with CSRF header/cookie; 200 current-user object and session cookie |
-| `GET auth/me/` | 200 `{id, username, role}`; anonymous request fails |
+| `GET auth/me/` | 200 identity, role, account capabilities, verification state, and default choir; anonymous request fails |
 | `POST auth/logout/` | Requires CSRF, clears current session; 204; repeating safely remains 204 |
 
-Only `{}` or an empty body is accepted by logout; unknown login/logout fields return 400. Identity reads return `Cache-Control: no-store`. Passwords use Django validation and hashing during provisioning. Superusers resolve to Admin; otherwise group precedence is Admin, Planner, Viewer, then ungrouped Viewer. Django staff status alone never grants application Admin privileges.
+Only `{}` or an empty body is accepted by logout; unknown login/logout fields return 400. Identity reads return `Cache-Control: no-store`. Passwords use Django validation and hashing during provisioning. Global roles are Admin, Choirmaster and User. Superusers/Admin group members resolve to Admin; otherwise choir creation permission resolves to Choirmaster and all other accounts to User. Per-choir roles are Leader, Planner and Member. Django staff status alone never grants application Admin privileges.
 
 Infrastructure endpoints are `GET /health/live/` (process liveness) and `GET /health/ready/` (database connectivity). Readiness returns generic 503 when unavailable; neither exposes credentials or database details. Readiness does not check migration drift; run the separate migration/check commands before starting the app. Development uses Vite; hosted production serves the built frontend and API through Django at one origin. Internal health probes bypass the HTTPS redirect so database failures return 503, not a healthy redirect.
 
@@ -73,9 +74,9 @@ The implemented M1 review adds `is_polyphonic` (default false), ordered `voices`
 
 PDF uploads use `multipart/form-data` on the same POST/PATCH routes: `data` is the JSON metadata object serialized as text, and `sheet_music_pdf` is one file. The browser must set the multipart boundary; JSON writes remain supported when no file is uploaded. Unknown or repeated envelope parts fail with 400. Accept a nonempty `.pdf` file up to 10 MB, with PDF header/EOF framing. File errors appear under `errors.sheet_music_pdf`, and a failed save leaves prior metadata/attachment intact. PATCH `remove_sheet_music_pdf: true` removes an existing attachment; removal and replacement cannot be requested together. Existing sheet-music URL metadata remains independent.
 
-Reads return `sheet_music_pdf: null` or `{name, url}`. The URL is the same-origin authenticated `GET hymns/{id}/sheet-music/` endpoint, available to every logged-in role, returning an `application/pdf` attachment with `nosniff`. Missing attachment/file returns 404; anonymous reads fail. Admins/Planners can upload, replace, or remove a PDF; Viewers cannot. Internal storage keys and paths are never returned by this API.
+Reads return `sheet_music_pdf: null` or `{name, url}`. The URL is the same-origin authenticated `GET hymns/{id}/sheet-music/` endpoint, available when the caller can read that published hymn or private submission, returning an `application/pdf` attachment with `nosniff`. Missing or unauthorized files return 404; anonymous reads fail. Members can manage their own unpublished hymn PDFs; shared editing requires Leader/Planner/Admin. Internal storage keys and paths are never returned by this API.
 
-POST/PATCH require Planner/Admin; active-state changes and DELETE require Admin. DELETE succeeds with 204 only if no selections reference the hymn, including drafts; otherwise 409 `referenced_record`. PATCH `is_active=false` is the explicit deactivation route, with UI confirmation. POST defaults `is_active=true`; a Planner cannot set it false.
+POST permits private author-owned creation by eligible members and shared creation by Leader/Planner/Admin. PATCH permits author edits to unpublished hymns or shared edits by Leader/Planner/Admin. Active-state changes and shared-hymn DELETE require Admin. Members may delete their own unpublished copies. DELETE succeeds with 204 only if no selections reference the hymn, including drafts; otherwise 409 `referenced_record`. PATCH `is_active=false` is the explicit deactivation route, with UI confirmation. POST defaults `is_active=true`; a Planner cannot set it false.
 
 Write example (illustrative IDs):
 
@@ -96,7 +97,7 @@ Accept every optional Hymn field listed in source section 8. Required fields are
 
 Text limits: title/alternate title/composer/arranger/source 255 characters; first line 500; hymnal number 100; default key 50; each URL 1000. Notes have no application length limit. Blank optional text normalizes to null; internal notes line breaks are retained. Audio and sheet-music URLs accept HTTP/HTTPS only. Duration is nullable, positive, at most `9999.99`, with up to two decimal places; reads return a decimal string.
 
-Read responses include nested categories, all optional metadata, active/neutral state, audit timestamps, and nullable numeric `created_by`/`updated_by` IDs. Title is deliberately not unique. M4 reads include integer `usage_count` and nullable `last_used_date`, derived globally from finalized selection occurrences. The usage endpoint accepts `from`/`to` (inclusive Mass dates), `season`, `q` (Mass title/notes) and pagination; it always excludes drafts, rejects a status parameter, and returns paginated `{mass: {id, date, title, status}, placement, selection_id, position, notes}` finalized occurrences, ordered descending date/Mass ID then placement display order/position/selection ID.
+Read responses include nested categories, all optional metadata, active/neutral state, audit timestamps, and nullable numeric `created_by`/`updated_by` IDs. Title is deliberately not unique. M4 reads include integer `usage_count` and nullable `last_used_date`, derived from finalized selection occurrences in the authorized selected choir. The usage endpoint accepts `from`/`to` (inclusive Mass dates), `season`, `q` (Mass title/notes) and pagination; it always excludes drafts, rejects a status parameter, and returns paginated `{mass: {id, date, title, status}, placement, selection_id, position, notes}` finalized occurrences, ordered descending date/Mass ID then placement display order/position/selection ID.
 
 ### Library query contract
 
@@ -107,14 +108,14 @@ Read responses include nested categories, all optional metadata, active/neutral 
 | `is_active` | `true`/`false`; omit for default true; `all` intentionally supported for Admin inactive inspection and readable by other roles |
 | `used_after`, `used_before` | Inclusive finalized occurrence bounds; one occurrence satisfies both when supplied |
 | `not_used_since` | No finalized occurrence on/after date, including never-used |
-| `never_used` | `true` means no global finalized occurrences; `false` means at least one; omit means no usage predicate |
+| `never_used` | `true` means no finalized occurrences in the selected choir; `false` means at least one; omit means no usage predicate |
 | `ordering` | One documented value below |
 | `preferred_season` | Optional existing positive season ID; season-linked and neutral hymns first, then other results, retaining the selected ordering within both groups. Ordering only; does not broaden literal filters. |
 | `page`, `page_size` | Pagination conventions above |
 
 Unknown IDs within a supplied category filter return 400. Inactive existing IDs can be used to inspect old records. Empty list parameters are errors; omit them instead. Impossible date ranges return 400. Contradictory valid predicates yield zero results, not a silent change to user intent. Usage query parameters are implemented in M4 with strict date/Boolean validation; unknown or repeated parameters still return 400.
 
-M2 ordering values are `title` (default) and `newest_added`. The October 10 picker review adds ascending/descending column ordering: `title`, `language`, `seasons`, `genres`, `tags`, `key`, `duration`, `voices`, each accepting a `-` prefix for descending. Duration sorts numerically, voices sort the displayed text rather than JSON-array length, category columns sort the complete alphabetically joined labels through isolated scalar subqueries, and missing nullable values follow populated values in either direction. Equal values break ties by case-insensitive title then ID. Neutral season labels sort as “Any season”. With `preferred_season`, suitability remains the leading group, then the column sorts within that group, all before pagination. Newest sorts creation timestamp descending then ID descending. Title sorts case-insensitive database text then ID; no browser-dependent reordering of a paginated result. M4 also implements `recently_used`, `least_recently_used`, `most_used`, and `least_used`. Recent sorts place never-used last/first respectively; count sorts use zero for never-used and break ties by case-insensitive title then ID. Global usage includes future finalized Masses as documented in ADR-006.
+M2 ordering values are `title` (default) and `newest_added`. The October 10 picker review adds ascending/descending column ordering: `title`, `language`, `seasons`, `genres`, `tags`, `key`, `duration`, `voices`, each accepting a `-` prefix for descending. Duration sorts numerically, voices sort the displayed text rather than JSON-array length, category columns sort the complete alphabetically joined labels through isolated scalar subqueries, and missing nullable values follow populated values in either direction. Equal values break ties by case-insensitive title then ID. Neutral season labels sort as “Any season”. With `preferred_season`, suitability remains the leading group, then the column sorts within that group, all before pagination. Newest sorts creation timestamp descending then ID descending. Title sorts case-insensitive database text then ID; no browser-dependent reordering of a paginated result. M4 also implements `recently_used`, `least_recently_used`, `most_used`, and `least_used`. Recent sorts place never-used last/first respectively; count sorts use zero for never-used and break ties by case-insensitive title then ID. Selected-choir usage includes future finalized Masses as documented in ADR-006.
 
 Examples: `?placements=8&seasons=6`, `?placements=8&languages=1,3`, `?q=mary&placements=11`, `?not_used_since=2026-04-01&never_used=false`.
 
@@ -146,7 +147,7 @@ PATCH accepts editable metadata only and requires `X-Expected-Mass-Revision`. De
 
 ### Atomic program update
 
-`PUT masses/{id}/program/`, requires Planner/Admin, draft state, and current `X-Expected-Mass-Revision`. Example:
+`PUT masses/{id}/program/`, requires Leader/Planner/Admin, draft state, and current `X-Expected-Mass-Revision`. Example:
 
 ```json
 {
@@ -165,7 +166,7 @@ M3 warning codes are `placement_mismatch`, `season_mismatch`, `duplicate_hymn`, 
 
 ### Random picks — delivered M3 follow-up
 
-`POST masses/{id}/random-picks/` requires Planner/Admin and a draft Mass. The body is `{season_id, placement_ids, excluded_hymn_ids}`: an existing season ID, 1–100 distinct active placement IDs, and up to 10,000 positive excluded hymn IDs (an empty exclusion list is valid). Unknown fields, invalid IDs, duplicate/inactive placements or missing season return 400; missing Mass returns 404; finalized Mass returns 409. The season may be a retained inactive choice. Excluded IDs are exclusions only and need not still exist.
+`POST masses/{id}/random-picks/` requires Leader/Planner/Admin and a draft Mass. The body is `{season_id, placement_ids, excluded_hymn_ids}`: an existing season ID, 1–100 distinct active placement IDs, and up to 10,000 positive excluded hymn IDs (an empty exclusion list is valid). Unknown fields, invalid IDs, duplicate/inactive placements or missing season return 400; missing Mass returns 404; finalized Mass returns 409. The season may be a retained inactive choice. Excluded IDs are exclusions only and need not still exist.
 
 This POST is a **read-only suggestion request**, with CSRF protection but no revision precondition or revision advance. The explicit body describes the browser's possibly unsaved season/choices. It returns `{picks: [{placement_id, hymn: <full Hymn>}], unfilled_placement_ids: [...]}`. Candidates come from the whole active library with the requested placement and the requested season, Ordinary Time, or season-neutral status. Randomized maximum matching avoids duplicates and maximizes placement coverage; assignments are not sampled uniformly over all possible programs. No-match returns 200 with empty picks. No history, usage or ranking is calculated.
 
@@ -177,7 +178,7 @@ The client inserts only into placements still empty in its latest working copy, 
 
 ### Lifecycle — M4
 
-`POST masses/{id}/finalize/` and `POST masses/{id}/reopen/` take `{}` and current `X-Expected-Mass-Revision`, return full Mass detail and `X-Mass-Revision`. Finalize and reopen require Planner/Admin. The finalized Edit pen confirms reopening before navigating to the draft editor; direct metadata/program writes on finalized Masses still fail. Admin-only DELETE accepts both states, removes only that Mass and its selections, and leaves library hymns intact. Current-state repeat calls return 200 without changing revision/timestamp. Stale calls return 412 even if the action was already performed. Finalization sets `finalized_at`; reopening clears it. No selections are copied or deleted. History reflects current status immediately.
+`POST masses/{id}/finalize/` and `POST masses/{id}/reopen/` take `{}` and current `X-Expected-Mass-Revision`, return full Mass detail and `X-Mass-Revision`. Finalize and reopen require Leader/Planner/Admin. The finalized Edit pen confirms reopening before navigating to the draft editor; direct metadata/program writes on finalized Masses still fail. Owning Choir Leader/Admin DELETE accepts both states, removes only that Mass and its selections, and leaves library hymns intact. Current-state repeat calls return 200 without changing revision/timestamp. Stale calls return 412 even if the action was already performed. Finalization sets `finalized_at`; reopening clears it. No selections are copied or deleted. History reflects current status immediately.
 
 Finalization checks existing committed data, not browser-only edits. Empty placements are valid; UI review warns about an entirely empty program and retained inactive rows. This contract does not add a hard placement-completion requirement.
 
@@ -204,7 +205,7 @@ Authenticated read; placement is required and active. Invalid IDs/limits return 
 }
 ```
 
-`usage_count`/`last_used_date` here are ranking-context values, not the global Hymn library values. Use explanatory text such as `Never selected before this Mass` when the distinction matters. UI cards may use friendly relative wording for upcoming planning while keeping target date evident. No selected season returns notice `season_unavailable`; do not infer a season from the date.
+`usage_count`/`last_used_date` here are ranking-context values, separate from the selected-choir library values. Use explanatory text such as `Never selected before this Mass` when the distinction matters. UI cards may use friendly relative wording for upcoming planning while keeping target date evident. No selected season returns notice `season_unavailable`; do not infer a season from the date.
 
 Score, eligibility, tie-breaks, recency boundaries, and warnings are defined in ADR-007 and the development plan. Return the categories necessary for cards without per-card fetches. Keep numeric score for debugging/contract consistency; reasons are the main UI explanation.
 
@@ -220,13 +221,13 @@ M2 uses `["hymns", queryString]`, `["hymn", id]`, and an aggregate `["categories
 
 Program mutation refreshes Mass lists/detail. M5/M7 will additionally refresh affected recommendations and dashboard. M4 finalize/reopen refresh affected hymn details, usage lists, all usage-filtered library variants, and history. Category/hymn edits refresh dependent selectors/cards without losing unsaved form data. Request hooks must include filter/season changes in cache keys or invalidation.
 
-Implemented endpoint shapes and errors are validated by the OpenAPI gate and integration tests; see [M2 evidence](m2-report.md). Future sections describe planned contracts, not available routes. Acceptance cases and exact fictional expectations are in [acceptance.md](acceptance.md).
+Implemented endpoint shapes and errors are validated by the OpenAPI gate and integration tests; see [M2 evidence](m2-report.md). The recommendations section and future dashboard endpoint contract describe planned routes. Later account, calendar, and Choirmaster sections describe implemented routes. Acceptance cases and exact fictional expectations are in [acceptance.md](acceptance.md).
 
-M3 uses `["masses", queryString]` for list summaries and `["mass", id]` for saved detail. A mounted `DraftSaver` owns the working copy and its revision; background query refreshes preserve local Mass metadata, rows, order, and notes while reconciling live hymn/placement references. Advisory warnings derive from that local program and its refreshed references, including pending edits. A newly opened editor waits for its initial detail refresh before creating that working copy. Its 600 ms autosave debounce coalesces edits and serializes metadata PATCH then program PUT, using the acknowledgement's revision for the next request. Canonical metadata acknowledgements replace only fields unchanged since the request and become the next save baseline. Each endpoint is atomic independently; if metadata commits and program saving fails, retry preserves that metadata acknowledgement. Server-generated row IDs attach by local identity without overwriting subsequent edits. Unmounting stops queued requests, including the program PUT after a pending metadata PATCH; already-started requests may settle. Failures halt automatic writes until retry; revision/state conflicts require saved-version review and explicit discard/reload. Saved acknowledgements invalidate list summaries and saved detail. Internal navigation, browser unload, and sign-out warn about unconfirmed edits; offline durable storage and automatic merging remain deferred. See [M3 evidence](m3-report.md).
+Mass reads use choir-scoped cache keys. M3 introduced `["masses", queryString]` for list summaries and `["mass", id]` for saved detail. A mounted `DraftSaver` owns the working copy and its revision; background query refreshes preserve local Mass metadata, rows, order, and notes while reconciling live hymn/placement references. Advisory warnings derive from that local program and its refreshed references, including pending edits. A newly opened editor waits for its initial detail refresh before creating that working copy. Its 600 ms autosave debounce coalesces edits and serializes metadata PATCH then program PUT, using the acknowledgement's revision for the next request. Canonical metadata acknowledgements replace only fields unchanged since the request and become the next save baseline. Each endpoint is atomic independently; if metadata commits and program saving fails, retry preserves that metadata acknowledgement. Server-generated row IDs attach by local identity without overwriting subsequent edits. Unmounting stops queued requests, including the program PUT after a pending metadata PATCH; already-started requests may settle. Failures halt automatic writes until retry; revision/state conflicts require saved-version review and explicit discard/reload. Saved acknowledgements invalidate list summaries and saved detail. Internal navigation, browser unload, and sign-out warn about unconfirmed edits; offline durable storage and automatic merging remain deferred. See [M3 evidence](m3-report.md).
 
 The October 8 picker/view follow-up adds `preferred_season` to the hymn list contract. The section picker sends `placements=<current ID>` by default and includes placement/season/override in its query key. Preference is calculated in PostgreSQL before pagination with a season subquery, avoiding duplicate rows from multi-season links. Unknown, malformed or repeated preference IDs return 400. Literal `seasons` filters retain their earlier behavior.
 
-Frontend `/masses/:id` now displays saved read-only detail; `/masses/:id/edit` hosts the draft editor. Creation opens the editor, while list links open the view. **Save draft** awaits the shared saver drain (including an already-started autosave), then navigates only after React observes `Saved`. Calendar/random lookup must settle before finishing; editor controls stop accepting changes during the save. Failure/conflict keeps the editor and its working copy. The view waits for a fresh mount-time detail read and never changes Mass status or writes a program. Viewer/finalized edit routes redirect to the view. That M3 follow-up introduced no new save endpoint or flag. M4 adds the separate revision-guarded finalize/reopen endpoints above. See [review notes](m3-picker-view-review.md).
+Frontend `/masses/:id` displays finalized programs read-only. An editable draft redirects to `/masses/:id/edit`; viewers keep read-only access. Drafts autosave. **Save Mass** drains the saver before calling the existing revision-guarded finalize endpoint and opening the saved program. Lookup and saving work must settle first. Failure or conflict retains the working copy. Leader/Planner/Admin Edit confirms reopening a finalized program before editing.
 
 ## Hosted storage — October 13, 2026
 
@@ -239,7 +240,7 @@ Hymn reads and POST/PATCH accept optional nullable `latin_title` (255 characters
 
 ## October 20, 2026 — Accounts and choir context
 
-`/api/v1/auth/` now supports `config/`, `register/`, `email/`, `verify-email/`, `resend-verification/`, `password-reset/request/`, `password-reset/confirm/`, `password/`, and Admin-only `choir-creation/`. All unsafe requests retain CSRF protection. Identity includes email verification state and creation/library capabilities. Unverified users receive `verification_required` for protected data.
+`/api/v1/auth/` now supports `config/`, `register/`, `email/`, `verify-email/`, `resend-verification/`, `password-reset/request/`, `password-reset/confirm/`, `password/`, and Admin-only `choir-creation/`. All unsafe requests retain CSRF protection. Identity includes email verification state and creation/library capabilities. When verification is enabled and required, ineligible unverified users receive `verification_required` for protected data.
 
 `/api/v1/choirs/` lists accessible choirs, accepts authorized creation and exposes member/planner detail/settings. `directory/` is a paginated public summary; `lookup-code/` accepts a code by POST. `requests/` lists the caller’s applications or creates a request; cancellation, planner decisions, member changes and confirmed code regeneration have dedicated actions in the validated OpenAPI schema. Rosters expose usernames, not emails; outsiders never receive roster or planner identities.
 
@@ -248,13 +249,38 @@ Supply `X-Choir-ID` on Mass collection/create/history and hymn usage requests. O
 
 ## October 24 verification sign-in revision
 
-`POST /api/v1/auth/verify-email/` accepts a valid single-use verification token with CSRF protection, including for an anonymous browser. It verifies the email, rotates the session and CSRF cookie, and returns authenticated identity. A different authenticated account is rejected without consuming the token or changing that session. Expired, disabled-account, changed-email, reused and reset-purpose tokens cannot create a session. GET remains non-mutating. Persistent per-token and deployment limits bound attempts. The frontend removes the fragment, submits once (including under React StrictMode), accepts identity and opens `/dashboard`. Reset/change-password success opens `/login` with a success message; failure stays on the form.
+`POST /api/v1/auth/verify-email/` accepts a valid single-use verification token with CSRF protection, including for an anonymous browser, when the email-verification capability is enabled. In current simple-account mode this endpoint returns `email_unavailable`. When enabled, it verifies the email, rotates the session and CSRF cookie, and returns authenticated identity. A different authenticated account is rejected without consuming the token or changing that session. Expired, disabled-account, changed-email, reused and reset-purpose tokens cannot create a session. GET remains non-mutating. Persistent per-token and deployment limits bound attempts. The frontend removes the fragment, submits once (including under React StrictMode), accepts identity and opens `/dashboard`. Reset/change-password success opens `/login` with a success message; failure stays on the form.
 
 
 ## Choir calendar settings — M6
 
-`GET/PATCH choirs/{id}/calendar/` requires actual choir membership (Admin oversight permitted); only that choir's Planners or Admins may write. The read envelope contains `calendar` (`maronite|manual`), `time_zone` (IANA name), `version`, `time_zones` and `overrides` (date, season ID/name/active state). Missing configuration reads as Maronite, Asia/Beirut, version 0 without writing a row. PATCH requires `{calendar, time_zone, version}`.
+`GET/PATCH choirs/{id}/calendar/` requires actual choir membership (Admin oversight permitted); only that choir's Leaders or Admins may write. The read envelope contains `calendar` (`maronite|manual`), `time_zone` (IANA name), `version`, `time_zones` and `overrides` (date, season ID/name/active state). Missing configuration reads as Maronite, Asia/Beirut, version 0 without writing a row. PATCH requires `{calendar, time_zone, version}`.
 
 `POST choirs/{id}/calendar/overrides/` accepts `{date, season_id, version}`. Use a date in 1900–2199; choose an active season, or null to remove that date's override. One override exists per choir/date. Every successful settings/override mutation advances the shared version; concurrent or stale writes return 409 `settings_conflict`. Writes lock the owning choir, recheck permissions, and preserve existing Mass metadata and PDF references.
 
 `GET calendar/suggestion/?date=YYYY-MM-DD` accepts the authorized `X-Choir-ID` context. The legacy `calendar/maronite/` path remains supported. Precedence: exact-date override, manual mode, Maronite provider/local fallback. An inactive override remains visible but returns `season_id=null`. `source` is `override|manual|evangelizo|local`; source URL is blank for manual/override results. Omitting choir context retains legacy Maronite defaults; forged context returns 404. Choir membership summaries include `time_zone`, `today` and `default_mass_date`; outsider discovery omits these fields.
+
+## Choirmaster access and account preference
+
+All paths below are relative to `/api/v1/`. Unsafe requests require the existing session and CSRF checks.
+
+| Method/path | Permission and result |
+| --- | --- |
+| `GET auth/manager-requests/me/` | Eligible signed-in account. Returns `{request, can_create_choirs}`; request is the latest record or null. |
+| `POST auth/manager-requests/me/` | Empty object. Returns 201 with the same envelope for a new pending request. Existing access or a pending request returns 409 `manager_request_conflict`. |
+| `GET auth/manager-requests/` | Admin-only pending queue, oldest first by submission time then ID, 20 per page in `{count, next, previous, results}`. |
+| `POST auth/manager-requests/{id}/decide/` | Admin-only `{status: "approved" or "declined"}`. Returns 204. Already decided requests return 409. |
+| `POST auth/choir-creation/` | Existing Admin manual grant/revoke using `{username, can_create_choirs}`. Grant resolves a pending request as approved; revocation preserves memberships. |
+| `PATCH auth/me/` | Save `{default_choir_id: id or null}` and return identity. The account must have access to the selected choir. |
+
+Request reads expose `id`, applicant `username`, `status`, `requested_at`, and nullable `decided_at`. The database additionally retains reviewer and applicant references. A partial unique constraint allows one pending request per account. Declined accounts can reapply with a new record, preserving previous decisions. Decision and permission grant share a transaction and applicant lock.
+
+Identity includes `can_create_choirs`, `can_edit_hymns`, `can_add_hymns`, `default_choir_id`, and verification fields. **Choirmaster** is the global API/account role derived from choir-creation permission; per-choir roles remain independent. Opening Choirs or checking request status refreshes access without another sign-in.
+
+The selected choir in the current tab takes precedence over the account’s saved default. On a new session, an accessible saved default is preferred, then the first accessible choir. Preferences never grant membership.
+
+## November 21 local contract changes
+
+`auth/me/` returns `Admin|Choirmaster|User` and independent account capabilities. Choir summaries/rosters and member updates accept `Leader|Planner|Member`. Choir creation assigns Leader. Leaders/Admins manage choir settings, calendars, join requests/codes and role assignments. Leaders/Planners/Admins write Masses; only the owning choir's Leaders or Admins delete them, in either lifecycle state with the current revision. Shared hymn writes use actual Leader/Planner membership or Admin, never global Choirmaster alone. Existing `auth/manager-requests/` paths and pending-request constraints are unchanged.
+
+Sheet-music reads keep their authenticated URL, original PDF filename and application/pdf type. Stored gzip is negotiated using Accept-Encoding, with Content-Encoding:gzip for supporting clients and exact original bytes otherwise. Vary includes Accept-Encoding; responses are no-store. Reads are bounded and verify stored original length/checksum when present. Internal encoding/hash/size fields are server-owned and not exposed as write inputs. See [storage and rollout](roles-reader-pdf-update.md).

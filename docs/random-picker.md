@@ -1,10 +1,13 @@
 # Random hymn picker — October 8, 2026
 
-**October 8 checkpoint update:** M3 engineering and all requested follow-ups are complete and committed as `daefc9b`. The owner authorized the M3 commit and starting M4. Statements about uncommitted changes below describe their original verification runs. Human walkthrough/physical-phone acceptance remains pending and is now a required M4 gate; see [acceptance criteria](acceptance.md). The [latest review](m3-picker-view-review.md) records saved view, empty sections and Mass ordering.
+> Reviewed November 20, 2026. [Current project status](current-status.md) records the live release. Dated verification notes below describe their original test sessions.
+
+
+**October 8 checkpoint update:** M3 engineering and all requested follow-ups are complete and committed as `daefc9b`. The owner authorized the M3 commit and starting M4. Statements about uncommitted changes below describe their original verification runs. Human walkthrough/physical-phone acceptance remains pending and is tracked under M5 acceptance; see [acceptance criteria](acceptance.md). The [latest review](m3-picker-view-review.md) records saved view, empty sections and Mass ordering.
 
 ## Behavior
 
-In a draft Mass, select a liturgical season and press **Random hymns** above the program. Each empty active placement receives at most one active hymn classified for that placement and either the selected season or season-neutral use. Existing selections, order, identities and notes stay intact. The picker excludes every hymn already in the local program and avoids duplicates among its additions.
+In a draft Mass, select a liturgical season and press the **Random hymns** shuffle icon below the program. Each empty active placement receives at most one active hymn classified for that placement and the selected season, Ordinary Time, or season-neutral use. Existing selections, order, identities and notes stay intact. The picker excludes every hymn already in the local program and avoids duplicates among its additions.
 
 Unmatched placements remain empty and are named in the result. Use **+** to choose manually, including an explicitly acknowledged classification mismatch. The random button is disabled without a season, during calendar lookup, while picking, after all placements are filled, or while a save error needs attention. Viewers and finalized plans have no random control. Removing a choice makes its placement available for another pick; a later pick can select that same hymn again by chance.
 

@@ -51,7 +51,7 @@ with transaction.atomic():
             user.groups.add(Group.objects.get(name=role))
             choir = Choir.objects.get(name="Initial choir")
             Membership.objects.create(
-                user=user, choir=choir, role="Member" if role == "Viewer" else "Planner"
+                user=user, choir=choir, role="Member" if role == "Viewer" else "Leader"
             )
             AccountProfile.objects.create(user=user, can_create_choirs=role != "Viewer")
         print("This browser run's development accounts are ready.")

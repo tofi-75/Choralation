@@ -1,5 +1,10 @@
 # Member hymn submissions
 
+> **Local implementation, November 21:** [Choir roles, Mass reading and lossless PDFs](roles-reader-pdf-update.md) describes the current checkout and staged rollout. These changes are not part of the live `91a8c56` release.
+
+> Reviewed November 20, 2026. [Current project status](current-status.md) records the live release. Dated verification notes below describe their original test sessions.
+
+
 Regular members can add hymns without editing the shared repository. “Private” means stored in the member’s account across devices, not only in browser storage. Platform Admins retain oversight. No anonymous public access is added.
 
 ## Member flow

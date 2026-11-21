@@ -1,5 +1,8 @@
 # Home and saved Mass review — October 19, 2026
 
+> Historical delivery record. Test counts, commit state, UI labels, and pending actions describe the dated work below. For the deployed release and current workflow, read [Current project status](current-status.md).
+
+
 ## Delivered behavior
 
 - Home (`/`, via `/dashboard`) opens with the next finalized Mass and three more upcoming programs. Four newest active hymns appear below, with library/create links; Practice is marked Coming soon. Drafts and All Masses are available at the top.

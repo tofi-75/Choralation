@@ -1,4 +1,4 @@
-"""Explicit choir context; object visibility never follows an app-wide Planner role."""
+"""Explicit choir context; global creation approval never grants scoped access."""
 
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 
@@ -20,7 +20,7 @@ def visible_choirs(user):
     )
 
 
-def require_choir(user, choir_id, *, planner=False, lock=False):
+def require_choir(user, choir_id, *, planner=False, leader=False, lock=False):
     if not verified_access(user):
         raise PermissionDenied("Verify your email before continuing.")
     query = visible_choirs(user)
@@ -30,11 +30,17 @@ def require_choir(user, choir_id, *, planner=False, lock=False):
     if choir is None:
         raise NotFound("Choir not found.")
     if (
-        planner
+        (planner or leader)
         and not is_admin(user)
-        and not Membership.objects.filter(choir=choir, user=user, role="Planner").exists()
+        and not Membership.objects.filter(
+            choir=choir, user=user, role__in=["Leader"] if leader else ["Leader", "Planner"]
+        ).exists()
     ):
-        raise PermissionDenied("Only this choir's planners can make this change.")
+        raise PermissionDenied(
+            "Only this choir's leaders can make this change."
+            if leader
+            else "Only this choir's leaders and planners can make this change."
+        )
     return choir
 
 

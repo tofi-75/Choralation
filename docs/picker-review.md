@@ -1,5 +1,8 @@
 # October 10 picker and reorder review
 
+> Historical delivery record. Test counts, commit state, UI labels, and pending actions describe the dated work below. For the deployed release and current workflow, read [Current project status](current-status.md).
+
+
 **Status:** Implemented and uncommitted. Required physical-phone M4 acceptance remains pending. These changes address the owner's eight picker/planner comments; saved-program performance mode remains deferred.
 
 ## Delivered behavior

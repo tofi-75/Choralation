@@ -9,6 +9,7 @@ import { ConfirmationProvider } from '../components/ConfirmationProvider';
 import { clearCsrfToken } from '../api/client';
 import { textFields } from '../api/library';
 import type { Category } from '../api/library';
+import type { MassHymnContext } from '../features/masses/hymnCreationRoute';
 import { SessionProvider } from '../features/auth/SessionProvider';
 import { HymnFormPage } from './HymnFormPage';
 
@@ -29,11 +30,12 @@ const choices = {
     category(2, 'Easter'),
     { ...category(7, 'Ordinary Time'), slug: 'ordinary-time' },
   ],
-  'mass-placements': [category(3, 'Communion')],
+  'mass-placements': [category(3, 'Communion'), category(8, 'Opening')],
   languages: [category(4, 'Arabic'), category(5, 'Inactive language', false)],
   tags: [category(6, 'Mary')],
 };
 vi.mock('../features/hymns/PdfSheet', () => ({ default: () => <div>PDF preview</div> }));
+vi.mock('../features/choirs/ChoirProvider', () => ({ useChoir: () => ({ active: { id: 1 } }) }));
 beforeEach(() => clearCsrfToken());
 
 function mount(
@@ -42,6 +44,7 @@ function mount(
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } }),
   edit = false,
   seasonOptions: { available?: Category[]; saved?: Category[] } = {},
+  fromMass?: MassHymnContext,
 ) {
   const formChoices = {
     ...choices,
@@ -51,7 +54,13 @@ function mount(
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string, options?: RequestInit) => {
-      if (url.endsWith('/me/')) return Response.json({ id: 1, username: 'editor', role });
+      if (url.endsWith('/me/'))
+        return Response.json({
+          id: 1,
+          username: 'editor',
+          role: 'User',
+          can_edit_hymns: role !== 'Viewer',
+        });
       if (url.includes('/csrf/')) return Response.json({ csrf_token: 'masked' });
       if (url.endsWith('/hymns/1/') && (!options?.method || options.method === 'GET'))
         return Response.json({
@@ -100,7 +109,11 @@ function mount(
   render(
     <QueryClientProvider client={client}>
       <ConfirmationProvider>
-        <MemoryRouter initialEntries={[edit ? '/hymns/1/edit' : '/hymns/new']}>
+        <MemoryRouter
+          initialEntries={[
+            { pathname: edit ? '/hymns/1/edit' : '/hymns/new', state: { fromMass } },
+          ]}
+        >
           <SessionProvider>
             <Routes>
               <Route path="/hymns/new" element={<HymnFormPage />} />
@@ -113,6 +126,33 @@ function mount(
   );
   return writes;
 }
+
+it('prefills the originating active Mass placement, permits changing it and retains that choice after failure', async () => {
+  const writes = mount(
+    'Planner',
+    true,
+    undefined,
+    false,
+    {},
+    { massId: 42, choirId: 1, placementId: 3, search: 'New hymn' },
+  );
+  expect(await screen.findByRole('textbox', { name: /^Title/ })).toHaveValue('New hymn');
+  const placements = screen.getByRole('group', { name: 'Suitable placements' });
+  await userEvent.click(within(placements).getByRole('button'));
+  expect(within(placements).getByRole('checkbox', { name: 'Communion' })).toBeChecked();
+  await userEvent.click(within(placements).getByRole('checkbox', { name: 'Opening' }));
+  await userEvent.click(within(placements).getByRole('checkbox', { name: 'Communion' }));
+  await userEvent.selectOptions(screen.getByRole('combobox', { name: /Language/ }), '4');
+  const seasons = screen.getByRole('group', { name: 'Suitable seasons' });
+  await userEvent.click(within(seasons).getByRole('button'));
+  await userEvent.click(within(seasons).getByRole('checkbox', { name: 'Easter' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save hymn' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent('Your input has been kept');
+  expect(writes[0]).toMatchObject({ placement_ids: [8] });
+  await userEvent.click(screen.getByRole('button', { name: 'Close notification' }));
+  expect(within(placements).getByRole('checkbox', { name: 'Opening' })).toBeChecked();
+  expect(within(placements).getByRole('checkbox', { name: 'Communion' })).not.toBeChecked();
+});
 
 it.each([
   { edit: false, queryKey: ['categories'] },

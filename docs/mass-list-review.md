@@ -1,5 +1,7 @@
 # October 10 Mass list review
 
+> Historical delivery record. Test counts, commit state, UI labels, and pending actions describe the dated work below. For the deployed release and current workflow, read [Current project status](current-status.md).
+
 ## Delivered behavior
 
 - A compact 44 px search bar and adjacent Filters icon replace the large filter box. Search covers titles/notes in the selected list; its accessible label and helper remain available to screen readers. Filters expands date bounds and season controls. On phones the date and season inputs stack at equal widths, and **New Mass** aligns to the right edge of the list heading.

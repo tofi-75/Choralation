@@ -30,7 +30,7 @@ export function NewMassPage() {
     setNewSeason(season);
   }, []);
   if (!active) return <ChoirRequired />;
-  if (active.role !== 'Planner') return <Navigate to="/masses" replace />;
+  if (!['Leader', 'Planner'].includes(active.role ?? '')) return <Navigate to="/masses" replace />;
   return (
     <div className="mass-creation">
       <Link className="text-button" to="/masses">

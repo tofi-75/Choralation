@@ -1,5 +1,7 @@
 # M0 completion report
 
+> Historical delivery record. Test counts, commit state, UI labels, and pending actions describe the dated work below. For the deployed release and current workflow, read [Current project status](current-status.md).
+
 **Completed engineering preparation:** October 6, 2026.  
 **Owner:** Implementation owner (Codex, this project/chat).  
 **Next milestone:** M1 — Running authenticated application.

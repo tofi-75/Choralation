@@ -58,7 +58,7 @@ export function HymnSubmissionPanel({ hymn }: { hymn: Hymn }) {
       {hymn.submission?.choir_name && <p>Submitted to {hymn.submission.choir_name}.</p>}
       {hymn.submission?.note && (
         <p className="notice preserve-lines" dir="auto">
-          Planner feedback: {hymn.submission.note}
+          Reviewer feedback: {hymn.submission.note}
         </p>
       )}
       {owner &&

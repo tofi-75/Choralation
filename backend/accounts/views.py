@@ -16,7 +16,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts.permissions import Role, role_for, verified_access
+from accounts.permissions import Role, can_edit_shared_hymns, role_for, verified_access
 from accounts.security import limit
 from accounts.serializers import (
     ChoirPreferenceSerializer,
@@ -43,7 +43,7 @@ def public_user(user) -> dict:
         "email_verified": bool(profile.verified_at),
         "verification_required": not has_access,
         "can_create_choirs": role == Role.ADMIN or profile.can_create_choirs,
-        "can_edit_hymns": role in {Role.ADMIN, Role.PLANNER},
+        "can_edit_hymns": can_edit_shared_hymns(user),
         "can_add_hymns": has_access,
         "default_choir_id": profile.default_choir_id,
     }

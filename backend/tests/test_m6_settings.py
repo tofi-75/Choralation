@@ -23,7 +23,7 @@ def setup(settings, django_user_model):
         for n in ["admin", "planner", "member", "outsider"]
     }
     choir = Choir.objects.create(name="M6 private choir")
-    for name, role in [("planner", "Planner"), ("member", "Member")]:
+    for name, role in [("planner", "Leader"), ("member", "Member")]:
         Membership.objects.create(choir=choir, user=users[name], role=role)
     api = APIClient()
     api.force_authenticate(users["admin"])

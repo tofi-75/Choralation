@@ -24,9 +24,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("username")
-        parser.add_argument(
-            "--role", choices=[str(role) for role in Role], default=str(Role.VIEWER)
-        )
+        parser.add_argument("--role", choices=[str(role) for role in Role], default=str(Role.USER))
         parser.add_argument(
             "--password-env", help="Name of a process variable containing the password."
         )
@@ -56,6 +54,6 @@ class Command(BaseCommand):
         AccountProfile.objects.create(
             user=user,
             username_key=username.lower(),
-            can_create_choirs=options["role"] in {"Admin", "Planner"},
+            can_create_choirs=options["role"] in {"Admin", "Choirmaster"},
         )
         self.stdout.write(self.style.SUCCESS(f"Created {username} with {group.name} access."))

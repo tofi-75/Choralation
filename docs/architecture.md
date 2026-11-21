@@ -1,11 +1,12 @@
-# Architecture decisions — M0 through M3
+# Architecture decisions
 
-> **October 13, 2026 priority update:** Render + Supabase hosting preparation is the current delivery task; see [deployment guide](hosting.md). All account/login/provider setup and publishing are manual owner steps deferred until later. Physical-phone acceptance moves from M4 to M5. Saved-Mass performance redesign and recommendations are deferred. Historical milestone statements below retain their original dates; hosted completion requires actual URL, persistence and pipeline verification.
+> **Local implementation, November 21:** [Choir roles, Mass reading and lossless PDFs](roles-reader-pdf-update.md) describes the current checkout and staged rollout. These changes are not part of the live `91a8c56` release.
+
 
 
 **Decision date:** October 6, 2026. **Owner:** Implementation owner (Codex, this project).  
 **Authority:** [Source specification](../mass_hymn_picker_codex_spec.md) and [development plan](../DEVELOPMENT_PLAN.md).  
-**State:** Authentication/runtime foundations, hymn/category library, and draft Mass planning are implemented through M3. Lifecycle/usage, recommendations, and release decisions remain the baseline for M4–M7. See [M1 evidence](m1-report.md), [M2 evidence](m2-report.md), and [M3 evidence](m3-report.md) for current behavior and limits.
+**State, reviewed November 20, 2026.** M0–M4 engineering, M6 settings/calendar, accounts/choirs, Manager requests, member submissions, and Mass Focus are deployed. Dated implementation notes describe their original checkpoint. [Current project status](current-status.md) records the shipped release and remaining acceptance.
 
 ## ADR-001 — Runtime and repository boundaries
 
@@ -44,21 +45,11 @@ All changes and generated artifacts must remain under `C:\Users\t.lattouf\Projec
 
 Use Django's built-in User and Groups. Do not create a custom user model: no required identity field justifies it. Foreign keys must use `settings.AUTH_USER_MODEL`, avoiding direct coupling to the concrete model.
 
-Define application groups `Admin`, `Planner`, and `Viewer`. Highest recognized role wins; superusers have Admin privileges. An authenticated user without a recognized group is Viewer. `is_staff` grants access to protected Django admin only; it is not itself the application's Admin role. Provision users/groups with an idempotent command and protected Django admin. Never create public self-registration or seed passwords.
+Global roles are `Admin`, `Choirmaster` and `User`. Superusers/Admin group members have Admin privileges; otherwise `AccountProfile.can_create_choirs` determines Choirmaster, with User as the default. Choir membership never changes global role. Staff status alone grants no application Admin privilege.
 
-| Capability | Viewer | Planner | Admin |
-| --- | --- | --- | --- |
-| Read hymns/categories/Masses/history/recommendations | Yes | Yes | Yes |
-| Create/edit hymn metadata and classifications | No | Yes | Yes |
-| Change hymn active state | No | No | Yes |
-| Create/edit draft metadata/program | No | Yes | Yes |
-| Finalize a draft | No | Yes | Yes |
-| Reopen a finalized Mass | No | No | Yes |
-| Manage any category | No | No | Yes |
-| Delete unreferenced hymn/category or draft Mass | No | No | Yes |
-| Delete finalized Mass | No | No | No |
+Per-choir `Leader`, `Planner`, `Member` roles independently authorize scoped actions. Leaders manage membership/calendar/settings/codes and can delete their own choir's Masses. Leaders and Planners can create/edit/finalize/reopen Masses and review incoming hymn submissions. Either scoped assignment grants shared hymn editing. Global Choirmaster permission alone permits only choir creation, which assigns Leader to the creator. Revocation preserves scoped assignments. Shared hymn deletion and global classifications remain Admin-only. [Permission matrix, preservation migration and rollout](roles-reader-pdf-update.md) are authoritative for this local batch.
 
-All team records are shared; author fields provide attribution rather than ownership-based visibility. Anonymous application access fails. Apply the same guards to services reached from Django admin so internal editing does not bypass finalized-state protection.
+The shared library exposes published hymns; private author/reviewer visibility applies to metadata and PDFs. Admins oversee all choirs. Last-Leader changes lock the choir before checking for a replacement. Django admin additionally requires its own staff/model permissions.
 
 Use cookie sessions and same-origin requests. Vite proxies `/api` locally; production serves frontend and API at one origin. Django CSRF protection applies to login, logout, and every unsafe method, including JSON login for an anonymous user. The client explicitly bootstraps a CSRF token and refreshes it after login rotates it. No JWT or CORS dependency is needed for this topology.
 
@@ -70,7 +61,7 @@ Classification tables have the source fields: name, stable unique slug, descript
 
 Hymn title is nonblank but **not unique**. Duplicate titles and language variants are valid independent records. A hymn has one language, and independent M2M genre/season/placement/tag relationships. Require an active language and at least one active placement on creation. Nonneutral hymns require a season; no Admin unclassified exception in version 1. Genres/tags are optional. Normalize optional empty strings to null at the API boundary, trim basic metadata but preserve internal line breaks in notes, and validate URL schemes as HTTP/HTTPS. Duration is a positive decimal, not a float.
 
-Use `PROTECT` for Hymn/Language, Mass/Season, Selection/Hymn and Selection/Placement references. Admin-only Mass deletion removes its own selections in the same transaction, including finalized programs after explicit UI confirmation. Hymn records remain, and derived usage updates immediately. M2M category deletion must first check associations explicitly because Django's through-table cascade alone does not protect them. Reject hymn/category hard deletion when **any** reference exists, including drafts. Never delete usage to make another delete succeed.
+Use `PROTECT` for Hymn/Language, Mass/Season, Selection/Hymn and Selection/Placement references. Choir Leader/Admin Mass deletion removes its own selections in the same transaction, including finalized programs after explicit UI confirmation. Hymn records remain, and derived usage updates immediately. M2M category deletion must first check associations explicitly because Django's through-table cascade alone does not protect them. Reject hymn/category hard deletion when **any** reference exists, including drafts. Never delete usage to make another delete succeed.
 
 `MassHymnSelection.position` is zero-based and unique within `(mass, placement)`. Require a contiguous 0..n-1 sequence in the save service and reject gaps/duplicates, rather than silently changing caller order. Do not make hymn IDs unique within a Mass/placement. Use a two-phase position update inside the locked transaction (temporary distinct positions above the existing/requested range, then final positions) so swaps cannot violate uniqueness mid-save. Add/remove/move rows within that same transaction and test it against PostgreSQL. No deferrable constraint dependency is needed.
 
@@ -98,13 +89,13 @@ Choose explicit revision headers rather than HTTP ETags: a Mass response contain
 
 | Transition/action | Allowed | Result |
 | --- | --- | --- |
-| Create Mass | Planner/Admin | Draft, revision 1, no finalized timestamp |
-| Edit metadata/program | Planner/Admin on draft | Changed revision; draft remains draft |
-| Finalize | Planner/Admin on draft | Finalized, timestamp set, changed revision |
-| Repeat finalize with current revision | Planner/Admin on finalized | 200 no-op; no new usage/timestamp |
+| Create Mass | Choir Leader/Planner/Admin | Draft, revision 1, no finalized timestamp |
+| Edit metadata/program | Choir Leader/Planner/Admin on draft | Changed revision; draft remains draft |
+| Finalize | Choir Leader/Planner/Admin on draft | Finalized, timestamp set, changed revision |
+| Repeat finalize with current revision | Choir Leader/Planner/Admin on finalized | 200 no-op; no new usage/timestamp |
 | Edit finalized | Nobody without reopening | 409 conflict; no write |
-| Reopen (confirmed Edit action) | Planner/Admin on finalized | Draft, finalized timestamp cleared, changed revision |
-| Repeat reopen with current revision | Planner/Admin on draft | 200 no-op |
+| Reopen (confirmed Edit action) | Choir Leader/Planner/Admin on finalized | Draft, finalized timestamp cleared, changed revision |
+| Repeat reopen with current revision | Choir Leader/Planner/Admin on draft | 200 no-op |
 | Delete draft | Admin | 204; own selections removed atomically |
 | Delete finalized | Admin | 204; own selections removed atomically, usage recomputed |
 
@@ -112,23 +103,23 @@ Stale revisions fail before idempotent state handling. A replay carrying the old
 
 Serialize autosave requests per Mass and coalesce later edits. Maintain a temporary working copy with save status, not a second global data store. Only apply an acknowledgement to the client version it acknowledges; never replace newer unsaved edits with an old server response. On failure keep edits in memory, offer retry, and warn on navigation. On 412 show local versus saved program for review; never auto-force an overwrite. Cross-tab merge/offline durable storage is out of scope.
 
-**M3 implementation (October 7, 2026):** `masses` stores the protected aggregate and selection identities. Program saves lock Mass, then Hymns in ascending ID order, then placements in ascending ID order, matching library/category mutation ordering. Metadata changes lock the Mass before its season. A deferred PostgreSQL `(mass, placement, position)` uniqueness constraint permits atomic swaps without recreating retained rows. HTTP mutation adapters keep the service transaction open through response serialization, so acknowledgements describe the locked committed representation. Django admin is read-only for Masses/selections. The frontend uses a route-aware navigation blocker and a mounted serialized saver; pages load on demand to limit phone startup work. Metadata and program are separate atomic endpoints, sharing one revision. No lifecycle or recommendation routes are exposed yet.
+**M3 implementation (October 7, 2026):** `masses` stores the protected aggregate and selection identities. Program saves lock Mass, then Hymns in ascending ID order, then placements in ascending ID order, matching library/category mutation ordering. Metadata changes lock the Mass before its season. A deferred PostgreSQL `(mass, placement, position)` uniqueness constraint permits atomic swaps without recreating retained rows. HTTP mutation adapters keep the service transaction open through response serialization, so acknowledgements describe the locked committed representation. Django admin is read-only for Masses/selections. The frontend uses a route-aware navigation blocker and a mounted serialized saver; pages load on demand to limit phone startup work. Metadata and program are separate atomic endpoints, sharing one revision. Lifecycle routes were subsequently delivered in M4; recommendation routes remain planned.
 
 Finalization waits for all pending saves, rechecks revision, and works even with optional empty placements. An entirely empty program may be finalized only after a clear UI review warning; do not introduce an undocumented database minimum-selection rule. Hard validation protects identity/active additions. Classification/repetition are soft warnings and never become forced suitability constraints.
 
 ## ADR-006 — Literal library filters and two usage contexts
 
-Library filters AND across dimensions, OR across IDs within one dimension. Search is case-insensitive across title/alternate title/first line/composer/source and tag name. `seasons` is literal and does not implicitly include neutral-only hymns. Do not add an undocumented `include_neutral` behavior in version 1.
+Library filters AND across dimensions, OR across IDs within one dimension. Search is case-insensitive across title, Latin Characters Name, alternate title, first line, composer, source, and tag name. `seasons` is literal and does not implicitly include neutral-only hymns. Do not add an undocumented `include_neutral` behavior in version 1.
 
-`usage_count` globally counts each selection occurrence belonging to a finalized Mass. `last_used_date` is the maximum Mass date. Two rows using the same hymn count twice. Drafts/reopened Masses contribute nothing. Future finalized plans remain included per the source, and the interface calls them scheduled; relative date labels never imply they have already been sung.
+`usage_count` counts each finalized selection occurrence in the authorized selected choir. `last_used_date` is the maximum Mass date. Two rows using the same hymn count twice. Drafts/reopened Masses contribute nothing. Future finalized plans remain included per the source, and the interface calls them scheduled; relative date labels never imply they have already been sung.
 
-Ranking uses a second, explicit `history_context`: finalized occurrences with Mass date **strictly before** the target Mass date, excluding the target Mass. A hymn with only future/same-day usage can be never used **before this Mass** for ranking while having a nonzero global count. API/UI names and explanations must make that distinction clear.
+Ranking uses a second, explicit `history_context`: finalized occurrences with Mass date **strictly before** the target Mass date, excluding the target Mass. A hymn with only future/same-day usage can be never used **before this Mass** for ranking while having a nonzero selected-choir library count. API/UI names and explanations must make that distinction clear.
 
-Usage range predicates apply to occurrences (inclusive), not just the last date. Combined lower/upper bounds constrain the same occurrence. `not_used_since` means no finalized occurrence on/after that date and includes never-used records. Global library filters continue to include future finalized rows in their history predicates. Full serialization/query details are in [api.md](api.md).
+Usage range predicates apply to occurrences (inclusive), not just the last date. Combined lower/upper bounds constrain the same occurrence. `not_used_since` means no finalized occurrence on/after that date and includes never-used records. Selected-choir library filters continue to include future finalized rows in their history predicates. Full serialization/query details are in [api.md](api.md).
 
-## ADR-007 — Recommendation and warning rules
+## ADR-007 — Planned recommendations and implemented warning rules
 
-Backend eligibility requires an active hymn, requested active placement classification, and either the selected season or neutral flag. If no season is selected, match placement without season filtering and return a context notice. An inactive season retained on an existing Mass still supplies its relational matching context.
+The future recommendation contract requires an active hymn, requested active placement classification, and either the selected season or neutral flag. If no season is selected, match placement without season filtering and return a context notice. An inactive season retained on an existing Mass still supplies its relational matching context.
 
 Use the exact additive scoring/tie-break rules in the development plan. Season match and neutral bonuses may both apply. Recency and never-used bonuses are mutually exclusive. Apply -100 once when the hymn already appears anywhere in the target Mass. Final tie-breaking by ID prevents unstable duplicate-title order. Use a shared facts object for reasons and score; test boundaries with an explicit reference date.
 
@@ -162,7 +153,7 @@ Phones are the primary usage surface. Keep search visible, category/tag pickers 
 
 `transition_mass` uses the same Mass row lock and expected revision as metadata/program writes. Authorization precedes precondition checking; a stale repeated action remains a conflict. Effective transitions advance revision once, set/clear finalization time and preserve selections. Internal Mass/selection admin remains read-only. No new migration is required: M3 already persisted status and finalized_at.
 
-`hymns/usage.py` supplies correlated finalized-occurrence count/max-date annotations independent of outer category joins. Inclusive usage ranges use one Exists subquery so the same occurrence satisfies both bounds. Never-used and not-used-since use finalized occurrences only; future finalized plans remain included with scheduled wording. History selectors prefetch previews or join Mass/placement rows to avoid per-row fetching. Desktop finalization captures the displayed saved revision and describes its impact on hover/focus. Phone/touch finalization and Planner/Admin finalized Edit bind a confirmation snapshot. Both invalidate all Mass/history/library/hymn/usage query variants. Finalization conflicts refresh the saved program and require explicit acknowledgement before another attempt. An editor mounted before another session finalizes remains mounted with its local working copy for explicit review; new finalized edit-route visits redirect to saved view.
+`hymns/usage.py` supplies correlated finalized-occurrence count/max-date annotations independent of outer category joins. Inclusive usage ranges use one Exists subquery so the same occurrence satisfies both bounds. Never-used and not-used-since use finalized occurrences only; future finalized plans remain included with scheduled wording. History selectors prefetch previews or join Mass/placement rows to avoid per-row fetching. Desktop finalization captures the displayed saved revision and describes its impact on hover/focus. Phone/touch finalization and Choir Leader/Planner/Admin finalized Edit bind a confirmation snapshot. Both invalidate all Mass/history/library/hymn/usage query variants. Finalization conflicts refresh the saved program and require explicit acknowledgement before another attempt. An editor mounted before another session finalizes remains mounted with its local working copy for explicit review; new finalized edit-route visits redirect to saved view.
 
 Physical-phone acceptance is required in M4; browser emulation remains supporting evidence. See [M4 progress and acceptance log](m4-report.md).
 
@@ -179,7 +170,7 @@ Use one Render Docker service for built React, Django APIs, admin and static ass
 
 Supabase supplies PostgreSQL through the SSL session pooler on 5432 and a private S3-compatible PDF bucket. Django continues to enforce all authentication/roles; disable Supabase's unused Data API. S3 secrets remain server-side. Existing authenticated download URLs remain unchanged. Storage failures use generic 503 responses with bounded SDK waits.
 
-Free Render runs migrations/default provisioning before Gunicorn startup, then a real database readiness probe. GitHub checks use disposable PostgreSQL/local files and gate Render's native automatic deploys. Paid upgrades move migrations to pre-deploy and disable startup migrations. Schema changes must remain compatible with the prior app revision. All accounts, provider setup, Git publishing and hosted persistence checks are manual owner steps, and live completion is pending. [Deployment instructions](hosting.md).
+Free Render runs migrations/default provisioning before Gunicorn startup, then a real database readiness probe. GitHub checks use disposable PostgreSQL/local files. The existing service is deployed manually after review; native automatic deployment remains off. Paid upgrades move migrations to pre-deploy and disable startup migrations. Schema changes must remain compatible with the prior app revision. Hosting, startup migrations, and durable PDF storage are deployed. Fresh backups and owner authorization are required for another release. [Deployment instructions](hosting.md).
 
 ## Read-only performance surfaces
 

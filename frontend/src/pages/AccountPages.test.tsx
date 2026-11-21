@@ -56,7 +56,7 @@ const enabledConfig = {
 const verified = {
   id: 1,
   username: 'member',
-  role: 'Viewer',
+  role: 'User',
   email: 'member@example.test',
   email_verified: true,
   verification_required: false,

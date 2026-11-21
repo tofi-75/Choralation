@@ -76,7 +76,7 @@ def test_login_identity_persists_and_csrf_rotates(csrf_client, user):
     assert {key: response.json()[key] for key in ("id", "username", "role")} == {
         "id": user.pk,
         "username": "planner",
-        "role": "Planner",
+        "role": "User",
     }
     assert response.json()["email_verified"] is False
     assert csrf_client.cookies["csrftoken"].value != old_cookie

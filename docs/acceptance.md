@@ -1,11 +1,11 @@
 # Acceptance scenarios and fixture contract
 
-> **October 20, 2026 — Accounts and choirs:** Self-service email verification, recovery, choir membership and choir-specific hymn counts supersede the shared-workspace rules below. See [account and choir setup](accounts-and-choirs.md). Existing local data is preserved in Initial choir. Registration and mandatory legacy verification ship disabled pending owner email setup. Hosting checks: core flows accepted, records persist; PDF persistence and CI-gated deployment remain pending.
+> **Local implementation, November 21:** [Choir roles, Mass reading and lossless PDFs](roles-reader-pdf-update.md) describes the current checkout and staged rollout. These changes are not part of the live `91a8c56` release.
 
 
-> **October 13, 2026 priority update:** Render + Supabase hosting preparation is the current delivery task; see [deployment guide](hosting.md). All account/login/provider setup and publishing are manual owner steps deferred until later. Physical-phone acceptance moves from M4 to M5. Saved-Mass performance redesign and recommendations are deferred. Historical milestone statements below retain their original dates; hosted completion requires actual URL, persistence and pipeline verification.
 
-**Status:** Static M0 fixtures remain design examples. M1–M4 engineering tests and browser workflows have run; see their delivery reports and [latest M3 evidence](m3-picker-view-review.md). M4 lifecycle/usage/history engineering is verified in the [M4 report](m4-report.md); coordinator acceptance remains pending and actual-phone A10P moves to M5. M5–M7 scenarios below remain acceptance contracts until implemented and verified. Physical-phone acceptance is now required for M5 and remains pending.
+
+**Status, reviewed November 20, 2026.** M0 fixtures remain design examples. M1–M4 engineering and M6 settings/calendar are implemented and deployed, together with accounts/choirs, Manager requests, submissions, and Mass Focus. Physical-phone/coordinator acceptance is pending under M5. Recommendation and remaining M7 scenarios are still contracts for future work. See [current status](current-status.md).
 Run `node .\scripts\verify-m0.mjs` from the project root to validate the static M0 package without installing dependencies or writing files.
 
 ## Fixture rules
@@ -72,12 +72,12 @@ Record commands/results with milestone/ticket IDs. Store any generated traces, s
 ## October 10 planning review acceptance
 
 - Create Mass opens a separate details page with no list-search controls. Existing same-date plans (draft or finalized) trigger confirmation before creation. Cancel or failed lookup creates no record and keeps the input; confirmation permits another Mass on the date.
-- Next opens hymns/order with confirmed date/season read-only. Back to details and Next preserve the same working copy, selection notes/order and queued saves. Save draft waits for writes and opens the saved view.
+- Next opens hymns/order with confirmed date/season read-only. Back to details and Next preserve the same working copy, selection notes/order and queued saves. Save Mass waits for writes, finalizes, and opens the saved view. Leaving an autosaved draft and reopening it returns to edit mode.
 - Placement + expands/collapses its inline picker, rather than a modal. Search and Filters sit beside each other; rows show available metadata. Section eligibility and season/neutral priority apply before pagination. Search/filter/sort, scrolling, mismatch/duplicate overrides, Escape/Close and restored focus work by keyboard and touch.
 - Random and manual additions work over HTTP without `crypto.randomUUID`, producing distinct local row identities. Failures keep selections/notes unchanged.
 - The final list page explicitly states the list has ended. Search explains titles/notes; date and season filters remain separate. Scroll to top appears as Create Mass moves above the viewport and returns it into view.
 - Check desktop and narrow 360/390/430 px widths for overflow and accessible actions. Actual-device A10P acceptance remains a separate pending gate.
-- Deferred: redesign the saved view for performance during Mass, then test access to hymns and their available performance materials in a real rehearsal. Do not mark this deferred work complete from planning-screen tests.
+- Mass Focus is shipped. Physical rehearsal of hymn selection, PDF/lyric page turns, long downward exit, reload restoration, and readable materials remains pending.
 
 ## A10R — October 10 picker and order review
 
@@ -91,7 +91,7 @@ Automated Chromium touch input and phone-width screenshots are supporting checks
 
 ## A10L — Compact Mass list review
 
-1. Open Mass plans: Ready Masses is selected and only finalized programs appear. Pending drafts shows saved drafts. Confirm closest upcoming first and past plans under Archived in both lists.
+1. Open Mass plans: Saved Masses is selected and only finalized programs appear. Drafts shows autosaved drafts that reopen in edit mode. Confirm closest upcoming first and past plans under Archived in both lists.
 2. Search titles/notes, open the adjacent Filters icon, apply dates/season and reload. Selected list and filters persist. Switching lists preserves filters and resets pagination; Clear filters keeps the selected list.
 3. Check aligned 44 px search/icon controls and no overflow at desktop and 360/390/430 px. Scroll past Create Mass: only the arrow is visible, its accessible name is Scroll to top, and activating it restores Create Mass into view.
 
@@ -111,10 +111,10 @@ Evidence: [planning refinement](planning-refinement.md). Real-phone acceptance r
 | ID | Scenario | Gate |
 | --- | --- | --- |
 | H1 | Production routes/assets, proxy HTTPS, secure cookies/CSRF, no private-path fallback, storage errors and guarded startup/seeding | Automated local checks; Linux Docker remains CI verification |
-| H2 | Real Render HTTPS URL with provisioned accounts, private Supabase DB/PDF storage and restart/redeploy persistence | Manual owner verification pending |
+| H2 | Real Render HTTPS URL with provisioned accounts, private Supabase DB/PDF storage and restart/redeploy persistence | Live release recorded in [Current project status](current-status.md). Fresh-container PDF persistence CI passed; authenticated post-release acceptance remains separately recorded. |
 | H3 | Failed GitHub checks block deployment; subsequent passing main commit builds and deploys the hosted app | Manual owner pipeline verification pending |
 
-H2/H3 are required to complete hosting; preparing Docker/YAML/docs alone is insufficient. Physical-phone A10P is moved to M5 and must be recorded on actual devices. Recommendations and saved-Mass performance redesign remain deferred.
+H2/H3 are required to complete hosting; preparing Docker/YAML/docs alone is insufficient. Physical-phone A10P is moved to M5 and must be recorded on actual devices. Recommendations remain deferred. Mass Focus is shipped.
 
 
 ## October 19, 2026 — Home and saved Mass review
@@ -124,7 +124,7 @@ H2/H3 are required to complete hosting; preparing Docker/YAML/docs alone is insu
 - Creation dates fit their field and are capped at 13rem, with a calendar icon. Random selection is an accessible shuffle icon at the bottom; occupied placements and current edits stay intact.
 - Ordinary Time links are suitable for any season: no mismatch warning in picker/program/saved view; season preference and random picks include them. Literal library filters remain unchanged.
 - Saved drafts place Finalize and the Edit pen at top right. Desktop hover/focus explains finalization; narrow/touch screens use a short confirmation dialog. No permanent plain-text disclaimer.
-- Finalized programs show an Edit pen for Planner/Admin and Delete for Admin only. Both require explicit confirmation. Confirmed Edit returns to draft and removes derived usage until re-finalized; deletion removes the Mass/selections and usage while retaining hymns. Stale revisions never force an action.
+- Finalized programs show an Edit pen for Planner/Admin and Delete for owning Choir Leader/Admin. Both require explicit confirmation. Confirmed Edit returns to draft and removes derived usage until re-finalized; deletion removes the Mass/selections and usage while retaining hymns. Stale revisions never force an action.
 - Browser emulation is regression evidence only; physical-phone M5 acceptance remains pending. No live deployment is implied by these changes.
 
 ## October 20 performance materials and reading
@@ -133,7 +133,7 @@ H2/H3 are required to complete hosting; preparing Docker/YAML/docs alone is insu
 - Create an Arabic hymn with Latin Characters Name, lyrics, default key and tempo; save/refresh/edit without loss; find it using native and Latin letters. Required fields show burgundy stars with accessible semantics.
 - Detail shows PDF, then available lyrics, then compact metadata; usage/scheduled date belong at the top of metadata. Edit is an accessible pen icon.
 - In a saved program, titles are centered and prominent. Focus follows saved placement/selection order, preserves duplicates/notes, skips empty sections and shows PDF → lyrics → title priority. Test PDF failure, page changes, boundary controls, left/right swipe, keyboard, Escape and focus restoration.
-- PDF reading defaults to fitting the full page height within the available width. Check zoom in/out (50–300% relative to fit), the Fit to width / Fit to height toggle, scrolling when enlarged, and resizing/rotation in hymn detail, Focus mode and fullscreen. The toggle resets zoom; page changes retain the chosen fit and zoom.
+- Phone PDF reading defaults to width fit in both orientations; desktop defaults to whole-page fit. Check zoom in/out (50–300% relative to fit), the Fit to width / Fit to height toggle, scrolling when enlarged, and resizing/rotation in hymn detail, Focus mode and fullscreen. The toggle resets zoom; page changes retain the chosen fit and zoom.
 - Multi-page PDFs show Previous/Next controls beside the document in Focus mode and fullscreen. In fullscreen, tapping the left/right third or swiping horizontally turns pages without wrapping; vertical scroll, pinch and zoomed panning must not turn pages. PDF controls and their keyboard arrows must not switch hymns; the Focus footer still navigates hymns.
 - Verify screen-awake request, refusal, release on exit, late request resolution and visibility reacquisition. Browser support/system policy determine availability; confirm on actual phones under M5.
 - Future Arabic language settings require complete English/Arabic translation, RTL, remembered preference, localized labels/errors/dates and unchanged hymn content. Feature remains deferred; see [UI improvement plan](ui-performance-review.md).
@@ -183,12 +183,25 @@ The second Linux run passed **104 browser scenarios**, including the PDF and res
 
 M6.1–M6.4 deliver the Admin-only five-type classification manager, stable IDs/slugs, descriptions, active/inactive filtering, keyboard/touch reorder with complete membership/version checks, reference-aware confirmations and protected deletion. Private/pending hymns and choir calendar overrides count as references. Retained inactive labels and existing seed-edit preservation remain supported. Inputs survive failed/stale saves and unsaved changes are guarded.
 
-M6.5 delivers member-readable, choir-Planner/Admin-editable Maronite/manual defaults, IANA timezones, versioned exact-date overrides and on-demand source preview. Overrides take precedence over the selected mode. Invalid/inactive choices are handled without rewriting saved Mass dates or seasons. Choir-local defaults and archive/usage-date presentation follow the selected choir. Direct Mass links retain the owning-choir guard.
+M6.5 delivers member-readable, choir-Leader/Admin-editable Maronite/manual defaults, IANA timezones, versioned exact-date overrides and on-demand source preview. Overrides take precedence over the selected mode. Invalid/inactive choices are handled without rewriting saved Mass dates or seasons. Choir-local defaults and archive/usage-date presentation follow the selected choir. Direct Mass links retain the owning-choir guard.
 
 Validation: **419 backend tests**, **117 frontend unit tests**, Django checks, migration consistency, schema validation, Ruff, frontend type checking/lint/format, production build and actual proxy-HTTPS production-serving smoke checks passed. Full email-enabled browser validation passed **120 scenarios**, with eight expected mode skips; separate simple-account-mode validation passed **all eight**, for **128 verified scenarios** across desktop and 390/360/430px. Concurrent category edits and first calendar writes admit one successful writer and reject the stale one. Local tests use isolated data and captured/mock email, with no real sends.
 
 The normal local database was backed up and its archive listing checked before applying the additive calendar migration. Existing account/profile, choir/membership, hymn/PDF-reference, placement-link, Mass and selection fingerprints were unchanged. Development services are available on the normal local URL. Pending-source scans found no credential matches or excluded database/log/generated artifacts.
 
-**Hosted M6 release is not yet accepted:** obtain a fresh hosted database backup, complete exact-commit CI/deployment and authenticated hosted checks, and record the results. Render's November 1 read-only check confirmed automatic deployment is off; no compute, billing, scaling or automatic-deployment setting was changed. Physical-phone acceptance remains deferred. See [M6 guide and release gates](m6-settings.md).
+**M6 release update, November 20.** M6 code/migrations are included in the live release and its passing CI. A new authenticated hosted category/calendar mutation was not performed for this documentation review. Future deployments still need a fresh database/PDF backup and relevant acceptance. Render's November 1 read-only check confirmed automatic deployment is off; no compute, billing, scaling or automatic-deployment setting was changed. Physical-phone acceptance remains deferred. See [M6 guide and release gates](m6-settings.md).
 
 M6 final usability follow-up: a regression reproduced lost focus when a saved dialog closed before its refresh completed. The save sequence now restores focus after controls are enabled. A second regression protects an unfinished override from unrelated settings changes. All **117 frontend tests** passed, and all **eight M6 browser scenarios** passed again across the four viewports.
+
+## November 15 release and current regression coverage
+
+[Release CI](https://github.com/tofi-75/Choralation/actions/runs/43712740786) passed application checks and production image/PDF persistence checks on deployed `91a8c56`. It includes 119 frontend unit tests. Historical counts above describe their dated runs.
+
+- Drafts autosave and reopen in edit mode. Save Mass waits for writes and finalizes. Stale revisions preserve the working copy.
+- Create a hymn from a Mass section, return to that section, confirm any warnings before insertion, and verify refresh/history replay cannot duplicate it.
+- Submit Manager requests, reject duplicates, decline/reapply, approve, and reject competing decisions. Check Admin-only queue access, account access refresh, manual grant resolution, and preserved memberships after revoke.
+- Verify PDF and lyric page boundaries, panning to an edge before a fresh swipe, diagonal/multitouch cancellation, nested fullscreen page preservation, lyrics in mixed scripts, reflow, and return focus.
+- Check equal Focus title sizing and ellipsis for long English/Arabic titles. Reload the same Mass with Focus open and confirm restoration at the first hymn, then explicitly exit and reload to confirm the saved program remains visible.
+- Choir browser flows verify and dismiss each modal success notice before interacting with the underlying page. The formerly failing creation/approval/code-rotation journey passed on all four local screen profiles and in release CI.
+
+The email-verification/password-reset journey is intentionally skipped while those features are unreleased. Physical iPhone Safari, Android Chrome, screen-reader, Firefox, and coordinator evidence remain pending.

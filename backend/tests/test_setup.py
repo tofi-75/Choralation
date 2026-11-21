@@ -30,14 +30,14 @@ def test_create_user_hashes_password_and_rejects_overwrite(monkeypatch, django_u
     call_command(
         "create_app_user",
         "test-viewer",
-        role="Viewer",
+        role="User",
         password_env="FIXTURE_USER_PASSWORD",
         stdout=StringIO(),
     )
     user = django_user_model.objects.get(username="test-viewer")
     assert user.check_password("Fixture-Strong-Secret-735!")
     assert not user.is_staff and not user.is_superuser
-    assert user.groups.get().name == "Viewer"
+    assert user.groups.get().name == "User"
     with pytest.raises(CommandError, match="unused username"):
         call_command("create_app_user", "test-viewer", password_env="FIXTURE_USER_PASSWORD")
 

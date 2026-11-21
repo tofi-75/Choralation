@@ -14,12 +14,12 @@ pytestmark = pytest.mark.django_db
 @pytest.mark.parametrize(
     ("groups", "staff", "superuser", "expected"),
     [
-        ([], False, False, Role.VIEWER),
-        (["Viewer"], False, False, Role.VIEWER),
-        (["Planner"], False, False, Role.PLANNER),
+        ([], False, False, Role.USER),
+        (["Viewer"], False, False, Role.USER),
+        (["Planner"], False, False, Role.USER),
         (["Admin"], False, False, Role.ADMIN),
         (["Viewer", "Planner", "Admin"], False, False, Role.ADMIN),
-        ([], True, False, Role.VIEWER),
+        ([], True, False, Role.USER),
         ([], True, True, Role.ADMIN),
     ],
 )
@@ -32,7 +32,7 @@ def test_highest_role_and_capabilities(django_user_model, groups, staff, superus
     request = SimpleNamespace(user=user)
     assert role_for(user) == expected
     assert PlannerPermission().has_permission(request, None) == (
-        expected in {Role.PLANNER, Role.ADMIN}
+        bool(set(groups) & {"Planner", "Admin"} or superuser)
     )
     assert AdminPermission().has_permission(request, None) == (expected == Role.ADMIN)
 

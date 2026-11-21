@@ -33,8 +33,8 @@ export function ManagerRequests() {
       if (action.type === 'decision') {
         await decideManagerRequest(action.id, action.status);
         return action.status === 'approved'
-          ? 'Manager access approved.'
-          : 'Manager request declined.';
+          ? 'Choirmaster access approved.'
+          : 'Choirmaster request declined.';
       }
       const result = await setChoirCreationPermission(action.username, action.allow);
       return result.detail;
@@ -50,7 +50,7 @@ export function ManagerRequests() {
     <>
       <section className="form-section" aria-labelledby="manager-requests-heading">
         <div className="section-heading">
-          <h2 id="manager-requests-heading">Manager requests</h2>
+          <h2 id="manager-requests-heading">Choirmaster requests</h2>
           <button
             className="text-button"
             disabled={queue.isFetching || mutation.isPending}
@@ -85,12 +85,12 @@ export function ManagerRequests() {
                       <button
                         key={status}
                         className={`button ${status === 'approved' ? 'primary' : 'secondary'}`}
-                        aria-label={`${label} Manager request from ${item.username}`}
+                        aria-label={`${label} Choirmaster request from ${item.username}`}
                         disabled={mutation.isPending}
                         onClick={async () => {
                           if (
                             await confirm(
-                              `${label} the Manager request from ${item.username}?`,
+                              `${label} the Choirmaster request from ${item.username}?`,
                               label,
                             )
                           ) {
@@ -109,7 +109,7 @@ export function ManagerRequests() {
           </ul>
         )}
         {(page > 1 || queue.data?.next) && (
-          <nav className="form-actions" aria-label="Manager request pages">
+          <nav className="form-actions" aria-label="Choirmaster request pages">
             <button
               className="button secondary"
               disabled={page === 1 || mutation.isPending}
@@ -140,7 +140,7 @@ export function ManagerRequests() {
             if (
               !username ||
               !(await confirm(
-                `${allow ? 'Grant' : 'Revoke'} Manager access for ${username}?`,
+                `${allow ? 'Grant' : 'Revoke'} Choirmaster access for ${username}?`,
                 'Update permission',
               ))
             )

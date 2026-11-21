@@ -86,7 +86,7 @@ beforeEach(() => {
   mocks.list.mockResolvedValue([row, { ...row, id: 2, name: 'Modern' }]);
   mocks.impact.mockResolvedValue({ ...row, reference_counts: { hymns: 2 } });
   mocks.calendar.mockResolvedValue(calendar);
-  mocks.choir.mockResolvedValue({ name: 'Test choir', role: 'Planner' });
+  mocks.choir.mockResolvedValue({ name: 'Test choir', role: 'Leader' });
 });
 it('preserves edited text on a stale save and blocks deleting linked categories', async () => {
   mocks.save.mockRejectedValue(new ApiError('Refresh before saving.', 'settings_conflict', 409));
@@ -145,7 +145,7 @@ it('saves choir calendar versions and protects deliberate unsaved defaults', asy
 it('shows members read-only settings without mutation actions', async () => {
   mocks.choir.mockResolvedValue({ name: 'Test choir', role: 'Member' });
   mount('/choirs/7/calendar');
-  expect(await screen.findByText('Your choir planners manage these settings.')).toBeVisible();
+  expect(await screen.findByText('Your Choir Leaders manage these settings.')).toBeVisible();
   expect(screen.getByRole('combobox', { name: 'Calendar' })).toBeDisabled();
   expect(screen.queryByRole('button', { name: 'Save calendar settings' })).not.toBeInTheDocument();
   expect(screen.queryByLabelText('Override date')).not.toBeInTheDocument();

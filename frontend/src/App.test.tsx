@@ -83,7 +83,7 @@ it('preserves credentials after a failure and supports retry, login, and logout'
         return new Response(null, { status: 204 });
       }
       return authenticated
-        ? Response.json({ id: 1, username: 'planner', role: 'Planner' })
+        ? Response.json({ id: 1, username: 'planner', role: 'User', can_edit_hymns: true })
         : Response.json(
             { detail: 'Sign in', code: 'not_authenticated', errors: {} },
             { status: 403 },
@@ -100,7 +100,7 @@ it('preserves credentials after a failure and supports retry, login, and logout'
   expect(screen.getByLabelText('Password', { exact: true })).toHaveValue('kept-secret');
   await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
   expect(await screen.findByRole('heading', { name: 'Masses' })).toBeVisible();
-  expect(screen.getByText('Planner', { selector: '.role-badge' })).toBeVisible();
+  expect(screen.getByText('User', { selector: '.role-badge' })).toBeVisible();
   await userEvent.click(screen.getByText('Account menu', { exact: true }));
   await userEvent.click(screen.getByRole('button', { name: 'Sign out' }));
   expect(await screen.findByRole('heading', { name: 'Sign in to your workspace' })).toBeVisible();
@@ -147,7 +147,7 @@ it('returns to login on session expiry and clears private cached data', async ()
               { detail: 'Expired', code: 'not_authenticated', errors: {} },
               { status: 403 },
             )
-          : Response.json({ id: 2, username: 'viewer', role: 'Viewer' }),
+          : Response.json({ id: 2, username: 'viewer', role: 'User' }),
     ),
   );
   const client = renderApp('/dashboard');

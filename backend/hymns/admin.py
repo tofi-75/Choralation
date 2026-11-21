@@ -9,7 +9,7 @@ from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
 from rest_framework.exceptions import APIException
 
-from accounts.permissions import Role, role_for
+from accounts.permissions import Role, can_edit_shared_hymns, role_for
 from hymns import services
 from hymns.models import CATEGORY_TYPES, RELATIONS, Hymn
 from hymns.serializers import CategoryWriteSerializer, HymnWriteSerializer
@@ -150,7 +150,14 @@ class CategoryAdmin(GuardedAdmin):
 @admin.register(Hymn)
 class HymnAdmin(GuardedAdmin):
     form = HymnForm
-    edit_roles = {Role.ADMIN, Role.PLANNER}
+    edit_roles = set(Role)
+
+    def has_add_permission(self, request):
+        return super().has_add_permission(request) and can_edit_shared_hymns(request.user)
+
+    def has_change_permission(self, request, obj=None):
+        return super().has_change_permission(request, obj) and can_edit_shared_hymns(request.user)
+
     list_display = ["title", "language", "is_active", "updated_at"]
     list_filter = ["is_active", "language"]
     search_fields = ["title", "latin_title", "alternate_title", "composer", "source_or_hymnal"]

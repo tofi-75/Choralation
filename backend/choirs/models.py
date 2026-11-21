@@ -22,7 +22,9 @@ class Membership(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="choir_memberships"
     )
     role = models.CharField(
-        max_length=8, choices=[("Member", "Member"), ("Planner", "Planner")], default="Member"
+        max_length=8,
+        choices=[("Member", "Member"), ("Planner", "Planner"), ("Leader", "Choir Leader")],
+        default="Member",
     )
     joined_at = models.DateTimeField(auto_now_add=True)
 

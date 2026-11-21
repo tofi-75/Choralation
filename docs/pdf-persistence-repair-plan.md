@@ -1,5 +1,8 @@
 # PDF persistence diagnosis and repair plan
 
+> Historical delivery record. Test counts, commit state, UI labels, and pending actions describe the dated work below. For the deployed release and current workflow, read [Current project status](current-status.md).
+
+
 Status: code safeguards, storage diagnostics and fresh-container CI coverage implemented locally. See [manual setup and acceptance](pdf-storage-setup.md). The owner has secured readable PDFs/originals. Storage settings, passing CI and retained-file acceptance are release gates; the repair is not yet declared live or complete. Payment and compute settings remain unchanged.
 
 ## Findings — 26 October 2026

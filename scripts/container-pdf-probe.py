@@ -1,6 +1,7 @@
 """Isolated CI probe run inside each fresh app container, never against hosted data."""
 
 import base64
+import gzip
 import hashlib
 import json
 import os
@@ -101,6 +102,13 @@ def main():
     actual = b"".join(response.streaming_content)
     response.close()
     assert hashlib.sha256(actual).hexdigest() == data["sha256"]
+    assert hymn.sheet_music_pdf_encoding == "gzip"
+    assert hymn.sheet_music_pdf_sha256 == data["sha256"]
+    encoded_response = client.get(url + "sheet-music/", HTTP_ACCEPT_ENCODING="gzip")
+    assert encoded_response["Content-Encoding"] == "gzip"
+    encoded_bytes = b"".join(encoded_response.streaming_content)
+    encoded_response.close()
+    assert hashlib.sha256(gzip.decompress(encoded_bytes)).hexdigest() == data["sha256"]
     if "key" in data and data["phase"] != "replace":
         assert key == data["key"]
     assert not (Path(settings.MEDIA_ROOT) / key).exists(), (

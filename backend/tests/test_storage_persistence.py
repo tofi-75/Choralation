@@ -95,7 +95,9 @@ def test_canary_uses_only_unique_owned_keys_and_cleans_up():
     assert files == {"sheet-music/existing.pdf": b"private original"}
     names = [call.args[0] for call in storage.save.call_args_list]
     assert len(set(names)) == 2
-    assert all(name.startswith("_deployment-checks/") and name.endswith(".pdf") for name in names)
+    assert all(
+        name.startswith("_deployment-checks/") and name.endswith(".pdf.gz") for name in names
+    )
     assert [call.args[0] for call in storage.delete.call_args_list] == names
 
 
@@ -214,13 +216,15 @@ def test_audit_is_admin_only_includes_private_rows_and_hides_storage_keys(
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("failure", ["upload", "database"])
+@pytest.mark.parametrize("compressed", [False, True])
 def test_failed_replacement_preserves_original_and_only_cleans_new_upload(
-    settings, tmp_path, django_user_model, failure
+    settings, tmp_path, django_user_model, failure, compressed
 ):
     from common.storage import StorageUnavailable
 
     settings.MEDIA_ROOT = tmp_path
     settings.ACCOUNT_EMAIL_VERIFICATION_ENABLED = False
+    settings.PDF_COMPRESSED_WRITES = compressed
     admin = django_user_model.objects.create_user(username="replace-admin", is_superuser=True)
     language = Language.objects.create(name="Replace", slug="replace")
     placement = MassPlacement.objects.create(name="Replace", slug="replace")
@@ -262,8 +266,9 @@ def test_failed_replacement_preserves_original_and_only_cleans_new_upload(
         assert delete.call_count == 1 and delete.call_args.args[0] != old
     hymn.refresh_from_db()
     assert hymn.sheet_music_pdf.name == old
-    with hymn.sheet_music_pdf.open("rb") as file:
-        assert file.read() == b"%PDF-1.4\noriginal\n%%EOF"
+    from hymns.pdf_storage import read_pdf
+
+    assert read_pdf(hymn)[1] == b"%PDF-1.4\noriginal\n%%EOF"
 
 
 @pytest.mark.django_db

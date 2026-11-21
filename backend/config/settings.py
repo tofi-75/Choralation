@@ -120,6 +120,7 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 # Uploads are private: access goes through the authenticated hymn API, never /media/.
 MEDIA_ROOT = Path(os.environ.get("DJANGO_MEDIA_ROOT", PROJECT_ROOT / ".local" / "media"))
+PDF_COMPRESSED_WRITES = boolean("PDF_COMPRESSED_WRITES", False)
 STORAGES = storage_options()
 FRONTEND_ROOT = Path(os.environ.get("DJANGO_FRONTEND_ROOT", PROJECT_ROOT / "frontend" / "dist"))
 SERVE_FRONTEND = boolean("DJANGO_SERVE_FRONTEND")
@@ -170,8 +171,8 @@ SPECTACULAR_SETTINGS = {
         "MassStatusEnum": ["draft", "finalized"],
         "JoinDecisionEnum": ["approved", "declined"],
         "JoinRequestStatusEnum": ["pending", "approved", "declined", "cancelled"],
-        "AccountRoleEnum": ["Admin", "Planner", "Viewer"],
-        "ChoirRoleEnum": ["Member", "Planner"],
+        "AccountRoleEnum": ["Admin", "Choirmaster", "User"],
+        "ChoirRoleEnum": ["Member", "Planner", "Leader"],
     },
     "TITLE": "Mass Hymn Picker API",
     "DESCRIPTION": "Session authentication, hymn library, classifications, and private PDF sheet music.",

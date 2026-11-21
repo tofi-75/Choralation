@@ -16,12 +16,12 @@ from django.utils import timezone
 from django.utils.text import slugify
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
 
-from accounts.permissions import Role, role_for, verified_access
+from accounts.permissions import Role, can_edit_shared_hymns, role_for, verified_access
 from choirs.access import is_admin, require_choir
 from choirs.models import Membership
 from common.storage import StorageUnavailable
 from hymns.models import CATEGORY_TYPES, RELATIONS, Hymn
-from hymns.uploads import pdf_upload_path
+from hymns.pdf_storage import delete_unreferenced, prepare_upload
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +34,12 @@ class ReferencedRecord(APIException):
 
 def require_role(actor, minimum: Role) -> None:
     """Reject unauthenticated/insufficient actors, including direct service callers."""
-    allowed = {Role.ADMIN} if minimum == Role.ADMIN else {Role.ADMIN, Role.PLANNER}
-    if not verified_access(actor) or role_for(actor) not in allowed:
+    if not verified_access(actor) or role_for(actor) != minimum:
+        raise PermissionDenied("Your account cannot make this change.")
+
+
+def require_hymn_editor(actor):
+    if not can_edit_shared_hymns(actor):
         raise PermissionDenied("Your account cannot make this change.")
 
 
@@ -179,9 +183,9 @@ def _save_hymn(data, actor, pk, stored_files) -> Hymn:
     except Hymn.DoesNotExist as error:
         raise NotFound("Hymn not found.") from error
     if pk is None:
-        hymn.publication_status = "private" if role_for(actor) == Role.VIEWER else "published"
+        hymn.publication_status = "published" if can_edit_shared_hymns(actor) else "private"
     elif hymn.publication_status == "published":
-        require_role(actor, Role.PLANNER)
+        require_hymn_editor(actor)
     elif hymn.created_by_id != actor.pk and role_for(actor) != Role.ADMIN:
         raise NotFound("Hymn not found.")
     else:
@@ -254,13 +258,17 @@ def _save_hymn(data, actor, pk, stored_files) -> Hymn:
     upload = data.get("sheet_music_pdf")
     storage = hymn.sheet_music_pdf.storage
     if upload:
-        name = storage.save(pdf_upload_path(hymn, upload.name), upload)
+        key, content = prepare_upload(hymn, upload)
+        name = storage.save(key, content)
         stored_files.append((storage, name))
         hymn.sheet_music_pdf.name = name
         hymn.sheet_music_pdf_name = upload.name.replace("\\", "/").rsplit("/", 1)[-1][:255]
     elif data.get("remove_sheet_music_pdf"):
         hymn.sheet_music_pdf = ""
         hymn.sheet_music_pdf_name = ""
+        hymn.sheet_music_pdf_encoding = "identity"
+        hymn.sheet_music_pdf_size = None
+        hymn.sheet_music_pdf_sha256 = ""
     if pk is None:
         hymn.created_by = actor
     hymn.updated_by = actor
@@ -268,7 +276,7 @@ def _save_hymn(data, actor, pk, stored_files) -> Hymn:
     for name in RELATIONS:
         getattr(hymn, name).set(incoming[name])
     if old_pdf and old_pdf != hymn.sheet_music_pdf.name:
-        transaction.on_commit(lambda: storage.delete(old_pdf), robust=True)
+        transaction.on_commit(lambda: delete_unreferenced(storage, old_pdf), robust=True)
     return hymn
 
 
@@ -291,7 +299,7 @@ def delete_hymn(pk: int, actor) -> None:
     except ProtectedError as error:
         raise ReferencedRecord() from error
     if pdf_name:
-        transaction.on_commit(lambda: storage.delete(pdf_name), robust=True)
+        transaction.on_commit(lambda: delete_unreferenced(storage, pdf_name), robust=True)
 
 
 class SubmissionConflict(APIException):

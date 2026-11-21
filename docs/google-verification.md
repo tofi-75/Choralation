@@ -1,5 +1,8 @@
 # Gmail and Google verification readiness
 
+> Reviewed November 20, 2026. [Current project status](current-status.md) records the live release. Dated verification notes below describe their original test sessions.
+
+
 **October 25 release:** [Simple accounts and owner-assisted recovery](simple-accounts-release.md) supersedes earlier registration/verification activation instructions. Gmail is retained for future use; both email features remain explicitly disabled. No Google submission or billing change is part of this release.
 
 Prepared 24 October 2026. Operator: **Toufic Lattouf, Lebanon**. Contact and authorized sending account: **tofi.lattouf@gmail.com**.
@@ -37,7 +40,7 @@ Approval of this explanation and this use case is Google's decision. The owner-o
 5. The browser receives the token in a URL fragment, removes it from the address bar and submits a CSRF-protected verification POST automatically. A valid verification link verifies the email and signs its owner in, then opens Home without an additional password sign-in. An already signed-in different account must explicitly sign out before switching. HTTP GET alone never consumes a token. Treat the verification link as a sign-in credential; a JavaScript-capable link scanner can trigger the same client flow.
 6. Logs/reports must not contain credentials, raw tokens, message bodies or private choir data. API responses use no-store caching and vary by Cookie. Secrets are excluded from Git and Docker contexts.
 
-The shared hymn library is available to verified users. Choir records are membership-scoped; Admins have platform oversight. This is not end-to-end encryption. Do not describe every PDF as private from other verified users.
+The shared published hymn library is available to signed-in users in current simple-account mode. If mandatory verification is activated later, its account checks also apply. Choir records are membership-scoped; Admins have platform oversight. This is not end-to-end encryption. Do not describe every PDF as private from other verified users.
 
 **Accepted limitation:** password-reset sending remains synchronous to preserve the free hosting setup. Generic response wording and persistent rate limits do not eliminate timing-based account inference. Do not claim constant-time responses.
 

@@ -54,7 +54,7 @@ def summary(choir, user, *, outsider=False):
         "member_count": choir.memberships.count()
         if choir.show_member_count or role or is_admin(user)
         else None,
-        "role": "Planner" if is_admin(user) and not outsider else role,
+        "role": "Leader" if is_admin(user) and not outsider else role,
     }
 
 
@@ -85,7 +85,7 @@ def summaries(rows, user, *, outsider=False):
             "member_count": c.total_members
             if c.show_member_count or roles.get(c.pk) or admin
             else None,
-            "role": "Planner" if admin else roles.get(c.pk),
+            "role": "Leader" if admin else roles.get(c.pk),
         }
         for c in rows
     ]
@@ -126,7 +126,7 @@ class ChoirViewSet(viewsets.GenericViewSet):
                 "id", "user_id", "role", username=F("user__username")
             )
         )
-        if data["role"] == "Planner":
+        if data["role"] == "Leader":
             data["code"] = choir.codes.get(is_active=True).code
             data["requests"] = list(
                 choir.join_requests.filter(status="pending")
@@ -138,7 +138,7 @@ class ChoirViewSet(viewsets.GenericViewSet):
     @extend_schema(request=ChoirWriteSerializer)
     @transaction.atomic
     def partial_update(self, request, pk=None):
-        choir = require_choir(request.user, pk, planner=True, lock=True)
+        choir = require_choir(request.user, pk, leader=True, lock=True)
         data = ChoirWriteSerializer(data=request.data, partial=True)
         data.is_valid(raise_exception=True)
         for key, value in data.validated_data.items():
@@ -209,7 +209,7 @@ class ChoirViewSet(viewsets.GenericViewSet):
         rows = JoinRequest.objects.filter(status="pending")
         if not is_admin(request.user):
             rows = rows.filter(
-                choir_id__in=Membership.objects.filter(user=request.user, role="Planner").values(
+                choir_id__in=Membership.objects.filter(user=request.user, role="Leader").values(
                     "choir_id"
                 )
             )

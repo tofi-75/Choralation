@@ -1,5 +1,6 @@
 """Private, bounded storage diagnostics; never return provider secrets or file contents."""
 
+import gzip
 import secrets
 from uuid import uuid4
 
@@ -19,14 +20,16 @@ def check_storage(storage=None):
     storage = storages["default"] if storage is None else storage
     if not isinstance(storage, S3Storage):
         raise StorageCheckFailed("Hosted PDF storage must use S3; local files are not durable.")
-    name = f"_deployment-checks/{uuid4().hex}.pdf"
+    name = f"_deployment-checks/{uuid4().hex}.pdf.gz"
     payload = b"%PDF-1.4\n% Storage check " + secrets.token_hex(16).encode() + b"\n%%EOF\n"
+    encoded = gzip.compress(payload, mtime=0)
     failure = None
     try:
         # A unique run-owned key; no existing attachment is ever touched.
-        name = storage.save(name, ContentFile(payload))
+        name = storage.save(name, ContentFile(encoded))
         with storage.open(name, "rb") as handle:
-            if handle.read(len(payload) + 1) != payload:
+            stored = handle.read(len(encoded) + 1)
+            if stored != encoded or gzip.decompress(stored) != payload:
                 raise StorageCheckFailed("Storage content verification failed.")
     except Exception:
         failure = (

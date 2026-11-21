@@ -1,7 +1,7 @@
 /** A read-only performance session; each selection retains its program position. */
 import * as Dialog from '@radix-ui/react-dialog';
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import type { RefObject } from 'react';
+import { useCallback, useEffect, useId, useImperativeHandle, useRef, useState } from 'react';
+import type { Ref, RefObject } from 'react';
 import { flushSync } from 'react-dom';
 import type { Mass } from '../../api/masses';
 import { HymnMaterial } from '../hymns/HymnMaterial';
@@ -59,23 +59,30 @@ function FocusSession({
   selections: initialSelections,
   rootRef,
   closeFocus,
+  initialSelectionId,
+  restoreFocus,
 }: {
   selections: Selection[];
   rootRef: RefObject<HTMLDivElement | null>;
   closeFocus: () => void;
+  initialSelectionId: number | null;
+  restoreFocus: (event: Event) => void;
 }) {
   // Keep the reading sequence stable if another session edits/refetches the Mass.
   const [selections] = useState(initialSelections);
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(() =>
+    Math.max(
+      0,
+      initialSelections.findIndex((row) => row.id === initialSelectionId),
+    ),
+  );
   const [pages, setPages] = useState<Record<number, number>>({});
   const [lyricSize, setLyricSize] = useState<LyricSize>('standard');
   const [lyricPositions, setLyricPositions] = useState<Record<number, number>>({});
   const turnLyricPage = useRef<LyricPageNavigation>(null);
   const titleId = useId();
   const [fit, setFit] = useState<PdfFit>(() =>
-    window.matchMedia?.('(any-pointer: coarse) and (orientation: landscape)').matches
-      ? 'width'
-      : 'height',
+    window.matchMedia?.('(any-pointer: coarse)').matches ? 'width' : 'height',
   );
   useScreenAwake();
   const selected = selections[index];
@@ -95,6 +102,7 @@ function FocusSession({
       ref={rootRef}
       aria-describedby={undefined}
       data-reader-swipe
+      onCloseAutoFocus={restoreFocus}
       onOpenAutoFocus={(event) => {
         event.preventDefault();
         rootRef.current?.focus({ preventScroll: true });
@@ -236,13 +244,20 @@ function FocusSession({
 
 const activeFocusStorageKey = 'choralation-active-mass-focus';
 
+export type MassFocusHandle = { open: (selectionId: number, trigger: HTMLElement) => void };
+
 export function MassFocusMode({
   selections,
   resumeKey,
+  launchRef,
 }: {
   selections: Selection[];
   resumeKey?: string;
+  launchRef?: Ref<MassFocusHandle>;
 }) {
+  const [initialSelectionId, setInitialSelectionId] = useState<number | null>(null);
+  const launchButton = useRef<HTMLButtonElement>(null);
+  const origin = useRef<{ element: HTMLElement; x: number; y: number } | null>(null);
   const [open, setOpen] = useState(() => {
     if (!resumeKey || !selections.length) return false;
     try {
@@ -267,12 +282,34 @@ export function MassFocusMode({
   );
   const closeFocus = useCallback(() => changeOpen(false), [changeOpen]);
   const { rootRef, requestFullscreen } = useReaderFullscreen(open, closeFocus);
+  useImperativeHandle(launchRef, () => ({
+    open(selectionId, trigger) {
+      if (!selections.some((row) => row.id === selectionId)) return;
+      origin.current = { element: trigger, x: window.scrollX, y: window.scrollY };
+      flushSync(() => {
+        setInitialSelectionId(selectionId);
+        changeOpen(true);
+      });
+      if (window.matchMedia?.('(any-pointer: coarse)').matches) requestFullscreen();
+    },
+  }));
+  const restoreFocus = (event: Event) => {
+    event.preventDefault();
+    const previous = origin.current;
+    const target = previous?.element.isConnected ? previous.element : launchButton.current;
+    target?.focus({ preventScroll: true });
+    if (previous) window.scrollTo(previous.x, previous.y);
+    origin.current = null;
+  };
   return (
     <Dialog.Root open={open} onOpenChange={changeOpen}>
       <Dialog.Trigger
+        ref={launchButton}
         className="button secondary focus-trigger"
         disabled={!selections.length}
         onClick={(event) => {
+          origin.current = null;
+          setInitialSelectionId(null);
           if (!window.matchMedia?.('(any-pointer: coarse)').matches) return;
           event.preventDefault();
           flushSync(() => changeOpen(true));
@@ -285,7 +322,13 @@ export function MassFocusMode({
         {open && (
           <>
             <Dialog.Overlay className="dialog-overlay" />
-            <FocusSession selections={selections} rootRef={rootRef} closeFocus={closeFocus} />
+            <FocusSession
+              selections={selections}
+              rootRef={rootRef}
+              closeFocus={closeFocus}
+              initialSelectionId={initialSelectionId}
+              restoreFocus={restoreFocus}
+            />
           </>
         )}
       </Dialog.Portal>

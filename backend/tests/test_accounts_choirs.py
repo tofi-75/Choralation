@@ -369,10 +369,10 @@ def test_private_code_needs_approval_regeneration_retires_old_and_preserves_requ
 def test_membership_management_and_creation_permission_are_separate(pair):
     planner, member, _, a, b = pair
     owner = Membership.objects.get(choir=a, user=planner)
-    with pytest.raises(Exception, match="last planner"):
+    with pytest.raises(Exception, match="last leader"):
         change_member(planner, a.pk, owner.pk)
     regular = Membership.objects.get(choir=a, user=member)
-    change_member(planner, a.pk, regular.pk, "Planner")
+    change_member(planner, a.pk, regular.pk, "Leader")
     change_member(planner, a.pk, owner.pk)
     with pytest.raises(Exception, match="administrator"):
         create_choir(member, {"name": "Not allowed"})
@@ -518,7 +518,7 @@ def test_choir_creation_grants_are_admin_only_and_do_not_grant_membership(pair):
     assert not Membership.objects.filter(choir=b, user=member).exists()
     assert (
         create_choir(member, {"name": "New permitted choir"}).memberships.get(user=member).role
-        == "Planner"
+        == "Leader"
     )
 
 

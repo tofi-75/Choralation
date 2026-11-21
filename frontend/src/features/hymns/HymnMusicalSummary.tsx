@@ -9,7 +9,7 @@ export function HymnMusicalSummary({
 }) {
   const voices = hymn.is_polyphonic ? hymn.voices.length || '-' : 1;
   return (
-    <p className="hymn-musical-summary" aria-label="Musical details">
+    <span className="hymn-musical-summary" aria-label="Musical details">
       {showLanguage && <bdi>{hymn.language.name}</bdi>}
       <span>
         Key{' '}
@@ -27,6 +27,6 @@ export function HymnMusicalSummary({
         Voices <strong>{voices}</strong>
       </span>
       {showLanguage && !hymn.is_active && <span>Inactive hymn retained</span>}
-    </p>
+    </span>
   );
 }

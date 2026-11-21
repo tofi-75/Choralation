@@ -89,7 +89,7 @@ export function MassesPage() {
               {archived ? 'Drafts' : 'Archived Masses'}
             </Link>
           )}
-          {active.role === 'Planner' && (
+          {['Leader', 'Planner'].includes(active.role ?? '') && (
             <Link ref={createButton} className="button primary new-mass-action" to="/masses/new">
               New Mass
             </Link>

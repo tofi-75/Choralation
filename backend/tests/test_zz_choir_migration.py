@@ -60,7 +60,7 @@ def test_legacy_migration_preserves_identity_passwords_masses_and_selections():
             apps.get_model("choirs", "Membership")
             .objects.get(choir_id=saved_mass.choir_id, user_id=user.pk)
             .role
-            == "Planner"
+            == "Leader"
         )
         assert (
             profile.email == "legacy@example.test"

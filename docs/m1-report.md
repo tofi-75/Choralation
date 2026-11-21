@@ -1,5 +1,7 @@
 # M1 completion report — authenticated application
 
+> Historical delivery record. Test counts, commit state, UI labels, and pending actions describe the dated work below. For the deployed release and current workflow, read [Current project status](current-status.md).
+
 **Date:** October 6, 2026. **Engineering status:** M1 implemented and verified on Windows with native PostgreSQL. M2–M7 remain planned. Coordinator acceptance, container execution, and production deployment are not claimed.
 
 ## Usable increment

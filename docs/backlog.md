@@ -1,13 +1,9 @@
-> **November 1, 2026:** M6 classification/calendar settings are implemented locally; see [M6 delivery and release gates](m6-settings.md). Earlier milestones below are historical planning records. Core hosted flows, records and private PDF persistence were subsequently verified; physical-phone acceptance and automatic-deployment acceptance remain deferred. M6 hosted migration/release still requires its fresh backup and final release checks.
 
+
+> **Local implementation, November 21:** [Choir roles, Mass reading and lossless PDFs](roles-reader-pdf-update.md) describes the current checkout and staged rollout. These changes are not part of the live `91a8c56` release.
 # Delivery backlog and accountability
 
-> **October 20, 2026 — Accounts and choirs:** Self-service email verification, recovery, choir membership and choir-specific hymn counts supersede the shared-workspace rules below. See [account and choir setup](accounts-and-choirs.md). Existing local data is preserved in Initial choir. Registration and mandatory legacy verification ship disabled pending owner email setup. Hosting checks: core flows accepted, records persist; PDF persistence and CI-gated deployment remain pending.
-
-
-> **October 13, 2026 priority update:** Render + Supabase hosting preparation is the current delivery task; see [deployment guide](hosting.md). All account/login/provider setup and publishing are manual owner steps deferred until later. Physical-phone acceptance moves from M4 to M5. Saved-Mass performance redesign and recommendations are deferred. Historical milestone statements below retain their original dates; hosted completion requires actual URL, persistence and pipeline verification.
-
-**Baseline:** October 8, 2026. M0–M3 engineering work and requested M3 follow-ups are complete. The owner authorized the M3 commit and beginning M4. M4.1–M4.5 engineering is implemented and verified; M4.6 acceptance is pending. M5–M7 have not started. Container execution and coordinator review remain pending; physical-phone acceptance is an explicit M4 gate.
+**Current status, November 20, 2026.** M0–M4 engineering, M6 settings/calendar, accounts/choirs, Manager requests, hymn submissions, and Mass Focus are shipped. [Current project status](current-status.md) records the deployed commit and CI. Physical-phone/coordinator acceptance remains pending.
 **Accountable implementation owner for every milestone:** Codex, working in this project/chat. Backend, frontend, and quality roles below are responsibility areas for that owner, not invented staffing assignments. Implementation was not delegated; the owner requested one read-only subagent review of M2 changes.
 **Product reviewer:** Church music coordinator, not yet assigned; human acceptance remains pending.
 
@@ -15,7 +11,7 @@ Follow the [development plan](../DEVELOPMENT_PLAN.md) for complete milestone gat
 
 ## November 8, 2026 follow-ups
 
-### Bug fixes implemented locally
+### Shipped bug fixes
 
 - **Mass creation date field on phones.** Match the date card to the size of the liturgical season field at the same phone width. Check that the date field fits within its card and that neither the card nor its contents cover nearby sections.
 - **Liturgical season choices.** Use the eight approved groups in order and align automatic Mass suggestions with them. Map the older default categories and their existing references as described in [App season groups](calendar.md#app-season-groups).
@@ -23,7 +19,7 @@ Follow the [development plan](../DEVELOPMENT_PLAN.md) for complete milestone gat
 - **Hymn actions on phones.** Place **My hymns** and **Add hymn** side by side on both the Hymns page and the Add hymn page.
 - **Scroll position after saving a hymn.** After a successful **Save hymn**, start at the top of the destination page. In the current standalone flow, that page is the saved hymn’s detail page.
 
-### Features implemented locally
+### Shipped features
 
 #### Create a missing hymn from a draft Mass
 
@@ -40,7 +36,7 @@ Drafts open in the editor and autosave while being prepared. **Save Mass** final
 
 #### Use the full phone display in fullscreen
 
-The local implementation requests native fullscreen for PDF reading and phone Mass Focus. Verify on physical iOS and Android phones and record how each behaves when native fullscreen is unavailable. See [phone fullscreen behavior](reader-and-account-refinements.md#phone-fullscreen-follow-up).
+The deployed implementation requests native fullscreen for PDF reading and phone Mass Focus. Verify on physical iOS and Android phones and record how each behaves when native fullscreen is unavailable. See [phone fullscreen behavior](reader-and-account-refinements.md#phone-fullscreen-follow-up).
 
 #### Account actions and Mass Focus
 
@@ -50,6 +46,7 @@ Mass Focus has compact lyric zoom buttons on the side set by the text direction.
 
 ### Features for later
 
+- **Missing-hymn action visibility.** Show Hymn not found directly alongside Search all placements. The current workflow waits for a shared-library no-match check.
 - **Desktop sidebar fix.** Review the sidebar’s layout and behavior on desktop. Confirm what needs to change before implementation.
 - **Compact hymn cards on phones.** Reduce the height of Hymn Library cards so more results fit on screen while keeping titles readable, essential metadata easy to scan, and touch targets usable.
 - **Database storage and hymn load time.** Minimize database storage across all record types while targeting a load time under one second for every hymn, at minimum for its PDF. Define how load time will be measured, the test conditions, and storage tradeoffs when this work is discussed.
@@ -99,7 +96,7 @@ Usage fields/filters wait until M4 and must not be presented as real data earlie
 
 ## M3 — Draft planning pilot
 
-**Status:** Complete through October 8, including all requested reviews; approved for the M3 checkpoint by the owner. See [delivery report](m3-report.md) and [latest review](m3-picker-view-review.md). M2 is recorded at `aada303`; M3 is committed as `daefc9b`. Coordinator walkthrough and physical-phone acceptance carry into the M4 gate.
+**Status:** Complete through October 8, including all requested reviews; approved for the M3 checkpoint by the owner. See [delivery report](m3-report.md) and [latest review](m3-picker-view-review.md). M2 is recorded at `aada303`; M3 is committed as `daefc9b`. Coordinator walkthrough and physical-phone acceptance carry into M5 acceptance.
 
 **Depends on:** M2. **Acceptance scenarios:** A05–A07. **Pilot evidence:** Saved two-hymn Communion section, order/notes persisted, no data loss during rapid edits/failure/conflict.
 
@@ -111,7 +108,7 @@ Usage fields/filters wait until M4 and must not be presented as real data earlie
 | M3.4 Saving | Frontend/backend/quality | M3.1–M3.3 | Serialized/coalesced autosave, preserved edits, two-tab conflict, transactional tests |
 | M3.5 Program view | Frontend | M3.2–M3.4 | Draft list/detail, completion count, retained inactive sections |
 | M3.6 Random picker | Backend/frontend/quality | M3.1–M3.4 | Implemented October 8: fill empty placements with distinct active season/neutral matches; preserve selections/notes; autosave/retry; report unmatched placements. See [implementation](random-picker.md). |
-| M3.7 Picker and saved view | Backend/frontend/quality | M3.1–M3.6 | Section-scoped picker, season/neutral preference before pagination, scrollable phone dialog; Save draft waits for autosave then opens compact read-only detail; Edit reopens planning. See [review](m3-picker-view-review.md). |
+| M3.7 Picker and saved view | Backend/frontend/quality | M3.1–M3.6 | Section-scoped picker, season/neutral preference before pagination, scrollable phone dialog; Drafts reopen in edit mode; Save Mass waits for autosave and finalizes into read-only detail. See [review](m3-picker-view-review.md). |
 
 Completed list/view refinements also include **Next** for creation, **Hymn not selected** for empty saved sections, and upcoming-nearest/Archived-past grouping.
 
@@ -119,7 +116,7 @@ Finalization appears only with history in M4; recommendations only in M5.
 
 ## M4 — Weekly workflow MVP
 
-**Status:** M4.1–M4.5 implemented and verified, uncommitted; see [M4 report](m4-report.md). M3 checkpoint: `daefc9b`. M4.6 human/physical-phone acceptance remains pending.
+**Status:** M4.1–M4.5 implemented, verified, and deployed; see [M4 report](m4-report.md). M3 checkpoint: `daefc9b`. M4.6 human/physical-phone acceptance remains pending.
 
 **Depends on:** M3. **Acceptance scenarios:** A08–A10 and required physical-phone A10P. **Pilot evidence:** Full manual journey and derived usage under finalize/reopen/re-finalize and concurrency.
 
@@ -142,11 +139,11 @@ The hymn step shows confirmed details read-only. Back to Mass details and Next s
 
 New selection identity uses a browser-session counter rather than the secure-context-only `crypto.randomUUID`. These keys identify unsaved rows locally and never serve as security tokens or database IDs. Both random and manual additions now work on an HTTP LAN origin.
 
-**Deferred owner request — saved program for use during Mass:** recorded October 10; redesign has not started. Revisit the saved view to make it practical for accessing hymns and performing during the service: compact ordered navigation, quick access to lyrics/sheet-music PDFs/voice parts/audio where available, visible performance notes and straightforward movement between hymns. Agree the detailed layout later with the owner, then validate a complete rehearsal on a real phone with materials reachable during Mass. Keep this separate from the implemented planning review and from the physical-phone M5 gate.
+**Saved-program performance reading.** Mass Focus and the saved-program links are shipped. Physical-phone rehearsal remains pending. See [performance review](ui-performance-review.md).
 
 ## Hosting and M5 acceptance — current priority
 
-Hosting configuration and the manual/pipeline guide are prepared; actual provider setup and H2/H3 hosted acceptance are manual owner tasks deferred until later. See [hosting guide](hosting.md) and [verification](hosting-report.md). M5 now covers physical-phone/coordinator acceptance on the hosted URL (A10P); the recommendation tickets below are deferred, not the next implementation task.
+Choralation is live with manual deployment and durable PDF storage. Automatic-deployment acceptance and physical-phone/coordinator rehearsal remain pending. See [current status](current-status.md) and [hosting guide](hosting.md).
 
 ## Deferred recommendations — formerly M5 assisted planning beta
 
@@ -170,7 +167,7 @@ Hosting configuration and the manual/pipeline guide are prepared; actual provide
 | M6.2 Reordering | Backend/frontend | M6.1 | Atomic reorder; keyboard/touch controls; full membership validation |
 | M6.3 Impact feedback | Backend/frontend | M6.1 | Reference counts, delete rejection, deactivation confirmation |
 | M6.4 Integration | Frontend/quality | M6.1–M6.3 | Active choices refresh, saved inactive labels remain, seed replay |
-| M6.5 Calendar settings | Backend/frontend | M6.1; Maronite date adapter | Implemented locally: Maronite/manual, choir IANA timezone, exact-date overrides and on-demand source preview; preserve saved plans. See M6 release gates. Requested October 8; see [calendar notes](calendar.md). |
+| M6.5 Calendar settings | Backend/frontend | M6.1; Maronite date adapter | Shipped: Maronite/manual, choir IANA timezone, exact-date overrides and on-demand source preview; preserve saved plans. See M6 release gates. Requested October 8; see [calendar notes](calendar.md). |
 
 ## M7 — Complete version 1
 
@@ -188,13 +185,7 @@ Hosting configuration and the manual/pipeline guide are prepared; actual provide
 
 ## Deferred until all other planned work is complete
 
-**F1 — Parish/choir account membership and collaborative Mass lists**  
-**Requested:** October 6, 2026. **Status:** Recorded for much later; implementation has not started.  
-**Scheduling gate:** All other planned work complete, including M0–M7 and the version 1 release gate.
-
-- Accounts belong to a parish and a choir.
-- The people responsible for a choir can collaboratively edit that choir's Mass list.
-- Before implementation, define membership rules, how choir responsibles are assigned, access boundaries between parishes/choirs, and handling of concurrent edits. These details remain open; do not expand current milestones to implement them.
+**Parish hierarchy.** The October 6 request was partly brought forward by the owner. Choir membership, join approval, choir-owned Mass lists, and revision-guarded collaborative planning are shipped. Parish-level account organization remains deferred until the remaining release work is complete. Define parish boundaries and relationships when that feature is scheduled.
 
 ## Ready-to-start M1 checklist
 
@@ -209,7 +200,7 @@ Hosting configuration and the manual/pipeline guide are prepared; actual provide
 
 No approved deployment target, timeline commitment, or human staffing assignment is implied by this backlog.
 
-## October 10 picker review — delivered, uncommitted
+## October 10 picker review — historical delivery
 
 - Aligned search and Filters; replaced gold search focus with a burgundy inset indicator. Language/genre/sort stay on one compact row at phone widths.
 - The sidebar music mark collapses/restores desktop navigation; collapsed links retain accessible names.
@@ -221,6 +212,20 @@ See [picker review](picker-review.md) for contracts and verification. Saved-prog
 
 ## October 20 performance UI and deferred language settings
 
-The saved-program reading surface has now been brought forward by the owner: focus-mode PDF/lyrics/title reading, swipe/keyboard navigation and screen-awake lifecycle are implemented locally. This supersedes the earlier "redesign has not started" note; further reader refinements and physical-device acceptance remain pending. See [delivery and ordered UI improvement plan](ui-performance-review.md).
+The saved-program reading surface has now been brought forward by the owner: focus-mode PDF/lyrics/title reading, swipe/keyboard navigation and screen-awake lifecycle are deployed. This supersedes the earlier "redesign has not started" note; further reader refinements and physical-device acceptance remain pending. See [delivery and ordered UI improvement plan](ui-performance-review.md).
 
 **F2 — Language settings and full Arabic translation (deferred).** Add an English/Arabic preference, persist the signed-in user's choice with a pre-login fallback, translate all UI and validation/accessibility strings, localize date/count formatting, and support RTL throughout. Preserve hymn text as authored and native/Latin-title search. Complete only after mixed-script, keyboard, screen-reader, PDF and real-phone coverage in both languages. No account/settings migration is introduced until this feature is scheduled.
+
+## Implemented locally November 21, awaiting release
+
+- Independent global Choirmaster approval and per-choir Leader/Planner/Member assignments with preserved existing access.
+- Phone width fit in both orientations, saved-row Focus/hold navigation, and Mass-placement prefill in new hymn forms.
+- Lossless gzip PDF storage with negotiated downloads, dual readers, bounded integrity checks and resumable conversion. Hosted rollout, backups and conversion remain separately authorized work.
+
+[Detailed behavior and rollout](roles-reader-pdf-update.md). Storage/load-time measurement remains pending.
+
+## Review repair and system test performance
+
+The three November 21 regressions are fixed locally: hosted provisioning forwards the new global roles; pending hymn holds cancel on outside pointer release/movement; and a second touch cannot clear click suppression. Regression cases cover these paths and subsequent deliberate activation.
+
+The [system test optimization plan](system-test-optimization-plan.md) is ready for implementation. Start with the measured `vmThreads` improvement, then four isolated browser-profile CI jobs, shared prerequisites/authentication fixtures, focused reader cases and CI setup consolidation. Preserve the case/assertion inventory, both account configurations, all four existing browser profiles, PostgreSQL migration/concurrency tests and the production PDF persistence gate. Runner/CI changes remain planned.

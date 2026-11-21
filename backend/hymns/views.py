@@ -1,6 +1,7 @@
 """Thin HTTP adapters; shared services enforce permissions/transactions again."""
 
 import json
+from io import BytesIO
 
 from botocore.exceptions import BotoCoreError, ClientError
 from django.http import FileResponse
@@ -12,13 +13,14 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.parsers import JSONParser, MultiPartParser
 from rest_framework.response import Response
 
-from accounts.permissions import AdminPermission, Role, VerifiedPermission, role_for
+from accounts.permissions import AdminPermission, VerifiedPermission, can_edit_shared_hymns
 from accounts.security import limit
 from accounts.serializers import ErrorSerializer
 from choirs.access import request_choir, require_choir
 from common.storage import StorageUnavailable
 from hymns import selectors, services
 from hymns.models import Hymn
+from hymns.pdf_storage import accepts_gzip, read_pdf
 from hymns.serializers import (
     AttachmentAuditPageSerializer,
     CategoryDetailSerializer,
@@ -220,7 +222,7 @@ class HymnViewSet(viewsets.GenericViewSet):
         return self.save(request, pk=int(pk))
 
     def save(self, request, pk=None, status=200):
-        if role_for(request.user) == Role.VIEWER:
+        if not can_edit_shared_hymns(request.user):
             limit("member-hymn-write", request.user.pk, 60, 3600)
         # Reject an invalid context before persisting shared metadata or a PDF.
         request_choir(request, required=False)
@@ -265,18 +267,25 @@ class HymnViewSet(viewsets.GenericViewSet):
         if not hymn.sheet_music_pdf:
             raise NotFound("No sheet music PDF is attached to this hymn.")
         try:
-            handle = hymn.sheet_music_pdf.open("rb")
+            stored, original = read_pdf(hymn)
         except FileNotFoundError as error:
             raise NotFound("The sheet music file is unavailable.") from error
-        except (BotoCoreError, ClientError) as error:
+        except (BotoCoreError, ClientError, OSError) as error:
             raise StorageUnavailable() from error
+        encoded = hymn.sheet_music_pdf_encoding == "gzip" and accepts_gzip(
+            request.headers.get("Accept-Encoding", "")
+        )
         response = FileResponse(
-            handle,
+            BytesIO(stored if encoded else original),
             as_attachment=True,
             filename=hymn.sheet_music_pdf_name,
             content_type="application/pdf",
         )
         response["X-Content-Type-Options"] = "nosniff"
+        response["Vary"] = "Accept-Encoding, Cookie"
+        response["Cache-Control"] = "no-store"
+        if encoded:
+            response["Content-Encoding"] = "gzip"
         return response
 
     def destroy(self, request, pk=None):

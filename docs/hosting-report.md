@@ -1,5 +1,7 @@
 # Hosting preparation verification
 
+> Historical delivery record. Test counts, commit state, UI labels, and pending actions describe the dated work below. For the deployed release and current workflow, read [Current project status](current-status.md).
+
 **October 13, 2026. Status: hosting preparation implemented and locally verified; live deployment pending manual owner setup.**
 
 The owner requested that all account creation, login, provider settings, publishing and live verification be left as notes for manual completion later. No Git staging, commit, push, cloud resource creation or account access is included in preparation.

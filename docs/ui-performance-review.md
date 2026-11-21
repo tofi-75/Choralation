@@ -1,10 +1,13 @@
-# Performance reading and UI review — October 20, 2026
+# Performance reading and UI review
 
-## Delivered locally
+Reviewed November 20, 2026. See [Current project status](current-status.md) for release and CI evidence.
+
+## Shipped behavior
 
 - Home: the New hymns heading and action group align vertically. Mass-list navigation stays on one row; compact labels/padding fit narrow screens, with horizontal overflow as a last-resort fallback for extreme zoom.
 - Saved Mass: centered placement labels and full-row hymn links with language, key, tempo and voices. Focus mode opens the first selected hymn in configured placement/program order, skipping empty sections and retaining repeat selections and performance notes. The session snapshots that saved sequence; background edits apply when focus mode is opened again.
-- Focus mode opens with focus on the dialog. Tap the centered title or its chevron to choose a hymn. Swipe left or right, use the footer chevrons, or press Left or Right to move between hymns. Escape and the close icon exit Focus and restore focus to its launch button. Focus requests the screen wake lock automatically, releases it on exit, and can reacquire it when the tab becomes visible again.
+- All Focus header titles use the same responsive font rule and truncate on one line with a direction-aware ellipsis. Focus mode opens with focus on the dialog. Tap the centered title or its chevron to choose a hymn. Swipe left or right, use the footer chevrons, or press Left or Right to move between hymns. Escape and the close icon exit Focus and restore focus to its launch button. Focus requests the screen wake lock automatically, releases it on exit, and can reacquire it when the tab becomes visible again.
+- Reloading the same Mass history entry restores Focus at the first hymn through tab session storage. Exiting clears the restoration. Native fullscreen requires another user interaction after reload. Reading positions persist within the mounted Focus session.
 - Short vertical swipes turn PDF pages in Focus and fullscreen, or lyric pages in Focus. On an oversized PDF, pan to the edge and make a fresh swipe. A long downward swipe from the top of any page closes the active reader. PDF fullscreen returns to its preview and retains the page.
 - Focus measures lyric pages at the selected text size and available reading height, including lyrics used after a PDF fails. The compact zoom buttons follow the lyric direction. Up, Down, Page Up and Page Down turn lyric pages. Rotation and font changes reflow the current passage, and returning to a hymn in the same Focus session restores its reading position.
 - Hymn detail: title/language plus key, tempo and voice count, then PDF and lyrics, followed by concise classification and metadata. Usage and scheduled/last-used date now live at the top of metadata. Edit uses the pen icon with an accessible name.
@@ -12,7 +15,7 @@
 
 ## Data and deployment
 
-Migration `hymns/0004_performance_materials.py` adds nullable `latin_title` (255), `lyrics` (text) and `tempo` (50). Tempo is descriptive text, e.g. `Andante · 80 BPM`; no guessed tempo is derived from duration. No existing content is rewritten. Existing API permissions, private PDF endpoints, 10 MB upload limit and Mass revisions are preserved. The migration has been applied only to the local development database; production applies it through the existing deployment startup process.
+Migration `hymns/0004_performance_materials.py` adds nullable `latin_title` (255), `lyrics` (text) and `tempo` (50). Tempo is descriptive text, e.g. `Andante · 80 BPM`; no guessed tempo is derived from duration. No existing content is rewritten. Existing API permissions, private PDF endpoints, 10 MB upload limit and Mass revisions are preserved. The migration is included in the deployed release. New installations apply it through the existing migration/startup process.
 
 PDF.js is pinned at 6.4.299. It is loaded on demand. Worker, fonts, CMaps and decoders ship on the application origin under `/assets/`; no PDF content goes to a third-party viewer. Generated font/decoder files are ignored by Git and copied during predev/prebuild/pretest:e2e. One PDF page canvas is rendered at a time, with bounded resolution, cancellation and document cleanup. PDF failures show a retry/download option and fall back to available lyrics/title. External sheet-music URLs remain explicit links.
 
@@ -31,7 +34,7 @@ Screen awake uses the browser's [Screen Wake Lock API](https://developer.mozilla
 
 Recommendations and Practice remain future work. The Arabic feature is planned, not partially exposed in the UI.
 
-## Verification
+## Historical verification — October 20
 
 - Backend: **237 tests passed**, using a separate local test database; new checks cover Unicode/Latin-name search, lyrics preservation, blank normalization and field limits.
 - Frontend: **72 tests passed**. The four performance tests were also rerun after the session-snapshot refinement, covering material priority/failure, touch/keyboard bounds, background selection removal, wake-lock refusal/reacquisition/release/late grant and focus restoration.
@@ -39,9 +42,9 @@ Recommendations and Practice remain future work. The Arabic feature is planned, 
 - Initial browser failures included development Strict Mode's two wake-lock requests (the assertion now checks every acquired lock was released), a layout measurement racing async home data (rectangles now read together after loading), and one stale-editor test during active edits. All affected scenarios passed in the stable focused rerun. A duplicated React sibling key was corrected during review.
 - Migration consistency, Django system check, OpenAPI validation, backend lint/format, frontend type/lint/format checks and production build passed. The existing main-bundle size advisory remains; the PDF renderer/worker are separate lazy assets.
 - Production static smoke: actual built PDF worker, CMap, font and WASM decoder return 200 with non-HTML content types through Django; missing decoder returns 404.
-- Reviewed desktop/mobile screenshots in the project-local Playwright results. Logs: ignored `.cache/performance-browser.log` and `.cache/performance-browser-final.log`. Browser fixtures/accounts were cleaned up; local services remain available. Nothing staged or deployed.
+- Reviewed desktop/mobile screenshots in the project-local Playwright results. Logs: ignored `.cache/performance-browser.log` and `.cache/performance-browser-final.log`. Browser fixtures/accounts were cleaned up; local services remain available. This describes the original local test session; these features were subsequently committed and deployed.
 
-Physical-phone, OS screen-awake behavior, and hosted deployment acceptance remain pending; browser emulation and a mocked wake-lock counter do not close those gates.
+The release is live as recorded in [Current project status](current-status.md). Physical-phone and OS screen-awake acceptance remain pending; browser emulation and a mocked wake-lock counter do not close those gates.
 
 ## PDF fullscreen follow-up
 

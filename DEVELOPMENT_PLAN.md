@@ -1,18 +1,17 @@
 # Mass Hymn Picker — Development and Delivery Plan
 
+> **Local implementation, November 21:** [Choir roles, Mass reading and lossless PDFs](docs/roles-reader-pdf-update.md) describes the current checkout and staged rollout. These changes are not part of the live `91a8c56` release.
+
 > **November 8, 2026:** See the [current backlog follow-ups](docs/backlog.md#november-8-2026-follow-ups) for requested fixes, the draft Mass hymn creation and phone fullscreen features, and later storage and search work.
 
 > **October 25, 2026 — Simple accounts:** Registration opens Home immediately; email ownership remains unverified. Verification and emailed recovery are independently disabled. Owner-assisted recovery is available at tofi.lattouf@gmail.com. This supersedes earlier activation instructions. See [release, configuration and recovery](docs/simple-accounts-release.md). Hosted backup, exact-commit CI and deployment acceptance are release gates.
 
-> **October 20, 2026 — Accounts and choirs:** Self-service email verification, recovery, choir membership and choir-specific hymn counts supersede the shared-workspace rules below. See [account and choir setup](docs/accounts-and-choirs.md). Existing local data is preserved in Initial choir. Registration and mandatory legacy verification ship disabled pending owner email setup. Hosting checks: core flows accepted, records persist; PDF persistence and CI-gated deployment remain pending.
 
 
-> **October 13, 2026 priority update:** Render + Supabase hosting preparation is the current delivery task; see [deployment guide](docs/hosting.md). All account/login/provider setup and publishing are manual owner steps deferred until later. Physical-phone acceptance moves from M4 to M5. Saved-Mass performance redesign and recommendations are deferred. Historical milestone statements below retain their original dates; hosted completion requires actual URL, persistence and pipeline verification.
 
 **Prepared:** October 5, 2026  
 **Source:** [mass_hymn_picker_codex_spec.md](mass_hymn_picker_codex_spec.md)  
-**Status:** M0–M3 engineering work is complete, including the October 8 M3 review changes. The owner authorized the M3 checkpoint and starting M4 on October 8. M4 lifecycle/usage/history engineering is implemented and verified, uncommitted; coordinator acceptance remains pending, while physical-phone acceptance moves to M5. Hosting preparation is implemented; live provider setup and acceptance remain owner tasks. Later features remain deferred. See [M0 report](docs/m0-report.md), [M1 report](docs/m1-report.md), [M2 report](docs/m2-report.md), and [M3 report](docs/m3-report.md). Coordinator acceptance remains pending.
-**Current repository:** Documented Django/PostgreSQL and React application with session authentication, role policy, a persistent hymn library, five classifications, seeds, responsive forms/detail/filter screens, and a persistent multi-placement draft planner with recoverable autosave and revision conflicts. Project-local setup and automated checks cover the delivered workflows. Container configuration is supplied but has not been executed on this machine.
+**Status, November 20, 2026.** M0–M4 engineering, M6 classifications/calendar settings, accounts/choirs, Manager requests, member hymn submissions, and Mass Focus are implemented and deployed at `91a8c56`. Render uses manual deployments. Physical-phone/coordinator acceptance, recommendations, Practice, full Arabic UI, and remaining M7 work are pending. The milestone estimates and dated checkpoints below preserve the planning record. Use [Current project status](docs/current-status.md) and [Backlog](docs/backlog.md) to select new work.
 
 ## 1. Delivery objective
 
@@ -53,7 +52,7 @@ Targets above are planning goals, not measured results. Record actual measuremen
 
 CSV/Excel import, optional CSV export, automatic calendar calculation, multilingual variants, reusable setlists, attachments, musician assignments, tenancy, advanced analytics, notifications, integrations, and AI recommendations are outside the initial delivery. They must not replace unfinished required work. Optional CSV export may be considered after the version 1 gate; it has no milestone dependency.
 
-**Later improvement — parish/choir accounts and collaboration (requested October 6, 2026):** Accounts will belong to a parish and a choir, and the people responsible for that choir will be able to edit its Mass list collaboratively. Schedule this only after all other planned work is complete, including M0–M7 and the version 1 release gate. Track the follow-up in [the deferred backlog](docs/backlog.md#deferred-until-all-other-planned-work-is-complete); it does not change the initial shared-workspace permissions or current milestone scope.
+**Later improvement — parish hierarchy.** Choir memberships and collaborative revision-guarded planning have shipped. Parish-level account organization and hierarchy remain deferred. See [the deferred backlog](docs/backlog.md#deferred-until-all-other-planned-work-is-complete).
 
 No user-management React screen or full audit-log framework is required. Initially provision users and assign groups through protected Django admin or documented management commands.
 
@@ -65,7 +64,7 @@ No user-management React screen or full audit-log framework is required. Initial
 | Library pilot | M2 | Build, classify, find, and maintain real hymns |
 | Planning pilot | M3 | Prepare and reliably save real draft programs |
 | Weekly workflow MVP | M4 | Finalize programs and review accurate usage/history |
-| Assisted planning beta | M5 | Choose hymns with explainable recency-aware suggestions |
+| Assisted planning beta | Deferred | Choose hymns with explainable recency-aware suggestions |
 | Version 1 candidate | M6 | Manage categories without developer intervention |
 | Production version 1 | M7 | Complete, verified product with deployment and recovery instructions |
 
@@ -76,27 +75,18 @@ Earlier pilots are useful subsets, not claims that version 1 is complete. Settin
 ### 3.1 Architecture and environment
 
 - Use the specified Django/DRF/PostgreSQL backend and React/TypeScript/Vite frontend. Select supported stable dependency versions at M0 and pin them with reproducible dependency files; this plan intentionally does not prescribe unverified version numbers.
-- Keep Django apps limited to `accounts`, `hymns`, `masses`, and `common`. Place ranking and state transitions in backend services/selectors.
+- Use the existing `accounts`, `choirs`, `hymns`, `masses`, and `common` apps. Place ranking and state transitions in backend services/selectors.
 - Use Django sessions with a Vite `/api` proxy locally and a single origin in production. Add a documented CSRF bootstrap endpoint if needed; protect login as well as authenticated writes. Do not assume DRF session authentication alone protects an anonymous login endpoint.
-- Use Django's built-in user model and groups for the three roles unless M0 identifies a concrete custom-user requirement. Assign authenticated users without a recognized group read-only access by default.
+- Use Django's built-in user model and groups for the three roles unless M0 identifies a concrete custom-user requirement. Accounts without a recognized group retain the Viewer API role and can create their own private hymns; choir membership controls planning access.
 - PostgreSQL is the development and test database. Do not substitute SQLite for constraint, transaction, or aggregation tests.
 - Support the current Windows workspace with PowerShell-friendly instructions. Use Linux containers for production Gunicorn; local Django development may run natively. A Makefile may be a convenience, but cannot be the only documented interface.
 - Keep server resources in TanStack Query, filter state in URLs, and transient interaction/form state locally. Unsaved planner edits may use a local working copy with an explicit save lifecycle.
 
-### 3.2 Permissions — planning default
+### 3.2 Current permissions
 
-| Action | Viewer | Planner | Admin |
-| --- | --- | --- | --- |
-| Read library, programs, history, and suggestions | Yes | Yes | Yes |
-| Create/edit hymns | No | Yes | Yes |
-| Create/edit draft Masses and selections | No | Yes | Yes |
-| Finalize drafts | No | Yes | Yes |
-| Manage categories and deactivate/reactivate hymns | No | No | Yes |
-| Reopen finalized Masses | No | No | Yes |
-| Delete unused hymns/categories or draft Masses | No | No | Yes |
-| Delete finalized Masses through normal app/API | No | No | No |
+Global API roles are Admin, Choirmaster and User. New accounts are Users. Admin approval grants global choir creation permission; creation assigns Choir Leader in that choir. Leader, Planner and Member are independent per-choir roles.
 
-Use section 42 of the source to resolve the earlier, less-specific role description. Restrict draft deletion to Admin as a simple conservative default permitted by the source. The application is one shared team workspace; ownership fields record who changed data rather than limiting visibility to the creator.
+Published hymns are shared. Members can create private hymns and request planner publication. Masses, usage, join requests, and calendar settings follow actual choir memberships; Admins retain oversight. Choir Planners can finalize and confirm reopening their programs. Choir Leaders can confirm deletion of their own Masses in either state; Admins oversee all choirs. Planners cannot delete. Global classifications and Choirmaster decisions are Admin-only. See [account permissions](docs/accounts-and-choirs.md) and [architecture](docs/architecture.md#adr-002--authentication-users-and-permission-policy).
 
 ### 3.3 Classification, validation, and deletion
 
@@ -114,9 +104,9 @@ Use section 42 of the source to resolve the earlier, less-specific role descript
 - Library season filtering is literal: `seasons=Easter` includes explicitly Easter-classified hymns. Season-neutral records are not automatically included. Recommendation eligibility includes season-neutral hymns.
 - Default library results to active hymns, alphabetical title, and a stable ID tie-breaker. Page sizes are 25, 50, or 100; filter changes reset the page.
 - `usage_count` counts selection occurrences in finalized Masses, as suggested by the source's `Count(selections)` rule. A hymn selected twice in one finalized Mass has a count of two. History displays both occurrences with their placements.
-- Global `last_used_date` is the maximum Mass date across finalized selections. Reopening removes that Mass from these derived statistics immediately; re-finalizing restores its contribution once.
-- **Future finalized plans:** The source counts all finalized Masses, including future dates. Preserve that rule for global statistics and label future entries as scheduled in the UI. Do not claim a future selection has already been performed. Introducing a separate performed status would require a later product change.
-- **Recommendation recency planning default:** Use the target Mass date as the reference date. Only finalized Masses strictly before that date contribute to ranking recency; exclude the target Mass itself. This avoids negative recency and makes backdated planning deterministic. Ranking-specific statistics must be labeled/documented separately from global library statistics.
+- Selected-choir `last_used_date` is the maximum Mass date across finalized selections. Reopening removes that Mass from these derived statistics immediately; re-finalizing restores its contribution once.
+- **Future finalized plans:** The source counts all finalized Masses, including future dates. Preserve that rule for selected-choir statistics and label future entries as scheduled in the UI. Do not claim a future selection has already been performed. Introducing a separate performed status would require a later product change.
+- **Recommendation recency planning default:** Use the target Mass date as the reference date. Only finalized Masses strictly before that date contribute to ranking recency; exclude the target Mass itself. This avoids negative recency and makes backdated planning deterministic. Ranking-specific statistics must be labeled/documented separately from selected-choir library statistics.
 - Define `used_after` and `used_before` as an inclusive range on finalized usage occurrences; when combined, one occurrence must satisfy both bounds. Define `not_used_since=D` as no finalized occurrence on or after D, including never-used hymns. `never_used=true` means no finalized selections. Validate impossible ranges and invalid IDs.
 - For usage-based sorting, explicitly place never-used hymns first for least-recently-used and last for recently-used. Keep a stable title/ID tie-breaker for pagination.
 
@@ -142,9 +132,9 @@ Effort is a preliminary estimate in **total engineering days**, including featur
 | M2 | Useful hymn library | M1 | 7–10 | Add, edit, classify, search, and filter hymns |
 | M3 | Persistent draft planning | M2 | 7–10 | Prepare and save a multi-placement program |
 | M4 | Finalization and trustworthy history | M3 | 5–7 | Complete weekly planning and see usage history |
-| Hosting | Render + Supabase deployment | M4 engineering | Reforecast after manual setup | Public HTTPS URL, persistent DB/PDFs and verified automatic deployment |
+| Hosting | Render + Supabase deployment | M4 engineering | Reforecast after manual setup | Shipped public HTTPS and durable storage; automatic-deployment acceptance remains pending |
 | M5 | Physical-phone and coordinator acceptance | Hosted URL | Owner scheduling | Real-device results and coordinator pilot; recommendations deferred |
-| M6 | Self-service category administration | M5 | 3–5 | Maintain all classifications safely |
+| M6 | Self-service category administration | M2; owner sequencing override | 3–5 | Maintain all classifications safely |
 | M7 | Dashboard, print, and production readiness | M6 | 6–9 | Complete version 1 and verified release package |
 | **Total** | | | **38–56** | |
 
@@ -201,7 +191,7 @@ Allow an additional 20% contingency for discoveries and pilot feedback: roughly 
 
 ### M2 — Library pilot: maintain and find real hymns
 
-**Engineering status:** Implemented with real PostgreSQL persistence, secured API/admin, and desktop/mobile browser evidence. See [M2 evidence and limits](docs/m2-report.md). Changes remain uncommitted unless the user explicitly requests a commit. Coordinator review remains pending.
+**Engineering status:** Implemented with real PostgreSQL persistence, secured API/admin, and desktop/mobile browser evidence. See [M2 evidence and limits](docs/m2-report.md). The implementation is included in the deployed release. Coordinator review remains pending.
 
 **Usable increment:** The coordinator can enter their library and find hymns using real classifications.
 
@@ -242,7 +232,7 @@ Allow an additional 20% contingency for discoveries and pilot feedback: roughly 
 - **M3.4 — Saving:** Implement serialized/coalesced autosave for metadata and program changes, retryable failures, unsaved navigation warnings, and stale-revision conflict handling that preserves local edits.
 - **M3.5 — Program view:** Provide draft list/detail views, saved program preview, and a completion indicator counting filled active placements; empty placements are optional.
 - **M3.6 — Random picker (October 8 follow-up):** Fill empty active placements with distinct active hymns matching the selected season or season-neutral classification. Preserve current selections/notes and use the existing autosave queue. Report unmatched placements, cancel obsolete results after date/season changes, and verify retry/reload on desktop and phone widths. See [implementation and checks](docs/random-picker.md).
-- **M3.7 — Picker and saved view (October 8 follow-up):** Default choices to the current placement, prioritize selected-season/neutral hymns before pagination, and make the dialog scroll on phones. Save draft waits for all queued writes, then opens a compact read-only program; list links open that view and Edit returns to planning. Preserve failure/conflict recovery and draft status. See [review notes](docs/m3-picker-view-review.md).
+- **M3.7 — Picker and saved view (October 8 follow-up):** Default choices to the current placement, prioritize selected-season/neutral hymns before pagination, and make the dialog scroll on phones. Drafts autosave and reopen in edit mode. Save Mass waits for all queued writes and finalizes, then opens the read-only program. Preserve failure/conflict recovery. See [review notes](docs/m3-picker-view-review.md).
 
 **Demo:** Create a non-Sunday Mass, choose its season, add two Communion hymns and an Entrance hymn, reorder them, add notes, refresh, and reopen the same draft from another browser session.
 
@@ -261,7 +251,7 @@ Allow an additional 20% contingency for discoveries and pilot feedback: roughly 
 
 ### M4 — Weekly workflow MVP: finalize and trust history
 
-**Status:** M4.1–M4.5 engineering implemented and verified October 8; coordinator acceptance remains pending; physical-phone acceptance moves to M5; see [M4 report](docs/m4-report.md). M3 is committed as `daefc9b`. M4 changes are not authorized for commit. Coordinator acceptance remains pending; physical-phone acceptance is now an M5 gate.
+**Status:** M4.1–M4.5 engineering implemented and verified October 8; coordinator acceptance remains pending; physical-phone acceptance moves to M5; see [M4 report](docs/m4-report.md). M3 is committed as `daefc9b`. M4 engineering is included in the deployed release. Coordinator acceptance remains pending; physical-phone acceptance is now an M5 gate.
 
 **Usable increment:** The team can complete a weekly program and answer what was selected previously.
 
@@ -284,7 +274,7 @@ Allow an additional 20% contingency for discoveries and pilot feedback: roughly 
 - Deactivation and category edits leave old selection IDs, notes, and order intact. Referenced hymn/category deletion is rejected.
 - Usage date filters use the documented occurrence/range semantics. Future finalized entries receive scheduled wording rather than negative `days ago` text.
 - A real-backend browser test covers login → add hymn → create draft → select → finalize → see history.
-- **Physical-phone acceptance (required):** A coordinator completes create → pick/scroll → reorder by touch → notes with the keyboard open → Save draft → reopen/Edit → finalize → history on a real phone. Test narrow portrait and landscape, navigation/dialog scrolling, reachable actions, no horizontal overflow, and retry after a connection interruption. Record device, OS/browser, date, results and defects in the M4 report. Cover iOS Safari and Android Chrome where available; mark unavailable devices as pending. Browser width emulation is supporting evidence, not completion of this gate. Include desktop keyboard and Firefox regression checks. Human acceptance remains pending until recorded.
+- **Physical-phone acceptance (required):** A coordinator completes create → pick/scroll → reorder by touch → notes with the keyboard open → leave/reopen the autosaved draft → Save Mass → saved program/history on a real phone. Test narrow portrait and landscape, navigation/dialog scrolling, reachable actions, no horizontal overflow, and retry after a connection interruption. Record device, OS/browser, date, results and defects in the M4 report. Cover iOS Safari and Android Chrome where available; mark unavailable devices as pending. Browser width emulation is supporting evidence, not completion of this gate. Include desktop keyboard and Firefox regression checks. Human acceptance remains pending until recorded.
 
 **MVP gate:** A coordinator can carry out the full manual weekly workflow without developer assistance, except category changes. Recommendations and full Settings remain clearly identified as upcoming capabilities.
 
@@ -299,7 +289,7 @@ The hymn step shows confirmed details read-only. Back to Mass details and Next s
 
 New selection identity uses a browser-session counter rather than the secure-context-only `crypto.randomUUID`. These keys identify unsaved rows locally and never serve as security tokens or database IDs. Both random and manual additions now work on an HTTP LAN origin.
 
-**Deferred owner request — saved program for use during Mass:** recorded October 10; redesign has not started. Revisit the saved view to make it practical for accessing hymns and performing during the service: compact ordered navigation, quick access to lyrics/sheet-music PDFs/voice parts/audio where available, visible performance notes and straightforward movement between hymns. Agree the detailed layout later with the owner, then validate a complete rehearsal on a real phone with materials reachable during Mass. Keep this separate from the implemented planning review and from the physical-phone M5 gate.
+**Saved program for use during Mass.** Mass Focus is shipped with PDF/lyrics/title reading, metadata, hymn selection, lyric reflow, page swipes, long downward exit, and Focus restoration on reload. Physical-phone rehearsal remains pending. See [performance UI](docs/ui-performance-review.md).
 
 ## M5 — Assisted planning beta: explainable recommendations
 
@@ -507,13 +497,13 @@ The original phases are preserved in substance: foundation, hymn domain, plannin
 - [ ] README, environment examples, architecture/API docs, release notes, and known limitations are current.
 - [ ] Coordinator acceptance is recorded; no unresolved required-feature or data-integrity blocker remains.
 
-**Current acceptance action:** Complete the required M4 coordinator and physical-phone acceptance gate for the verified guarded finalize/reopen and finalized-only usage/history increment. M3 is saved at `daefc9b`; M4 remains uncommitted. Recommendations remain M5 and are not yet started.
+**Current acceptance action.** Record physical-phone and coordinator acceptance of the deployed workflow. Recommendations remain deferred. Prior M3/M4 checkpoints are historical; use [Current project status](docs/current-status.md) for the release and remaining scope.
 
 ### October 10 picker refinement
 
-Sortable desktop metadata, compact phone controls/cards, sidebar collapse and drag/keyboard hymn ordering are implemented as owner review follow-ups. Neutral suitability suppresses both picker and program season notices. See [implementation and evidence](docs/picker-review.md). M4's physical-device gate remains pending; this refinement does not advance M5 recommendations or the deferred saved-program performance design.
+Sortable desktop metadata, compact phone controls/cards, sidebar collapse and drag/keyboard hymn ordering are implemented as owner review follow-ups. Neutral suitability suppresses both picker and program season notices. See [implementation and evidence](docs/picker-review.md). Physical-device acceptance under M5 remains pending; recommendations remain deferred, and Mass Focus has since shipped.
 
 
 ### October 26 member hymn submissions
 
-Regular members can now save private hymns and ask a choir planner to publish them. My hymns holds author-owned copies; Choirs exposes the planner review inbox. Shared library, Mass selections and PDF downloads enforce publication visibility. Existing shared data is preserved by an additive migration. See [workflow and release safeguards](docs/member-hymn-submissions.md). This local implementation does not advance deferred recommendations, Practice, Arabic translation or physical-phone acceptance. Hosted deployment remains pending.
+Regular members can now save private hymns and ask a choir planner to publish them. My hymns holds author-owned copies; Choirs exposes the planner review inbox. Shared library, Mass selections and PDF downloads enforce publication visibility. Existing shared data is preserved by an additive migration. See [workflow and release safeguards](docs/member-hymn-submissions.md). This feature is shipped. Recommendations, Practice, Arabic translation, and physical-phone acceptance remain pending.

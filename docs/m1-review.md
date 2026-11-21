@@ -1,5 +1,8 @@
 # M1 review
 
+> Historical delivery record. Test counts, commit state, UI labels, and pending actions describe the dated work below. For the deployed release and current workflow, read [Current project status](current-status.md).
+
+
 **Added:** October 6, 2026. **Status:** Implemented and verified; coordinator review remains pending.  
 **Owner:** Implementation owner. **Requested by:** Project owner.  
 Review fixes delivered under M1, as requested. The checked items have a working form-to-database flow and automated acceptance evidence below.

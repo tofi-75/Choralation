@@ -11,7 +11,7 @@ export const choirSchema = z.object({
   is_public: z.boolean(),
   show_member_count: z.boolean(),
   member_count: z.number().nullable(),
-  role: z.enum(['Member', 'Planner']).nullable(),
+  role: z.enum(['Member', 'Planner', 'Leader']).nullable(),
 });
 export type Choir = z.infer<typeof choirSchema>;
 export type ChoirInput = {
@@ -26,7 +26,7 @@ export const choirDetailSchema = choirSchema.extend({
       id: z.number(),
       user_id: z.number(),
       username: z.string(),
-      role: z.enum(['Member', 'Planner']),
+      role: z.enum(['Member', 'Planner', 'Leader']),
     }),
   ),
   code: z.string().optional(),
@@ -89,7 +89,7 @@ export const decideApplication = (choir: number, id: number, status: 'approved' 
     method: 'POST',
     body: JSON.stringify({ status }),
   });
-export const changeMember = (choir: number, id: number, role?: 'Member' | 'Planner') =>
+export const changeMember = (choir: number, id: number, role?: 'Member' | 'Planner' | 'Leader') =>
   request(`/choirs/${choir}/members/${id}/`, z.undefined(), {
     method: role ? 'PATCH' : 'DELETE',
     ...(role ? { body: JSON.stringify({ role }) } : {}),

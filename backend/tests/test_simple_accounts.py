@@ -62,7 +62,7 @@ def test_registration_immediately_authenticates_without_verifying_or_sending(sim
     assert response.status_code == 201
     assert response.json()["email_verified"] is False
     assert response.json()["verification_required"] is False
-    assert response.json()["role"] == "Viewer"
+    assert response.json()["role"] == "User"
     assert response.json()["can_create_choirs"] is False
     assert client.get("/api/v1/hymns/").status_code == 200
     assert client.get("/api/v1/auth/me/").json()["id"] == response.json()["id"]

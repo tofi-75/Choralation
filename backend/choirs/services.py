@@ -1,4 +1,4 @@
-"""Lock choir before membership/request changes, including last-planner checks."""
+"""Lock choir before membership/request changes, including last-Leader checks."""
 
 import secrets
 
@@ -30,14 +30,14 @@ def create_choir(user, data):
     if not verified_access(user) or not (is_admin(user) or profile_for(user).can_create_choirs):
         raise PermissionDenied("An app administrator must grant permission to create choirs.")
     choir = Choir.objects.create(**data)
-    Membership.objects.create(choir=choir, user=user, role="Planner")
+    Membership.objects.create(choir=choir, user=user, role="Leader")
     new_code(choir)
     return choir
 
 
 @transaction.atomic
 def regenerate(user, pk):
-    choir = require_choir(user, pk, planner=True, lock=True)
+    choir = require_choir(user, pk, leader=True, lock=True)
     choir.codes.filter(is_active=True).update(is_active=False)
     return new_code(choir)
 
@@ -51,7 +51,9 @@ def request_join(user, pk, code=None):
         not choir.is_public
         and not JoinCode.objects.filter(choir=choir, code=code, is_active=True).exists()
     ):
-        raise ValidationError("This choir is not available. Ask a planner for its current code.")
+        raise ValidationError(
+            "This choir is not available. Ask a Choir Leader for its current code."
+        )
     if Membership.objects.filter(choir=choir, user=user).exists():
         raise ValidationError("You already belong to this choir.")
     item, _ = JoinRequest.objects.get_or_create(choir=choir, user=user)
@@ -63,7 +65,7 @@ def request_join(user, pk, code=None):
 
 @transaction.atomic
 def decide(user, choir_id, request_id, decision):
-    choir = require_choir(user, choir_id, planner=True, lock=True)
+    choir = require_choir(user, choir_id, leader=True, lock=True)
     item = JoinRequest.objects.select_for_update().filter(choir=choir, pk=request_id).first()
     if item is None or item.status != "pending":
         raise ValidationError("This request is no longer pending.")
@@ -80,13 +82,13 @@ def change_member(user, choir_id, member_id, role=None):
     if item is None:
         raise ValidationError("Membership not found.")
     if role is not None or item.user_id != user.pk:
-        require_choir(user, choir_id, planner=True)
+        require_choir(user, choir_id, leader=True)
     if (
-        item.role == "Planner"
-        and role != "Planner"
-        and not Membership.objects.filter(choir=choir, role="Planner").exclude(pk=item.pk).exists()
+        item.role == "Leader"
+        and role != "Leader"
+        and not Membership.objects.filter(choir=choir, role="Leader").exclude(pk=item.pk).exists()
     ):
-        raise ValidationError("Appoint another planner before removing the last planner.")
+        raise ValidationError("Appoint another Choir Leader before removing the last leader.")
     if role is None:
         item.delete()
     else:

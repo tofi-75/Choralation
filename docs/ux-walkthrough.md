@@ -1,6 +1,6 @@
 # UX walkthrough and coordinator demo
 
-**Status:** These M0 sketches preserve the original design intent; M1–M4 now have a working application and automated browser evidence. M4 adds confirmed finalize/reopen, real usage, and saved history; see the [M4 report](m4-report.md). Current M3 behavior is documented in the [README](../README.md) and [review notes](m3-picker-view-review.md). Human usability and physical-phone validation remain pending and are mandatory in M4.
+**Reviewed November 20, 2026.** The diagrams preserve M0 design sketches. The current workflow is summarized below and in [Current project status](current-status.md). Physical-phone and coordinator acceptance are tracked under M5.
 **Purpose:** Establish what the first implementation should do before investing in components.  
 **Review owner:** Implementation owner; eventual coordinator reviewer is not assigned.
 
@@ -8,9 +8,9 @@
 
 Use warm cream (`#FAF7F2`), burgundy (`#6B2334`), neutral dark text (`#262626`), and restrained gold detail (`#9B742F`). These are proposed tokens; measure actual foreground/background contrast before shipping. Status always has text/icon, not only color. Use readable system fonts, generous spacing, compact chips, and limited iconography.
 
-Navigation: Dashboard, Hymn Library, Mass Planner, Mass History, Settings. Expose a destination only after its milestone works. Settings is Admin-only. Viewer sees reading actions but no edit/add controls. On desktop use a sidebar; at 390px use an accessible navigation drawer. No core action depends on hover or drag-and-drop.
+Navigation shows Home, Hymns, Mass plans, Mass History, and Choirs, with Settings below. Settings includes Account for every signed-in user. Admin-only tabs manage classifications and Manager requests. Members can add private hymns for planner approval. On desktop use a sidebar; at 390px use an accessible navigation drawer. No core action depends on hover or drag-and-drop.
 
-Keep category labels supplied by the API. Long Arabic/Syriac/French titles wrap; title/first-line/note content uses sensible auto direction without reversing surrounding controls. Forms and interface labels remain in English for version 1.
+Keep category labels supplied by the API. Long Arabic/Syriac/French titles generally wrap, while the Focus header uses a single-line ellipsis; title/first-line/note content uses sensible auto direction without reversing surrounding controls. Forms and interface labels remain in English for version 1.
 
 ## 1. Library — M2, usage additions M4
 
@@ -176,17 +176,17 @@ The hymn step shows confirmed details read-only. Back to Mass details and Next s
 
 New selection identity uses a browser-session counter rather than the secure-context-only `crypto.randomUUID`. These keys identify unsaved rows locally and never serve as security tokens or database IDs. Both random and manual additions now work on an HTTP LAN origin.
 
-**Deferred owner request — saved program for use during Mass:** recorded October 10; redesign has not started. Revisit the saved view to make it practical for accessing hymns and performing during the service: compact ordered navigation, quick access to lyrics/sheet-music PDFs/voice parts/audio where available, visible performance notes and straightforward movement between hymns. Agree the detailed layout later with the owner, then validate a complete rehearsal on a real phone with materials reachable during Mass. Keep this separate from the implemented planning review and from the still-pending physical-phone M4 gate.
+**Performance reading.** Mass Focus is shipped. Rehearse PDF/lyric pages, metadata, hymn navigation, title cropping, rotation, long downward exit, and reload restoration on actual phones.
 
 ## October 10 picker review — current implemented design
 
 The compact inline picker now aligns Search and Filters and groups language, genre and sorting in one row. Desktop results are a semantic metadata table with sortable Title, Language, Seasons, Genres, Tags, Key, Minutes and Voices headings. Horizontal scrolling stays inside the table, with the Add column kept reachable. Phones use compact cards and the equivalent sort selector, avoiding a wide table on a narrow screen. Actual season names replace the vague “Other season” label; suitable neutral choices read “Any season”.
 
-The sidebar music mark toggles a narrow navigation rail on desktop. Hymn order uses a drag handle per row, including touch pointer capture and viewport edge scrolling. Keyboard pickup/move/drop and cancellation are described to assistive technology; previews only persist on drop. Review [acceptance A10R](acceptance.md) and the [picker report](picker-review.md). Saved-program performance mode remains deferred.
+The sidebar music mark toggles a narrow navigation rail on desktop. Hymn order uses a drag handle per row, including touch pointer capture and viewport edge scrolling. Keyboard pickup/move/drop and cancellation are described to assistive technology; previews only persist on drop. Review [acceptance A10R](acceptance.md) and the [picker report](picker-review.md). Mass Focus is shipped; physical-phone rehearsal remains pending.
 
 ## Mass list refinement
 
-Mass plans starts with Ready Masses (finalized). Use Pending drafts to continue a saved draft. A compact search and Filters icon replace the large search panel. Clearing search/date/season preserves your selected list; switching lists preserves filters and starts at page one. Past records remain under Archived. The floating arrow returns to Create Mass. See [Mass list review](mass-list-review.md).
+Mass plans starts with Saved Masses (finalized). Use Drafts to continue editing an autosaved draft. A compact search and Filters icon replace the large search panel. Clearing search/date/season preserves your selected list; switching lists preserves filters and starts at page one. Past records remain under Archived. The floating arrow returns to the top of the page. See [Mass list review](mass-list-review.md).
 
 Date and season controls share a height; optional title/notes occupy separate rows. Desktop picker columns are tighter and use page scrolling; drag handles appear as plain icons. See [the refinement report](planning-refinement.md).
 
@@ -194,4 +194,4 @@ Date and season controls share a height; optional title/notes occupy separate ro
 
 Hymn detail now leads with key/tempo/voice count, PDF then lyrics; classification is concise and usage/date move into metadata. Edit is a labeled pen icon. The form uses burgundy required stars and optional Latin Characters Name for non-Latin titles, with lyrics/key/tempo beside sheet music.
 
-Saved programs center and emphasize hymn titles. Focus mode opens a stable snapshot of selected hymns in program order: uploaded PDF, otherwise lyrics, otherwise title. Swipe or use previous/next/keyboard arrows; Exit/Escape releases the screen wake lock and returns to the saved program. Browser/system support determines whether the screen-awake request is granted. See [performance UI review](ui-performance-review.md) for verification and follow-up work; full Arabic translation and language settings remain deferred.
+Drafts open directly in edit mode. Save Mass drains autosave, finalizes the program, and opens its read-only view. Saved programs center and emphasize hymn titles. Focus mode opens a stable snapshot of selected hymns in program order: uploaded PDF, otherwise lyrics, otherwise title. Swipe or use previous/next/keyboard arrows; Exit/Escape releases the screen wake lock and returns to the saved program. Browser/system support determines whether the screen-awake request is granted. See [performance UI review](ui-performance-review.md) for verification and follow-up work; full Arabic translation and language settings remain deferred.

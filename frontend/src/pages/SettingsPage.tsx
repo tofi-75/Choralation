@@ -44,7 +44,7 @@ export function SettingsPage() {
       ? [
           {
             key: 'manager-requests',
-            label: `Manager requests${pendingManagers ? ` (${pendingManagers})` : ''}`,
+            label: `Choirmaster requests${pendingManagers ? ` (${pendingManagers})` : ''}`,
             url: '/settings?tab=manager-requests',
           },
           { key: 'classifications', label: 'Classifications', url: '/settings' },

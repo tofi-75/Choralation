@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { signIn, signOut } from './auth';
 import { ApiError, clearCsrfToken, request } from './client';
 
-const identity = { id: 1, username: 'planner', role: 'Planner' };
+const identity = { id: 1, username: 'planner', role: 'User', can_edit_hymns: true };
 
 beforeEach(() => clearCsrfToken());
 

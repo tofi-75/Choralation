@@ -57,7 +57,7 @@ export function CalendarSettingsPage() {
         id={Number(id)}
         data={query.data}
         onSaved={() => setSaved(true)}
-        editable={choir.data.role === 'Planner'}
+        editable={choir.data.role === 'Leader'}
       />
     </>
   );
@@ -105,7 +105,7 @@ function CalendarEditor({
     <div className="settings-calendar">
       <section className="form-section">
         <h2>Calendar defaults</h2>
-        {!editable && <p className="notice">Your choir planners manage these settings.</p>}
+        {!editable && <p className="notice">Your Choir Leaders manage these settings.</p>}
         {overrideDirty && (
           <p className="notice">
             Save or clear your date override before changing defaults or removing another override.

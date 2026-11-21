@@ -31,8 +31,10 @@ export function MassLifecycle({ mass, unavailable }: { mass: Mass; unavailable: 
   const notice = useId();
   const trigger = useRef<HTMLButtonElement | null>(null);
   const canEdit =
-    user?.role === 'Admin' || choirs.some((c) => c.id === mass.choir_id && c.role === 'Planner');
-  const canDelete = user?.role === 'Admin';
+    user?.role === 'Admin' ||
+    choirs.some((c) => c.id === mass.choir_id && ['Leader', 'Planner'].includes(c.role ?? ''));
+  const canDelete =
+    user?.role === 'Admin' || choirs.some((c) => c.id === mass.choir_id && c.role === 'Leader');
   const finalized = mass.status === 'finalized';
   if (!canEdit) return null;
   const disabled = unavailable || pending || stale;

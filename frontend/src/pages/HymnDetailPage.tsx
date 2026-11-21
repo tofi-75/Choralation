@@ -71,7 +71,7 @@ export function HymnDetailPage() {
   const saved = hymn.data;
   const published = (saved.publication_status ?? 'published') === 'published';
   const canEdit = published
-    ? user?.role !== 'Viewer'
+    ? Boolean(user?.can_edit_hymns)
     : user?.id === saved.created_by || user?.role === 'Admin';
   const classifications = [
     ['Genres', saved.genres],

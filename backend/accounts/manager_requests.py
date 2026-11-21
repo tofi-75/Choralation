@@ -1,4 +1,4 @@
-"""Serialize Manager access requests and manual permission changes by applicant."""
+"""Serialize Choirmaster access requests and manual permission changes by applicant."""
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
@@ -14,7 +14,7 @@ from accounts.services import profile_for
 class ManagerRequestConflict(APIException):
     status_code = 409
     default_code = "manager_request_conflict"
-    default_detail = "This Manager request has already been reviewed."
+    default_detail = "This Choirmaster request has already been reviewed."
 
 
 def _lock_applicant(applicant):
@@ -43,11 +43,11 @@ def _grant(profile):
 def submit_manager_request(actor):
     applicant, profile = _lock_applicant(actor)
     if not verified_access(applicant):
-        raise PermissionDenied("This account is not eligible to request Manager access.")
+        raise PermissionDenied("This account is not eligible to request Choirmaster access.")
     if role_for(applicant) == Role.ADMIN or profile.can_create_choirs:
-        raise ManagerRequestConflict("You already have Manager access.")
+        raise ManagerRequestConflict("You already have Choirmaster access.")
     if applicant.manager_requests.filter(status=ManagerRequest.Status.PENDING).exists():
-        raise ManagerRequestConflict("You already have a pending Manager request.")
+        raise ManagerRequestConflict("You already have a pending Choirmaster request.")
     return applicant.manager_requests.create()
 
 

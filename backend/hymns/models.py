@@ -110,6 +110,14 @@ class Hymn(models.Model):
         upload_to=pdf_upload_path, validators=[validate_pdf], blank=True
     )
     sheet_music_pdf_name = models.CharField(max_length=255, blank=True)
+    sheet_music_pdf_encoding = models.CharField(
+        max_length=8,
+        choices=[("identity", "identity"), ("gzip", "gzip")],
+        default="identity",
+        editable=False,
+    )
+    sheet_music_pdf_size = models.PositiveIntegerField(null=True, editable=False)
+    sheet_music_pdf_sha256 = models.CharField(max_length=64, blank=True, editable=False)
     is_polyphonic = models.BooleanField(default=False)
     # Voices are ordered names owned by this hymn, with no independent identity/references.
     voices = models.JSONField(default=list, blank=True)

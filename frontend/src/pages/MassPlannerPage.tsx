@@ -81,7 +81,9 @@ export function MassPlannerPage() {
       </section>
     );
   if (
-    !choir.choirs.some((c) => c.id === mass.data.choir_id && c.role === 'Planner') &&
+    !choir.choirs.some(
+      (c) => c.id === mass.data.choir_id && ['Leader', 'Planner'].includes(c.role ?? ''),
+    ) &&
     user?.role !== 'Admin'
   )
     return (
@@ -572,7 +574,7 @@ function Planner({
                     initialSearch={pickerSearch}
                     initialCandidate={returnedHymn}
                     create={
-                      user?.role !== 'Viewer' && !replacing && !calendarPending && !randomPending
+                      user?.can_edit_hymns && !replacing && !calendarPending && !randomPending
                         ? (search) => void createMissingHymn(placement, search)
                         : undefined
                     }
@@ -796,7 +798,8 @@ function Planner({
           >
             {finishing ? 'Saving Mass…' : 'Save Mass'}
           </button>
-          {user?.role === 'Admin' && (
+          {(user?.role === 'Admin' ||
+            choirContext.choirs.some((c) => c.id === initial.choir_id && c.role === 'Leader')) && (
             <button
               ref={deleteTrigger}
               className="button secondary"

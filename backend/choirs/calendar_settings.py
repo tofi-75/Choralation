@@ -103,7 +103,7 @@ def payload(choir_id):
 
 @transaction.atomic
 def change(actor, choir_id, data, override=False):
-    choir = require_choir(actor, choir_id, planner=True, lock=True)
+    choir = require_choir(actor, choir_id, leader=True, lock=True)
     config, _ = CalendarSettings.objects.get_or_create(choir=choir)
     if config.version != data["version"]:
         raise SettingsConflict()

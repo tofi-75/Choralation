@@ -38,7 +38,7 @@ class RosterSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     user_id = serializers.IntegerField()
     username = serializers.CharField()
-    role = serializers.ChoiceField(choices=["Member", "Planner"])
+    role = serializers.ChoiceField(choices=["Member", "Planner", "Leader"])
 
 
 class RequestPreviewSerializer(serializers.Serializer):
@@ -110,7 +110,7 @@ class DecisionSerializer(StrictSerializer):
 
 
 class MemberSerializer(StrictSerializer):
-    role = serializers.ChoiceField(choices=["Member", "Planner"])
+    role = serializers.ChoiceField(choices=["Member", "Planner", "Leader"])
 
 
 class ConfirmSerializer(StrictSerializer):

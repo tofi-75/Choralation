@@ -6,7 +6,7 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from accounts.permissions import AdminPermission, VerifiedPermission
+from accounts.permissions import VerifiedPermission
 from accounts.serializers import EmptySerializer, ErrorSerializer
 from choirs.access import request_choir, require_choir, visible_choirs
 from hymns.selectors import LibraryPagination
@@ -69,7 +69,7 @@ class MassViewSet(viewsets.GenericViewSet):
         )
 
     def get_permissions(self):
-        policy = AdminPermission if self.action == "destroy" else VerifiedPermission
+        policy = VerifiedPermission
         return [policy()]
 
     def list(self, request):

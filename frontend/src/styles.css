@@ -2427,8 +2427,17 @@ input[aria-invalid='true'] {
 }
 .saved-hymn-link {
   display: block;
+  width: 100%;
   padding: 0.25rem 0.45rem;
+  border: 0;
   border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  -webkit-touch-callout: none;
+  user-select: none;
 }
 .saved-hymn-link:hover,
 .saved-hymn-link:focus-visible {
@@ -3291,4 +3300,19 @@ input[aria-invalid='true'] {
   position: absolute;
   inset-block-start: 0.5rem;
   inset-inline-end: 0.5rem;
+}
+
+.saved-hymn-menu {
+  position: fixed;
+  z-index: 100;
+  min-width: 176px;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid #d9d1c6;
+  border-radius: 0.65rem;
+  background: var(--surface, #fffdf9);
+  box-shadow: 0 4px 20px #0003;
+}
+.saved-hymn-menu a {
+  display: block;
+  padding: 0.3rem;
 }

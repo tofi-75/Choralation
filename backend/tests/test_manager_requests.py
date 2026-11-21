@@ -49,7 +49,7 @@ def test_registered_user_requests_declines_reapplies_and_gains_scoped_access():
         format="json",
     )
     assert response.status_code == 201
-    assert response.json()["role"] == "Viewer"
+    assert response.json()["role"] == "User"
     assert response.json()["can_create_choirs"] is False
     assert member.get(SELF).json() == {"request": None, "can_create_choirs": False}
     assert member.post("/api/v1/choirs/", {"name": "Denied"}, format="json").status_code == 403
@@ -83,12 +83,12 @@ def test_registered_user_requests_declines_reapplies_and_gains_scoped_access():
 
     identity = member.get("/api/v1/auth/me/").json()
     assert identity["can_create_choirs"] is True
-    assert identity["role"] == "Viewer"
+    assert identity["role"] == "Choirmaster"
     assert identity["can_edit_hymns"] is False
     created = member.post("/api/v1/choirs/", {"name": "Applicant choir"}, format="json")
     assert created.status_code == 201
     assert Membership.objects.filter(
-        choir_id=created.json()["id"], user_id=identity["id"], role="Planner"
+        choir_id=created.json()["id"], user_id=identity["id"], role="Leader"
     ).exists()
     other = Choir.objects.create(name="Other private choir")
     assert member.get(f"/api/v1/choirs/{other.pk}/").status_code == 404

@@ -29,7 +29,7 @@ export function AppShell() {
   const accountMenu = useRef<HTMLDetailsElement>(null);
   const role =
     session.user?.role !== 'Admin' && session.user?.can_create_choirs
-      ? 'Manager'
+      ? 'Choirmaster'
       : session.user?.role;
 
   function closeAccountMenu(restoreFocus = false) {

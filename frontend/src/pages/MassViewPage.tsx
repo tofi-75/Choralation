@@ -5,7 +5,9 @@ import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-route
 
 import { fetchMass } from '../api/masses';
 import { fetchMassPlacements } from '../api/library';
-import { HymnMusicalSummary } from '../features/hymns/HymnMusicalSummary';
+import { useRef } from 'react';
+import type { MassFocusHandle } from '../features/masses/MassFocusMode';
+import { SavedHymnRow } from '../features/masses/SavedHymnRow';
 import { MassFocusMode } from '../features/masses/MassFocusMode';
 import { MassLifecycle } from '../features/masses/MassLifecycle';
 import { useChoir } from '../features/choirs/ChoirProvider';
@@ -14,6 +16,7 @@ import { useSession } from '../features/auth/SessionProvider';
 import { FloatingNotice } from '../components/FloatingNotice';
 
 export function MassViewPage() {
+  const focus = useRef<MassFocusHandle>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const hymnSavedOutsideProgram =
@@ -66,7 +69,9 @@ export function MassViewPage() {
   if (
     mass.status === 'draft' &&
     (user?.role === 'Admin' ||
-      choir.choirs.some((c) => c.id === mass.choir_id && c.role === 'Planner'))
+      choir.choirs.some(
+        (c) => c.id === mass.choir_id && ['Leader', 'Planner'].includes(c.role ?? ''),
+      ))
   ) {
     return <Navigate to={`/masses/${id}/edit`} replace />;
   }
@@ -115,6 +120,7 @@ export function MassViewPage() {
         </div>
         <div className="saved-mass-actions">
           <MassFocusMode
+            launchRef={focus}
             key={focusResumeKey}
             resumeKey={focusResumeKey}
             selections={placements.flatMap((placement) =>
@@ -152,22 +158,11 @@ export function MassViewPage() {
                   .filter((row) => row.placement.id === placement.id)
                   .map((row) => (
                     <li key={row.id}>
-                      <Link
-                        className="saved-hymn-link"
-                        to={`/hymns/${row.hymn.id}`}
-                        state={{ returnToMassId: mass.id }}
-                        aria-labelledby={`saved-hymn-${row.id}`}
-                      >
-                        <span className="saved-hymn-title" id={`saved-hymn-${row.id}`} dir="auto">
-                          {row.hymn.title}
-                        </span>
-                        <HymnMusicalSummary hymn={row.hymn} showLanguage />
-                        {row.notes && (
-                          <p className="tiny preserve-lines" dir="auto">
-                            {row.notes}
-                          </p>
-                        )}
-                      </Link>
+                      <SavedHymnRow
+                        row={row}
+                        massId={mass.id}
+                        openFocus={(id, trigger) => focus.current?.open(id, trigger)}
+                      />
                     </li>
                   ))}
               </ol>

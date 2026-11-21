@@ -80,7 +80,7 @@ def main():
     parser.add_argument("--email")
     parser.add_argument("--confirm-email-ownership", action="store_true")
     parser.add_argument("--username")
-    parser.add_argument("--role", choices=("Admin", "Planner", "Viewer"), default="Viewer")
+    parser.add_argument("--role", choices=("Admin", "Choirmaster", "User"), default="User")
     parser.add_argument("--env-file", default=str(ROOT / ".env.hosted"))
     options = parser.parse_args()
     try:
