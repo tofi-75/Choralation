@@ -17,9 +17,11 @@ try {
     New-Item -ItemType Directory -Force -Path (Join-Path $ProjectRoot '.cache\schema') | Out-Null
     Invoke-Manage @('spectacular', '--validate', '--fail-on-warn', '--file', (Join-Path $ProjectRoot '.cache\schema\openapi.yaml'))
 } finally { Pop-Location }
-Invoke-Npm @('run', 'typecheck')
 Invoke-Npm @('run', 'test')
 Invoke-Npm @('run', 'lint')
 Invoke-Npm @('run', 'format:check')
+Invoke-Checked $ProjectNode @((Join-Path $PSScriptRoot 'check-reader-assertions.mjs'))
+Invoke-Checked $ProjectNode @('--test', (Join-Path $PSScriptRoot 'tests\browser-coverage.test.mjs'))
+# Build runs TypeScript once, then copies/builds the matching PDF assets.
 Invoke-Npm @('run', 'build')
 Write-Output 'Application checks passed. Run .\dev.cmd e2e for the real-browser gate.'

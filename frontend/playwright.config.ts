@@ -1,24 +1,33 @@
 /** Real-backend smoke gate; browser profiles and artifacts stay in the project. */
 import { defineConfig } from '@playwright/test';
 import { resolve } from 'node:path';
+import { backendOrigin, backendPort, browserOrigin, frontendPort } from './tests/test-server';
 
 const windows = process.platform === 'win32';
 const python = windows ? '"..\\.venv\\Scripts\\python.exe"' : 'python';
 const vite = windows
   ? '"..\\.local\\node\\node.exe" node_modules\\vite\\bin\\vite.js'
   : 'node node_modules/vite/bin/vite.js';
+const reports = process.env.E2E_REPORT_DIR;
 
 export default defineConfig({
   testDir: './tests/e2e',
+  tag: process.env.E2E_SIMPLE_ACCOUNTS === 'true' ? '@simple' : '@email',
   fullyParallel: false,
   workers: 1,
   retries: 0,
-  reporter: 'list',
-  outputDir: './test-results',
+  reporter: [
+    ['list'],
+    ['./tests/contracts/reporter.ts'],
+    ...(reports ? [['blob', { outputDir: resolve(reports, 'blob') }] as const] : []),
+  ],
+  outputDir: reports ? resolve(reports, 'artifacts') : './test-results',
   use: {
-    baseURL: 'http://127.0.0.1:5174',
+    baseURL: browserOrigin,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
+    actionTimeout: 15_000,
+    navigationTimeout: 20_000,
     launchOptions: {
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
       args: ['--disable-crash-reporter', '--disable-breakpad'],
@@ -47,10 +56,11 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: `${python} -B ../backend/manage.py runserver 127.0.0.1:8001 --noreload`,
-      url: 'http://127.0.0.1:8001/health/ready/',
+      command: `${python} -B ../backend/manage.py runserver 127.0.0.1:${backendPort} --noreload`,
+      url: `${backendOrigin}/health/ready/`,
       env: {
-        CSRF_TRUSTED_ORIGINS: 'http://127.0.0.1:5174',
+        DJANGO_SETTINGS_MODULE: 'config.browser_test_settings',
+        CSRF_TRUSTED_ORIGINS: browserOrigin,
         MARONITE_FEED_ENABLED: 'false',
         ACCOUNT_REGISTRATION_ENABLED: 'true',
         ACCOUNT_EMAIL_VERIFICATION_ENABLED:
@@ -58,7 +68,7 @@ export default defineConfig({
         ACCOUNT_PASSWORD_RESET_ENABLED:
           process.env.E2E_SIMPLE_ACCOUNTS === 'true' ? 'false' : 'true',
         ACCOUNT_VERIFICATION_REQUIRED: 'false',
-        APP_PUBLIC_URL: 'http://127.0.0.1:5174',
+        APP_PUBLIC_URL: browserOrigin,
         EMAIL_BACKEND: 'django.core.mail.backends.filebased.EmailBackend',
         EMAIL_FILE_PATH: process.env.EMAIL_FILE_PATH ?? resolve('../.cache/e2e-emails'),
         DJANGO_STORAGE_BACKEND: 'local',
@@ -70,9 +80,9 @@ export default defineConfig({
       timeout: 30_000,
     },
     {
-      command: `${vite} --host 127.0.0.1 --port 5174`,
-      url: 'http://127.0.0.1:5174',
-      env: { BACKEND_ORIGIN: 'http://127.0.0.1:8001' },
+      command: `${vite} preview --host 127.0.0.1 --port ${frontendPort}`,
+      url: browserOrigin,
+      env: { BACKEND_ORIGIN: backendOrigin },
       reuseExistingServer: false,
       timeout: 30_000,
     },

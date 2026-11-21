@@ -1,6 +1,57 @@
 # System test optimization plan
 
-Planned November 21, 2026. This is an implementation plan; the test runner and CI configuration have not been changed by the regression repair. No commit, push or deployment is included.
+Planned, implemented and verified locally November 21, 2026 after separately committing the feature/review repairs as `a24a6ef`. The system-test update is prepared as a separate commit for GitHub build verification. The complete local browser matrix passes; Linux CI and physical-device acceptance remain separate release checks. Hosted deployment is not part of this update.
+
+## Implementation and current evidence
+
+- Vitest uses `vmThreads`, two workers and its default per-file isolation. Three alternating full-suite trials passed the identical 133 case identifiers/statuses in both pools. Fork times: 32.39/38.42/31.45 s; VM times: 15.29/16.60/15.89 s. Median elapsed time fell from **32.39 s to 15.89 s (51%)** on local Windows with Node 24.19.0. These are current tests, including the six gesture regressions added after the original baseline below.
+- A separate Windows process-tree sample every 50 ms measured peak working sets of approximately **695 MiB (forks) and 814 MiB (VM threads)**. The VM pool uses about 119 MiB more in that observation; this includes shared resident pages and is not a precise private-memory measurement. Both runs passed all cases. Retain two workers and verify Linux runner memory before release.
+- Backend, frontend, four browser profiles and production-container checks have separate CI jobs. Each browser job has its own PostgreSQL service, one worker, randomized fixture accounts and run-specific uploads/email directories. All profiles run the full email-capable suite and simple-account signup, private approvals, hymn submission and Choirmaster requests. The separate password preflight was removed; its two cases remain in the full suite.
+- The checked production frontend build and PDF assets are prepared once and passed to the four CI preview servers. Local `e2e` builds current source by default. `E2E_PREBUILT=true` is an explicit CI/diagnostic opt-in requiring a complete existing build, not a source-freshness check. Same-origin proxying and strict occupied-port rejection remain enabled. Switching account modes starts fresh backend/frontend services.
+- Reader UI creation/search remains a full UI case. PDF controls/replacement, saved-row/Focus navigation and lyric/title/restoration journeys have independent API-created prerequisites and share a reader-only API-authenticated session, separate from UI login/password tests. The old 120 s journey is four focused cases with 90 s overall PDF/Focus budgets. Actions are bounded at 15 s and navigation at 20 s; no retries or arbitrary sleeps were introduced.
+- Running against preview exposed an existing production race: anonymous-session cleanup removed the public account-capability query while registration/recovery was using it. Public `auth-config` is now preserved while private queries are still purged on expiry/logout; two regression tests reproduce the failure and pass with the fix. The saved-Mass browser case also now uses an actual per-choir Planner fixture, rather than a Leader with deletion permission. Its existing no-delete assertion remains unchanged.
+- [Browser contract](../frontend/tests/contracts/browser-contract.json) maps the original 37 scenarios to 40 successor scenarios, retaining all four profiles. The simple-mode queue includes the existing Choirmaster-request scenario as additional coverage. Expected skips remain explicit: three simple-only cases in email mode, the disabled email-verification/recovery journey in both modes, and phone rotation on desktop.
+- Expected union: **160 email-mode instances and 20 simple-mode instances**, giving **159 passes and 21 documented skips**. The additional case instances come from the four-way reader split and simple-mode Choirmaster coverage; no original viewport/mode instance is removed. The permanently disabled email journey remains an acceptance gap rather than a passing result.
+- [Reader assertion contract](../frontend/tests/contracts/reader-assertions.json) records every original assertion and owner. `node scripts/check-reader-assertions.mjs` verifies all **203** survive the split and can write their new owners/locations through `E2E_ASSERTION_MAP`. Update this contract deliberately only when an approved behavior change requires changing an assertion; it is a preservation check, not a line-coverage target.
+- The runtime reporter records test IDs, file/title, profile, mode, expected/actual status, duration, retry count and dynamic skip reasons. CI fails on missing/extra cases, unexpected skips or retries. Unique `browser-reports-<profile>` artifacts contain per-mode coverage, blob reports and failure traces/screenshots; the merge job requires all eight reports. The final `checks` job rejects failed, skipped or canceled dependencies.
+- Global `@email`/`@simple` tags keep repeated scenarios distinguishable when blob reports merge, following [Playwright’s multi-environment reporting guidance](https://playwright.dev/docs/test-reporters). Test-only Django settings close request connections so concurrently isolated local profiles cannot retain a connection per development-server thread; three checks verify this policy leaves normal settings intact and rejects hosted/production use.
+- Seven small runner-gate tests cover all valid profile/mode combinations, dropped cases, unexpected skips, retries, wrong profiles, missing skip reasons, and failure/absence of one aggregate profile. Backend verification passes **461 tests** with real PostgreSQL and migrations. Unit tests retain actual API error/DOM event cases and have passed repeatedly without observed cross-realm failures.
+
+Local generated timing/results are under ignored `.cache/system-tests/`. The two production-race regressions increase the unit suite from 133 to 135; the benchmark above intentionally compares the same earlier 133 cases in both pools. CI Linux timing/memory, total runner minutes and physical Safari/Android results cannot be claimed from Windows emulation. The production persistence harness remains independent and unchanged.
+
+Final local verification:
+
+| Gate | Result |
+| --- | --- |
+| Current backend suite | 461 passed in 58.15 s, including the three browser-settings guard cases |
+| Current frontend suite | Identical 135 case identifiers/statuses passed in both pools; forks 34.71 s, VM threads 15.93 s in the final paired run |
+| Complete browser matrix | All eight mode/profile runs passed: 159 passes, 21 documented skips, no retries |
+| Four-profile local wall time | 825.8 s (13 min 46 s), plus the 9.6 s checked build; shared-machine CPU contention means this is not a CI timing forecast |
+| Merged blob report | 159 expected passes, 21 skips, zero unexpected results and zero flaky tests; all eight blobs accounted for |
+| Coverage contracts | All original 37 scenarios mapped to successors; all 203 reader assertions retained; seven reporter/aggregate guard tests passed |
+| Build and static checks | Production build/TypeScript, Ruff lint/format, ESLint, Prettier, workflow structure, Git whitespace and 291 documentation links passed |
+| Local isolation | Remote database/occupied-port refusals verified; temporary services/databases removed; normal services on 8000/5173 preserved |
+
+The final matrix logs/timings are in `.cache/system-tests/ca27801024e3/`; paired unit reports, backend JUnit and merged-gate results are in `.cache/system-tests/final/`. The merged report is `frontend/playwright-report/index.html`, with machine-readable results at `.cache/browser-merged.json`. Early preview failures revealed the production configuration race and incorrect Planner fixture, which were repaired. An initial four-profile attempt exhausted development-server persistent connections; the local-only per-request connection policy fixed that. The successful matrix above contains neither failure and uses the real database/storage paths for every case.
+
+## Running and inspecting the update
+
+Use `.\dev.cmd check` for the application and coverage-guard checks, and `.\dev.cmd e2e` for the serial local browser matrix. After dot-sourcing `scripts/project.ps1`, pass a focused project/file to `scripts/e2e.ps1 -TestArguments @('performance-review.spec.ts', '--project=mobile')`. Leave PostgreSQL running; the gate owns only ports 8001/5174 and refuses existing services. Default local account flags come from the configured E2E mode; CI explicitly runs email and simple configurations. Local focused runs record `.json` coverage under `frontend/test-results`; mandatory profile/mode completeness is enforced only by `E2E_ENFORCE_COVERAGE=true` with `E2E_PROJECT`.
+
+For the complete matrix with disposable databases, run `.\.venv\Scripts\python.exe scripts/system-browser.py --jobs 2` (up to four profiles concurrently). It builds once and assigns profile-specific frontend ports 5174/5184/5194/5204 and backend ports 8001/8011/8021/8031. Every profile/mode creates and finally drops its own randomized loopback PostgreSQL database. Accounts/uploads are run-scoped; fixture cleanup removes unreferenced hymns/PDFs, while captured email/log files remain ignored for diagnosis. The original database supplies connection credentials only; no existing database is reset. Occupied allocated ports fail before setup. The runner rejects remote database hosts and records individual logs and `timings.json` under a randomized `.cache/system-tests/` directory. `--profiles desktop --modes simple` narrows a development check; the full release contract still requires all eight combinations. The default is serial (`--jobs 1`).
+
+For CI artifacts, inspect `.cache/browser-reports/<profile>-<email|simple>/coverage.json` and the merged HTML report. `node --test scripts/tests/browser-coverage.test.mjs` exercises the reporter and aggregate failures without application services. No hosted database or upload bucket is a test target.
+
+Reader ownership after the split:
+
+| Original responsibility | Current owner |
+| --- | --- |
+| Multilingual UI creation, metadata, save/reload and Latin search | `Reader form` |
+| Standalone PDF rendering/zoom, gestures, rotation, fullscreen restoration and replacement | `Reader PDF` |
+| Saved rows/metadata, both Mass Back links, error return, occurrence selection, keyboard and nested PDF fullscreen | `Reader Focus` |
+| Multilingual pagination, complete graphemes, zoom/rotation passage retention, long-title sizing, PDF occurrence memory, fallback, wake release and reload | `Reader lyrics` |
+| Shared API creation/201 checks | `materials` fixture, consumed independently by the PDF, Focus and lyrics cases |
+| Existing phone rotation and responsive-heading scenarios | Their original standalone cases, with all profiles retained |
 
 ## Goal and measured baseline
 

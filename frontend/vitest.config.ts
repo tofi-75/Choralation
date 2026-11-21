@@ -5,6 +5,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   plugins: [react()],
   test: {
+    pool: 'vmThreads',
     // Bound jsdom memory/CPU so local browser checks and CI remain deterministic.
     maxWorkers: 2,
     environment: 'jsdom',

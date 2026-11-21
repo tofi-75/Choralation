@@ -1,3 +1,4 @@
+import { browserOrigin } from '../test-server';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 const suffix = process.env.E2E_USER_SUFFIX;
@@ -21,8 +22,8 @@ test('member PDF stays private, receives feedback and becomes shared only after 
   browser,
 }, info) => {
   test.setTimeout(120000);
-  const plannerContext = await browser.newContext({ baseURL: 'http://127.0.0.1:5174' });
-  const outsider = await browser.newContext({ baseURL: 'http://127.0.0.1:5174' });
+  const plannerContext = await browser.newContext({ baseURL: browserOrigin });
+  const outsider = await browser.newContext({ baseURL: browserOrigin });
   try {
     const planner = await plannerContext.newPage();
     await login(planner, 'planner');

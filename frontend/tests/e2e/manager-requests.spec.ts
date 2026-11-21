@@ -1,3 +1,4 @@
+import { browserOrigin } from '../test-server';
 import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { expect, test } from '@playwright/test';
@@ -64,7 +65,7 @@ test('Admin reviews Choirmaster requests and an approved user can plan their own
     viewport: info.project.use.viewport,
     isMobile: info.project.use.isMobile,
     hasTouch: info.project.use.hasTouch,
-    baseURL: 'http://127.0.0.1:5174',
+    baseURL: browserOrigin,
   });
   try {
     const admin = await adminContext.newPage();

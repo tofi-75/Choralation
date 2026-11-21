@@ -5,7 +5,7 @@ import type { Page } from '@playwright/test';
 const suffix = process.env.E2E_USER_SUFFIX;
 const password = process.env.E2E_PASSWORD;
 if (!suffix || !password) throw new Error('Run through scripts/e2e.ps1.');
-async function login(page: Page, role = 'Planner') {
+async function login(page: Page, role = 'MassPlanner') {
   await page.goto('/login');
   await page.getByLabel('Email or username').fill(`e2e-${suffix}-${role.toLowerCase()}`);
   await page.getByLabel('Password', { exact: true }).fill(password!);

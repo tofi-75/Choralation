@@ -1,16 +1,14 @@
 import { initialChoirId, selectInitialChoir } from './choir-context';
 /** Real sessions, private PDF canvas, saved reading order, and compact responsive layout. */
 import { readFileSync } from 'node:fs';
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { test } from './reader-fixtures';
 import type { Locator, Page } from '@playwright/test';
 const suffix = process.env.E2E_USER_SUFFIX;
 const password = process.env.E2E_PASSWORD;
 if (!suffix || !password) throw new Error('Run through scripts/e2e.ps1.');
 async function login(page: Page) {
-  await page.goto('/login');
-  await page.getByLabel('Email or username').fill(`e2e-${suffix}-planner`);
-  await page.getByLabel('Password', { exact: true }).fill(password!);
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await page.goto('/dashboard');
   await expect(page.getByRole('heading', { name: 'Masses', exact: true })).toBeVisible();
   await selectInitialChoir(page);
 }
@@ -232,10 +230,7 @@ async function saveReadingProgram(
   return mass.id as number;
 }
 
-test('Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation', async ({
-  page,
-}, info) => {
-  test.setTimeout(120000);
+async function mockWakeLock(page: Page) {
   await page.addInitScript(() => {
     const counters = { requests: 0, releases: 0 };
     Object.assign(window, { performanceWake: counters });
@@ -257,6 +252,11 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
       },
     });
   });
+}
+
+test('Reader form: multilingual creation, metadata, reload and Latin search', async ({
+  page,
+}, info) => {
   await login(page);
   const title = `ترنيمة ${suffix}-${info.project.name}`;
   const latin = `Tarnima ${suffix}-${info.project.name}`;
@@ -276,7 +276,6 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   await page.getByRole('button', { name: 'Save hymn', exact: true }).click();
   await page.getByRole('button', { name: 'Close notification', exact: true }).click();
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
-  const lyricId = Number(page.url().split('/').pop());
   await expect(page.locator('.hymn-lyrics')).toHaveText(lyrics);
   await expect(page.locator('.hymn-musical-summary')).toContainText('D minor');
   await expect(page.locator('.hymn-musical-summary')).toContainText('Andante · 80 BPM');
@@ -293,62 +292,15 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   await expect(
     page.getByRole('link', { name: title, exact: true }).filter({ visible: true }),
   ).toBeVisible();
-  const headers = {
-    'X-Choir-ID': await initialChoirId(page),
-    'X-CSRFToken': (await (await page.request.get('/api/v1/auth/csrf/')).json())
-      .csrf_token as string,
-  };
-  const lyric = await (
-    await page.request.get(`/api/v1/hymns/${lyricId}/`, {
-      headers: { 'X-Choir-ID': await initialChoirId(page) },
-    })
-  ).json();
-  const fallbackLyrics = Array.from(
-    { length: 36 },
-    (_, index) => `PDF fallback lyrics ${index + 1}\nSing the refrain`,
-  ).join('\n');
-  const payload = {
-    title: `PDF ${suffix}-${info.project.name}`,
-    language_id: lyric.language.id,
-    placement_ids: [lyric.placements[0].id],
-    season_ids: [lyric.seasons[0].id],
-    lyrics: fallbackLyrics,
-    default_key: 'G minor',
-    tempo: '96 BPM',
-    is_polyphonic: true,
-    voices: ['Soprano', 'Alto'],
-  };
-  const pdfResponse = await page.request.post('/api/v1/hymns/', {
-    headers,
-    multipart: {
-      data: JSON.stringify(payload),
-      sheet_music_pdf: {
-        name: 'score.pdf',
-        mimeType: 'application/pdf',
-        buffer: readFileSync('tests/fixtures/two-page-sheet-music.pdf'),
-      },
-    },
-  });
-  expect(pdfResponse.status()).toBe(201);
-  const pdf = await pdfResponse.json();
-  const longTitleDirection = info.project.use.isMobile ? 'rtl' : 'ltr';
-  const longTitle =
-    longTitleDirection === 'rtl'
-      ? `ترنيمة ${suffix}-${info.project.name} ${'عنوان طويل باللغة العربية للاختبار '.repeat(9)}`
-      : `Hymn ${suffix}-${info.project.name} ${'A long title for the choir to sing together '.repeat(9)}`;
-  const plainResponse = await page.request.post('/api/v1/hymns/', {
-    headers,
-    data: {
-      ...payload,
-      title: longTitle.slice(0, 255).trimEnd(),
-      lyrics: null,
-      default_key: null,
-      tempo: null,
-      voices: [],
-    },
-  });
-  expect(plainResponse.status()).toBe(201);
-  const plain = await plainResponse.json();
+});
+
+test('Reader PDF: controls, fullscreen gestures, rotation and replacement', async ({
+  page,
+  materials,
+}, info) => {
+  test.setTimeout(90_000);
+  await login(page);
+  const { pdf, fallbackLyrics } = materials;
   await page.goto(`/hymns/${pdf.id}`);
   await expect(page.getByRole('link', { name: '← Hymn library', exact: true })).toHaveAttribute(
     'href',
@@ -529,6 +481,18 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   await page.getByRole('button', { name: 'Save hymn', exact: true }).click();
   await expect(page.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+});
+
+test('Reader Focus: saved rows, metadata, keyboard and nested PDF restoration', async ({
+  page,
+  materials,
+}, info) => {
+  test.setTimeout(90_000);
+  await mockWakeLock(page);
+  await login(page);
+  const { headers, lyric, pdf, plain, payload } = materials;
+  const mobile = info.project.use.isMobile ?? false;
+  const fullscreen = page.getByRole('dialog', { name: `${pdf.title} · PDF`, exact: true });
   const massTitle = `Reading ${suffix}-${info.project.name}`;
   const massId = await saveReadingProgram(
     page,
@@ -618,7 +582,6 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   await page.keyboard.press('Tab');
   await expect(jump).toBeFocused();
   const focusTitle = focusHeader.locator('.focus-hymn-picker h2');
-  const titleSize = await focusTitle.evaluate((element) => getComputedStyle(element).fontSize);
   const headingText = (await focusTitle.boundingBox())!;
   const caret = (await focusHeader.locator('.focus-hymn-picker svg').boundingBox())!;
   const headerBox = (await focusHeader.boundingBox())!;
@@ -732,6 +695,49 @@ test('Performance materials: multilingual form/search, PDF-first reading and foc
   } else await page.keyboard.press('ArrowRight');
   await expect(focus.getByText('Hymn 2 of 4', { exact: true })).toBeVisible();
   await expect(focus.locator('.hymn-lyrics:not(.lyric-measure)')).toContainText('السطر الأول');
+  await page.keyboard.press('Escape');
+});
+
+test('Reader lyrics: pagination, title sizing, occurrence memory, fallback and reload', async ({
+  page,
+  materials,
+}, info) => {
+  test.setTimeout(90_000);
+  await mockWakeLock(page);
+  await login(page);
+  const { headers, lyric, pdf, plain, lyrics, longTitleDirection, payload } = materials;
+  const mobile = info.project.use.isMobile ?? false;
+  const massTitle = `Reading ${suffix}-${info.project.name}`;
+  const massId = await saveReadingProgram(
+    page,
+    headers,
+    massTitle,
+    payload.season_ids[0],
+    payload.placement_ids[0],
+    [pdf, { ...lyric, notes: 'Start the refrain together.' }, plain, pdf],
+  );
+  await page.goto(`/masses/${massId}`);
+  // This portion of the original journey starts after native fullscreen was refused.
+  await page.evaluate(() => {
+    Object.defineProperty(HTMLElement.prototype, 'requestFullscreen', {
+      configurable: true,
+      value: () => Promise.reject(new Error('Fullscreen disabled for test')),
+    });
+  });
+  await page.getByRole('button', { name: 'Focus mode', exact: true }).click();
+  const focus = page.getByRole('dialog', { name: 'Focus mode', exact: true });
+  const nativeFocus = await page.evaluate(
+    () => document.fullscreenEnabled && matchMedia('(any-pointer: coarse)').matches,
+  );
+  const focusHeader = focus.locator('.focus-header');
+  const jump = focusHeader.getByRole('combobox', { name: 'Jump to hymn', exact: true });
+  const focusTitle = focusHeader.locator('.focus-hymn-picker h2');
+  const titleSize = await focusTitle.evaluate((element) => getComputedStyle(element).fontSize);
+  const focusMetadata = focusHeader.locator('.hymn-musical-summary');
+  await expect(focus.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();
+  const fitWidth = focus.getByRole('button', { name: 'Fit to width', exact: true });
+  if (await fitWidth.count()) await fitWidth.click();
+  await jump.selectOption('1');
   const zoomIn = focus.getByRole('button', { name: 'Zoom in lyrics', exact: true });
   const zoomOut = focus.getByRole('button', { name: 'Zoom out lyrics', exact: true });
   const lyricText = focus.locator('.hymn-lyrics:not(.lyric-measure)');

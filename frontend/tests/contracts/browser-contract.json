@@ -1,0 +1,310 @@
+{
+  "baseline_commit": "a24a6ef",
+  "profiles": ["desktop", "mobile", "mobile-360", "mobile-430"],
+  "cases": [
+    {
+      "file": "accounts-choirs.spec.ts",
+      "title": "private approval, scoped counts and code rotation",
+      "successors": ["private approval, scoped counts and code rotation"],
+      "simple": true,
+      "skip": "email-mode"
+    },
+    {
+      "file": "accounts-choirs.spec.ts",
+      "title": "email verification and password reset",
+      "successors": ["email verification and password reset"],
+      "simple": true,
+      "skip": "disabled-email-journey"
+    },
+    {
+      "file": "auth.spec.ts",
+      "title": "Admin: login, refresh, expiry, mobile focus, and logout",
+      "successors": ["Admin: login, refresh, expiry, mobile focus, and logout"],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "auth.spec.ts",
+      "title": "Planner: login, refresh, expiry, mobile focus, and logout",
+      "successors": ["Planner: login, refresh, expiry, mobile focus, and logout"],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "auth.spec.ts",
+      "title": "Viewer: login, refresh, expiry, mobile focus, and logout",
+      "successors": ["Viewer: login, refresh, expiry, mobile focus, and logout"],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "browser-review.spec.ts",
+      "title": "Browser review: duplicate date, compact inline picker, HTTP random selection and list cues",
+      "successors": [
+        "Browser review: duplicate date, compact inline picker, HTTP random selection and list cues"
+      ],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "choir-requests.spec.ts",
+      "title": "Admins approve and decline private choir requests directly on Choirs without membership",
+      "successors": [
+        "Admins approve and decline private choir requests directly on Choirs without membership"
+      ],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "draft-hymn-workflow.spec.ts",
+      "title": "A draft resumes in edit mode and can create or review a hymn in the same section",
+      "successors": [
+        "A draft resumes in edit mode and can create or review a hymn in the same section"
+      ],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "draft-hymn-workflow.spec.ts",
+      "title": "Settings combines Account and the saved default choir",
+      "successors": ["Settings combines Account and the saved default choir"],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "home-saved-review.spec.ts",
+      "title": "Home and saved Mass actions: Ordinary Time, compact creation, phone confirmation, planner edit and admin delete",
+      "successors": [
+        "Home and saved Mass actions: Ordinary Time, compact creation, phone confirmation, planner edit and admin delete"
+      ],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "hymn-submissions.spec.ts",
+      "title": "member PDF stays private, receives feedback and becomes shared only after planner approval",
+      "successors": [
+        "member PDF stays private, receives feedback and becomes shared only after planner approval"
+      ],
+      "simple": true,
+      "skip": "email-mode"
+    },
+    {
+      "file": "library.spec.ts",
+      "title": "Planner: create Unicode hymn, save recovery, URL filters, refresh, and edit",
+      "successors": ["Planner: create Unicode hymn, save recovery, URL filters, refresh, and edit"],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "library.spec.ts",
+      "title": "Member: private creation is available while shared hymns remain read-only",
+      "successors": ["Member: private creation is available while shared hymns remain read-only"],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "library.spec.ts",
+      "title": "Admin: confirmation cancel, deactivate/reactivate, and safe delete",
+      "successors": ["Admin: confirmation cancel, deactivate/reactivate, and safe delete"],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "lifecycle.spec.ts",
+      "title": "Weekly workflow: create hymn, draft, finalize, usage/history, reopen and re-finalize",
+      "successors": [
+        "Weekly workflow: create hymn, draft, finalize, usage/history, reopen and re-finalize"
+      ],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "lifecycle.spec.ts",
+      "title": "Stale finalization notice and background finalization preserve editor working copy",
+      "successors": [
+        "Stale finalization notice and background finalization preserve editor working copy"
+      ],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "manager-requests.spec.ts",
+      "title": "Admin reviews Choirmaster requests and an approved user can plan their own choir",
+      "successors": [
+        "Admin reviews Choirmaster requests and an approved user can plan their own choir"
+      ],
+      "simple": true,
+      "skip": null
+    },
+    {
+      "file": "mass-list-review.spec.ts",
+      "title": "Mass lists: chronological saved programs, separate archive and drafts, filters and paging",
+      "successors": [
+        "Mass lists: chronological saved programs, separate archive and drafts, filters and paging"
+      ],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "masses.spec.ts",
+      "title": "Mass list: nearest upcoming first and past Masses archived at the end",
+      "successors": ["Mass list: nearest upcoming first and past Masses archived at the end"],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "masses.spec.ts",
+      "title": "Section picker and saved view: preference, scrolling, failed save and edit reentry",
+      "successors": [
+        "Section picker and saved view: preference, scrolling, failed save and edit reentry"
+      ],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "masses.spec.ts",
+      "title": "Random picker: matching choices, retained notes, failed save retry and reload",
+      "successors": [
+        "Random picker: matching choices, retained notes, failed save retry and reload"
+      ],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "masses.spec.ts",
+      "title": "Planner: multiple rows, reorder, retry, conflict review, and navigation guard",
+      "successors": [
+        "Planner: multiple rows, reorder, retry, conflict review, and navigation guard"
+      ],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "masses.spec.ts",
+      "title": "Admin: draft deletion is confirmed with Cancel as default focus",
+      "successors": ["Admin: draft deletion is confirmed with Cancel as default focus"],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "masses.spec.ts",
+      "title": "Planner: optional details, create retry, saved filters, and picker sorting",
+      "successors": ["Planner: optional details, create retry, saved filters, and picker sorting"],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "masses.spec.ts",
+      "title": "Planner: generated titles and background reference refresh preserve pending edits",
+      "successors": [
+        "Planner: generated titles and background reference refresh preserve pending edits"
+      ],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "masses.spec.ts",
+      "title": "Planner: nearest Sunday, Maronite date selection and manual season override",
+      "successors": ["Planner: nearest Sunday, Maronite date selection and manual season override"],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "password-input.spec.ts",
+      "title": "Password controls preview one character, mask on blur, and toggle without submitting",
+      "successors": [
+        "Password controls preview one character, mask on blur, and toggle without submitting"
+      ],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "password-input.spec.ts",
+      "title": "Registration and reset have independent visibility controls and preserve their values",
+      "successors": [
+        "Registration and reset have independent visibility controls and preserve their values"
+      ],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "performance-review.spec.ts",
+      "title": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "successors": [
+        "Reader form: multilingual creation, metadata, reload and Latin search",
+        "Reader PDF: controls, fullscreen gestures, rotation and replacement",
+        "Reader Focus: saved rows, metadata, keyboard and nested PDF restoration",
+        "Reader lyrics: pagination, title sizing, occurrence memory, fallback and reload"
+      ],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "performance-review.spec.ts",
+      "title": "Phone Focus preserves PDF fit and exits on a long swipe after rotation",
+      "successors": ["Phone Focus preserves PDF fit and exits on a long swipe after rotation"],
+      "simple": false,
+      "skip": "desktop"
+    },
+    {
+      "file": "performance-review.spec.ts",
+      "title": "Home heading alignment and Mass actions stay on one line at narrow widths",
+      "successors": ["Home heading alignment and Mass actions stay on one line at narrow widths"],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "picker-review.spec.ts",
+      "title": "Picker review: columns, compact controls, sidebar and drag keep identities and notes",
+      "successors": [
+        "Picker review: columns, compact controls, sidebar and drag keep identities and notes"
+      ],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "privacy.spec.ts",
+      "title": "Public information is readable without JavaScript, authentication, or account API",
+      "successors": [
+        "Public information is readable without JavaScript, authentication, or account API"
+      ],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "privacy.spec.ts",
+      "title": "Sign-in and recovery offer real public policy links",
+      "successors": ["Sign-in and recovery offer real public policy links"],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "settings.spec.ts",
+      "title": "Admin classification lifecycle, reference safety, keyboard order and stale edits",
+      "successors": [
+        "Admin classification lifecycle, reference safety, keyboard order and stale edits"
+      ],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "settings.spec.ts",
+      "title": "choir calendar preview, overrides, version conflicts and read-only member access",
+      "successors": [
+        "choir calendar preview, overrides, version conflicts and read-only member access"
+      ],
+      "simple": false,
+      "skip": null
+    },
+    {
+      "file": "simple-accounts.spec.ts",
+      "title": "simple accounts register, email-login and change password without account mail",
+      "successors": [
+        "simple accounts register, email-login and change password without account mail"
+      ],
+      "simple": true,
+      "skip": "email-mode"
+    }
+  ]
+}

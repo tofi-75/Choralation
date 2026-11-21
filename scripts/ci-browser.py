@@ -23,11 +23,33 @@ def main():
     environment["DJANGO_MEDIA_ROOT"] = environment["E2E_MEDIA_ROOT"]
     environment["DJANGO_STORAGE_BACKEND"] = "local"
     environment["ACCOUNT_VERIFICATION_REQUIRED"] = "false"
+    environment["EMAIL_FILE_PATH"] = str(
+        ROOT / ".cache" / "e2e-emails" / environment["E2E_USER_SUFFIX"]
+    )
+    if environment.get("E2E_ENFORCE_COVERAGE") == "true":
+        mode = "simple" if environment.get("E2E_SIMPLE_ACCOUNTS") == "true" else "email"
+        project = environment["E2E_PROJECT"]
+        environment["E2E_REPORT_DIR"] = str(
+            ROOT / ".cache" / "browser-reports" / f"{project}-{mode}"
+        )
     fixtures = [sys.executable, str(ROOT / "scripts/e2e-users.py")]
     subprocess.run([*fixtures, "create"], env=environment, cwd=ROOT, check=True)
     try:
         subprocess.run(
-            ["npm", "run", "test:e2e", "--", *sys.argv[1:]],
+            [
+                *(
+                    [
+                        str(ROOT / ".local/node/node.exe"),
+                        str(ROOT / ".local/npm/package/bin/npm-cli.js"),
+                    ]
+                    if os.name == "nt"
+                    else ["npm"]
+                ),
+                "run",
+                "test:e2e",
+                "--",
+                *sys.argv[1:],
+            ],
             env=environment,
             cwd=ROOT / "frontend",
             check=True,

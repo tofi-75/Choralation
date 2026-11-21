@@ -38,22 +38,28 @@ if not settings.DEBUG or settings.DATABASES["default"]["HOST"] not in {
     "127.0.0.1",
 }:
     raise ValueError("Browser fixtures are restricted to a local development database.")
-roles = ("Admin", "Planner", "Viewer")
-names = [f"e2e-{suffix}-{role.lower()}" for role in roles]
+# Fixture labels are not global roles. Distinguish the Choirmaster/Leader from
+# the regular User with per-choir planning; retain the existing group storage.
+fixtures = {
+    "admin": ("Admin", "Leader", True),
+    "planner": ("Planner", "Leader", True),
+    "viewer": ("Viewer", "Member", False),
+    "reader": ("Planner", "Leader", True),
+    "massplanner": ("Planner", "Planner", False),
+}
+names = [f"e2e-{suffix}-{label}" for label in fixtures]
 user_model = get_user_model()
 with transaction.atomic():
     if sys.argv[1] == "create":
         password = os.environ.get("E2E_PASSWORD", "")
         if len(password) < 20 or user_model.objects.filter(username__in=names).exists():
             raise ValueError("Refusing empty fixture passwords or overwrite of existing accounts.")
-        for role, name in zip(roles, names, strict=True):
+        for (group, membership, approval), name in zip(fixtures.values(), names, strict=True):
             user = user_model.objects.create_user(username=name, password=password)
-            user.groups.add(Group.objects.get(name=role))
+            user.groups.add(Group.objects.get(name=group))
             choir = Choir.objects.get(name="Initial choir")
-            Membership.objects.create(
-                user=user, choir=choir, role="Member" if role == "Viewer" else "Leader"
-            )
-            AccountProfile.objects.create(user=user, can_create_choirs=role != "Viewer")
+            Membership.objects.create(user=user, choir=choir, role=membership)
+            AccountProfile.objects.create(user=user, can_create_choirs=approval)
         print("This browser run's development accounts are ready.")
     elif sys.argv[1] == "cleanup":
         # Created_by records ownership of these temporary test artifacts only.

@@ -1,0 +1,1223 @@
+{
+  "baseline": "a24a6ef",
+  "assertions": [
+    {
+      "hash": "8ee2b954c6fca18b37ca27e4ad9d4bb12af7312e85ac6da696b947dae039ca7f",
+      "line": 14,
+      "owner": "login",
+      "text": "await expect(page.getByRole('heading', { name: 'Masses', exact: true })).toBeVisible();"
+    },
+    {
+      "hash": "3e56aa274b4a199d14eb094d09708be7d600304e9c9fef5ee3de5a39bf599a78",
+      "line": 26,
+      "owner": "checkPdfZoom",
+      "text": "await expect(viewport).toHaveAttribute('aria-busy', 'false');"
+    },
+    {
+      "hash": "3ac3c9707a179762cf7fc7baea7f9ec6d8d1ec856f5f6217a5368415c33f61af",
+      "line": 37,
+      "owner": "checkPdfZoom",
+      "text": "await expect(viewer.getByLabel('Zoom relative to fit')).toHaveText('125%');"
+    },
+    {
+      "hash": "3e56aa274b4a199d14eb094d09708be7d600304e9c9fef5ee3de5a39bf599a78",
+      "line": 39,
+      "owner": "checkPdfZoom",
+      "text": "await expect(viewport).toHaveAttribute('aria-busy', 'false');"
+    },
+    {
+      "hash": "a7b262f713bf2a3641a41f5e161cbb38d310f7cc4b3ecbacab8f07afb49d3f7b",
+      "line": 45,
+      "owner": "checkPdfZoom",
+      "text": "expect(pixels).toBeLessThanOrEqual(8000000);"
+    },
+    {
+      "hash": "1ab75ddedc868c6be3a3a32f6bc9e4e05c66814c2ab806e69a65cb63ebc05ddc",
+      "line": 47,
+      "owner": "checkPdfZoom",
+      "text": "await expect(viewer.getByLabel('Zoom relative to fit')).toHaveText('100%');"
+    },
+    {
+      "hash": "44084bc7d82f0d2c2fd8f744ab7f28ceccfae1d8cb9035d4e518674d765421c6",
+      "line": 49,
+      "owner": "checkPdfZoom",
+      "text": "await expect(viewer.getByRole('button', { name: 'Fit to height', exact: true })).toBeVisible();"
+    },
+    {
+      "hash": "bb35dfc2ea04251d2e271f28314022f347d629130ead6af107f52a4320bafb89",
+      "line": 86,
+      "owner": "checkFocusRotation",
+      "text": "await expect(focus.getByRole('button', { name: 'Fit to height', exact: true })).toBeVisible();"
+    },
+    {
+      "hash": "bb35dfc2ea04251d2e271f28314022f347d629130ead6af107f52a4320bafb89",
+      "line": 97,
+      "owner": "checkFocusRotation",
+      "text": "await expect(focus.getByRole('button', { name: 'Fit to height', exact: true })).toBeVisible();"
+    },
+    {
+      "hash": "bb35dfc2ea04251d2e271f28314022f347d629130ead6af107f52a4320bafb89",
+      "line": 111,
+      "owner": "checkFocusRotation",
+      "text": "await expect(focus.getByRole('button', { name: 'Fit to height', exact: true })).toBeVisible();"
+    },
+    {
+      "hash": "264c0c94322d8ad0884625f6c59b040c20377b9a44c9c2334ae360fbb552d0df",
+      "line": 112,
+      "owner": "checkFocusRotation",
+      "text": "await expect(focus.getByLabel('Zoom relative to fit')).toHaveText('125%');"
+    },
+    {
+      "hash": "79d1ccd4400a9799795424f917fe6af3dcab4c42baf968c9c33a54692a4dd903",
+      "line": 113,
+      "owner": "checkFocusRotation",
+      "text": "expect((await canvas.boundingBox())!.width).toBeCloseTo(zoomed.width, 0);"
+    },
+    {
+      "hash": "2f733b9570909501ef3350ada66a2af321ab70104a5205b668bec368f8bdaaee",
+      "line": 114,
+      "owner": "checkFocusRotation",
+      "text": "expect((await canvas.boundingBox())!.height).toBeCloseTo(zoomed.height, 0);"
+    },
+    {
+      "hash": "79d1ccd4400a9799795424f917fe6af3dcab4c42baf968c9c33a54692a4dd903",
+      "line": 119,
+      "owner": "checkFocusRotation",
+      "text": "expect((await canvas.boundingBox())!.width).toBeCloseTo(zoomed.width, 0);"
+    },
+    {
+      "hash": "3e56aa274b4a199d14eb094d09708be7d600304e9c9fef5ee3de5a39bf599a78",
+      "line": 175,
+      "owner": "swipePdf",
+      "text": "await expect(viewport).toHaveAttribute('aria-busy', 'false');"
+    },
+    {
+      "hash": "6fbe54430af19a45d3495f2152ac7169733b66545053a1c08aa39a5a131fd632",
+      "line": 187,
+      "owner": "checkSideButtons",
+      "text": "expect(previous.x).toBeGreaterThanOrEqual(viewport.x);"
+    },
+    {
+      "hash": "4c82161aa49f88211a8ddd6da616aca74598b3c3c794188958e7b10fc984768d",
+      "line": 188,
+      "owner": "checkSideButtons",
+      "text": "expect(previous.x + previous.width).toBeLessThan(viewport.x + viewport.width / 3);"
+    },
+    {
+      "hash": "e52594d78069b3b4d8c35657f0ba64bf892022071f4bd48bd40b721601e0aabf",
+      "line": 189,
+      "owner": "checkSideButtons",
+      "text": "expect(next.x + next.width).toBeLessThanOrEqual(viewport.x + viewport.width);"
+    },
+    {
+      "hash": "f4afec9610625f6111feee540caa614653e572b916758abfab36ef83eb299008",
+      "line": 190,
+      "owner": "checkSideButtons",
+      "text": "expect(next.x).toBeGreaterThan(viewport.x + (viewport.width * 2) / 3);"
+    },
+    {
+      "hash": "04a214804a3cbfa873b8b9866182233ef871cda2c7e5215ad776f4263cb28e32",
+      "line": 191,
+      "owner": "checkSideButtons",
+      "text": "expect(Math.abs(previous.y + previous.height / 2 - viewport.y - viewport.height / 2)).toBeLessThan(2);"
+    },
+    {
+      "hash": "557c991b929c62e7ecd214ab324090331a195cefcd657d1dad3540b2c14eb583",
+      "line": 213,
+      "owner": "saveReadingProgram",
+      "text": "expect(massResponse.status()).toBe(201);"
+    },
+    {
+      "hash": "e1f0a862e231e0608c2b6ec76aca8e0ce8fe8bda2e16b1b3b4a0b6d70ca9218c",
+      "line": 226,
+      "owner": "saveReadingProgram",
+      "text": "expect(program.status()).toBe(200);"
+    },
+    {
+      "hash": "caf18363cc188c66f2c58767c34fbccf71b14a2a2ee3ead54590809cd03213e9",
+      "line": 231,
+      "owner": "saveReadingProgram",
+      "text": "expect(finalized.status()).toBe(200);"
+    },
+    {
+      "hash": "3c17a7530364bc0228ae8ba65403b75d9a8e4609f6401deb3dccbde9b86e3629",
+      "line": 278,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();"
+    },
+    {
+      "hash": "13816e43ba297b1c748a331342d01755e2b518a9962dbaa7c2bd7e1649f1f579",
+      "line": 280,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(page.locator('.hymn-lyrics')).toHaveText(lyrics);"
+    },
+    {
+      "hash": "cf121f4f0864ebc41128501bf041c471369f0a5380406769684372b885e05b65",
+      "line": 281,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(page.locator('.hymn-musical-summary')).toContainText('D minor');"
+    },
+    {
+      "hash": "9dee3b7e8ffc40fabc6497a9ceb0e2fedb13231684cddc5827491cdf4ec5020e",
+      "line": 282,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(page.locator('.hymn-musical-summary')).toContainText('Andante · 80 BPM');"
+    },
+    {
+      "hash": "69aef690e03b859cae841329569a51118895b0800ea9def74984e58f1499c071",
+      "line": 283,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(page.getByRole('link', { name: 'Edit hymn', exact: true }).locator('svg')).toBeVisible();"
+    },
+    {
+      "hash": "7db580cdbc7ce6d5e9fd01e224ef0abd8a4a817bb8044d53178355cb3649a38c",
+      "line": 288,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "expect(materialBounds.y).toBeLessThan(metadataBounds.y);"
+    },
+    {
+      "hash": "c58b0d5f19b2e1658bf88d130ec09faafcc86614a0267190304dace5fd8bd251",
+      "line": 291,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(page.locator('.hymn-lyrics')).toContainText('السطر الأول');"
+    },
+    {
+      "hash": "7fe03cf3ac67dd8a5a7852fae57cec1599b20078d69a8984f5ba4e3e5ee58249",
+      "line": 293,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(page.getByRole('link', { name: title, exact: true }).filter({ visible: true })).toBeVisible();"
+    },
+    {
+      "hash": "374e179d4aca7a09b2ee88512c0dc42e9003d1685dbe0ee17649c4a09d34ce08",
+      "line": 332,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "expect(pdfResponse.status()).toBe(201);"
+    },
+    {
+      "hash": "a327bcebce2fa82f544161a5206a19beaea25962ccf1c69477efc6fad879c1ba",
+      "line": 350,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "expect(plainResponse.status()).toBe(201);"
+    },
+    {
+      "hash": "e46ec483373df4a67f6212760808d20b9b39f33fa924b0070264c76d41b7df53",
+      "line": 353,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(page.getByRole('link', { name: '← Hymn library', exact: true })).toHaveAttribute('href', '/hymns');"
+    },
+    {
+      "hash": "3f88c767f4e18469c2bd6a0a3d8bcf88c2691a2f6d2dee0c2077f4dd36481896",
+      "line": 357,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(page.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();"
+    },
+    {
+      "hash": "5ffb490c78615c56d21337271dfbc0d05832ac6f976bfcfbbb16220e7c7acdeb",
+      "line": 358,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(page.getByText('Loading sheet music…', { exact: true })).toHaveCount(0);"
+    },
+    {
+      "hash": "3b6017d64ee8a31a4add06e16ee214996b6df2d1a232df60d1cf81301b870ce2",
+      "line": 359,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "expect(await page .locator('.pdf-sheet canvas') .evaluate((canvas) => (canvas as HTMLCanvasElement).height)).toBeGreaterThan(0);"
+    },
+    {
+      "hash": "92d2e760440f1f77a4b0b97187772f555418343bb8d1ffbf5752043ca1041c20",
+      "line": 365,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(page.getByText(fallbackLyrics, { exact: true })).toBeVisible();"
+    },
+    {
+      "hash": "b6ff444ce9c38753a52732c5cc23f9ae0cdf481137772b34243d2eb5f132488c",
+      "line": 367,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(page.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();"
+    },
+    {
+      "hash": "5628aa2611075528674147715ec136f23450a53f58e41e59d738271873613900",
+      "line": 370,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen).toBeVisible();"
+    },
+    {
+      "hash": "b8049bc43cd0354eb96b15b21ea13ec2fa794bfa3609ccda792588039998b3bf",
+      "line": 371,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen.getByText('Loading sheet music…', { exact: true })).toHaveCount(0);"
+    },
+    {
+      "hash": "f191b3512635db1ff5acdf7f56b7e6a03b022c4875fac6dec54dc225d44f5b76",
+      "line": 372,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen.locator('canvas')).toHaveAttribute('style', /width:/);"
+    },
+    {
+      "hash": "76fa30c06db851164c3f23b36f913a19df5db3a09add39c3b4692b382da90e37",
+      "line": 373,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();"
+    },
+    {
+      "hash": "1e5b97ebb52735e6e9ff7a93bcfb61398063492e6c664aa1fefafb0c36a35198",
+      "line": 378,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "expect(fullArea.height).toBeGreaterThan(fullBounds.height * 0.98);"
+    },
+    {
+      "hash": "0445e233a7ff3f693f274e1c79a7a9d0dcdceacb828fae7199a36c081cc9f234",
+      "line": 379,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "expect(fullArea.width).toBeGreaterThan(fullBounds.width * 0.98);"
+    },
+    {
+      "hash": "124c0a66ae56cfb41aa86302a68dfacd4d690d1d3c063916c68e1166422b3120",
+      "line": 380,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen).toHaveAttribute('data-controls-visible', 'false', { timeout: 5000 });"
+    },
+    {
+      "hash": "7f7de617a8889d3608540506c4a6e97b1712c9ab2e4d56ffdd80231ecd98084c",
+      "line": 384,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen).toHaveAttribute('data-controls-visible', 'true');"
+    },
+    {
+      "hash": "9162ee91c2115054b7e79e2c0e954ba1410204168dfcd0e0f55086f164c3954c",
+      "line": 386,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen.getByRole('button', { name: 'Next PDF page', exact: true })).toBeDisabled();"
+    },
+    {
+      "hash": "5f7d4f94985d9c2fca12d1df56a7c03ee2139c66e8f4d92de26981a0c1c74d1c",
+      "line": 390,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();"
+    },
+    {
+      "hash": "3a16e31d4da4eddff1f67f86223ac842fc8091f90b447d55211f964c6444c598",
+      "line": 391,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen.getByRole('button', { name: 'Previous PDF page', exact: true })).toBeDisabled();"
+    },
+    {
+      "hash": "76fa30c06db851164c3f23b36f913a19df5db3a09add39c3b4692b382da90e37",
+      "line": 400,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();"
+    },
+    {
+      "hash": "5f7d4f94985d9c2fca12d1df56a7c03ee2139c66e8f4d92de26981a0c1c74d1c",
+      "line": 402,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();"
+    },
+    {
+      "hash": "76fa30c06db851164c3f23b36f913a19df5db3a09add39c3b4692b382da90e37",
+      "line": 405,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();"
+    },
+    {
+      "hash": "5f7d4f94985d9c2fca12d1df56a7c03ee2139c66e8f4d92de26981a0c1c74d1c",
+      "line": 407,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();"
+    },
+    {
+      "hash": "5f7d4f94985d9c2fca12d1df56a7c03ee2139c66e8f4d92de26981a0c1c74d1c",
+      "line": 409,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();"
+    },
+    {
+      "hash": "76fa30c06db851164c3f23b36f913a19df5db3a09add39c3b4692b382da90e37",
+      "line": 411,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();"
+    },
+    {
+      "hash": "76fa30c06db851164c3f23b36f913a19df5db3a09add39c3b4692b382da90e37",
+      "line": 414,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();"
+    },
+    {
+      "hash": "76fa30c06db851164c3f23b36f913a19df5db3a09add39c3b4692b382da90e37",
+      "line": 416,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();"
+    },
+    {
+      "hash": "5f7d4f94985d9c2fca12d1df56a7c03ee2139c66e8f4d92de26981a0c1c74d1c",
+      "line": 418,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();"
+    },
+    {
+      "hash": "17b680afb111695d574c962801274038aafcbdc1a377a68e47257a13763395cb",
+      "line": 420,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen.getByLabel('Zoom relative to fit')).toHaveText('125%');"
+    },
+    {
+      "hash": "43b92be25903c44588ceea4748f7ef26cfb56d3ab4e9d1d2dfa20b52e9d345b5",
+      "line": 421,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(readingArea).toHaveAttribute('aria-busy', 'false');"
+    },
+    {
+      "hash": "5f7d4f94985d9c2fca12d1df56a7c03ee2139c66e8f4d92de26981a0c1c74d1c",
+      "line": 423,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();"
+    },
+    {
+      "hash": "5628aa2611075528674147715ec136f23450a53f58e41e59d738271873613900",
+      "line": 433,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen).toBeVisible();"
+    },
+    {
+      "hash": "5f7d4f94985d9c2fca12d1df56a7c03ee2139c66e8f4d92de26981a0c1c74d1c",
+      "line": 434,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();"
+    },
+    {
+      "hash": "5f7d4f94985d9c2fca12d1df56a7c03ee2139c66e8f4d92de26981a0c1c74d1c",
+      "line": 441,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();"
+    },
+    {
+      "hash": "5f7d4f94985d9c2fca12d1df56a7c03ee2139c66e8f4d92de26981a0c1c74d1c",
+      "line": 463,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();"
+    },
+    {
+      "hash": "76fa30c06db851164c3f23b36f913a19df5db3a09add39c3b4692b382da90e37",
+      "line": 465,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();"
+    },
+    {
+      "hash": "5f7d4f94985d9c2fca12d1df56a7c03ee2139c66e8f4d92de26981a0c1c74d1c",
+      "line": 467,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();"
+    },
+    {
+      "hash": "76fa30c06db851164c3f23b36f913a19df5db3a09add39c3b4692b382da90e37",
+      "line": 472,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();"
+    },
+    {
+      "hash": "b3d613eda2cf96ac671ac945e0442c0093e2e68cb602c4da90a5d5e146e14673",
+      "line": 517,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen).toHaveCount(0);"
+    },
+    {
+      "hash": "c20764018a8f5d8cb617d790af3616270d360638266d7f6bd1b377d3b5defc4f",
+      "line": 518,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(page.getByRole('button', { name: `Open ${pdf.title} PDF fullscreen`, exact: true })).toBeFocused();"
+    },
+    {
+      "hash": "b6ff444ce9c38753a52732c5cc23f9ae0cdf481137772b34243d2eb5f132488c",
+      "line": 521,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(page.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();"
+    },
+    {
+      "hash": "32e68f80a1eb2608a58c527fc514f209e0523ec9019c112bc8ed1f96ffbc44c5",
+      "line": 526,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(page.locator('.pdf-edit-preview').getByRole('img', { name: /sheet music page 1/ })).toBeVisible();"
+    },
+    {
+      "hash": "3f88c767f4e18469c2bd6a0a3d8bcf88c2691a2f6d2dee0c2077f4dd36481896",
+      "line": 530,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(page.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();"
+    },
+    {
+      "hash": "03e5bd09e35c6ef13b67a8aeca6b852e8d72bfe0b21b5077f9ba202ee6b9e083",
+      "line": 554,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(back).toHaveAttribute('href', `/masses/${secondMassId}`);"
+    },
+    {
+      "hash": "08cc35fa850243e75c66eb5f57ceec3d86a0fbc44b930d0f35f9ae28ab7d97be",
+      "line": 556,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(page.getByRole('heading', { name: `Second ${massTitle}`, exact: true })).toBeVisible();"
+    },
+    {
+      "hash": "a34a5214cae5f503871cd58649fde3ecec72ff46fdf4f6cda9ae787f7e1613ea",
+      "line": 560,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "expect(await page.locator('.saved-program').evaluate((element) => getComputedStyle(element).textAlign)).toBe('center');"
+    },
+    {
+      "hash": "56028c9badd66c54d38a1ef60995d693db69e088a457adacbcbd66295cf0d171",
+      "line": 565,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(metadata.nth(0).locator(':scope > *')).toHaveText([ lyric.language.name, 'Key G minor', 'Tempo 96 BPM', 'Voices 2', ]);"
+    },
+    {
+      "hash": "bdbb4fe84eaa05bb092b6efc8eb3daf619f21127155f4c15f299f225ceb177f4",
+      "line": 571,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(metadata.nth(1)).toContainText('Voices 1');"
+    },
+    {
+      "hash": "eef42da550df303606730a2bf5b76c821ac0b88a88f4a7e407c2690655176658",
+      "line": 572,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(metadata.nth(2).locator('strong')).toHaveText(['—', '—', '-']);"
+    },
+    {
+      "hash": "c676391a492301d277b48da971f51de72518cb957b473e089a0272d455443c5f",
+      "line": 573,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(metadata.nth(0)).toHaveCSS('flex-wrap', 'wrap');"
+    },
+    {
+      "hash": "40f39a41f1db9ac0807b89c0e16a0ac714f9bf9d5c480fd2047b5072cc8dc8dd",
+      "line": 576,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(back).toHaveAttribute('href', `/masses/${massId}`);"
+    },
+    {
+      "hash": "ec78a825f58b110af730f518576985fb2868839794f0d2b706136a3bb0b48f72",
+      "line": 578,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(page.getByRole('heading', { name: massTitle, exact: true })).toBeVisible();"
+    },
+    {
+      "hash": "33edfb4a88e31002c5ab334393730aecaf2f0410eb4a6aeb89499e2a4eff14c5",
+      "line": 586,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(page.getByRole('heading', { name: 'Unable to open hymn' })).toBeVisible();"
+    },
+    {
+      "hash": "ec78a825f58b110af730f518576985fb2868839794f0d2b706136a3bb0b48f72",
+      "line": 588,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(page.getByRole('heading', { name: massTitle, exact: true })).toBeVisible();"
+    },
+    {
+      "hash": "eb9a3d2e7c27f07ab488e22e4feb9bcd8ad5e02889c61c91bee407871bbe1c77",
+      "line": 594,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(selectedFocus.getByRole('combobox', { name: 'Jump to hymn' })).toHaveValue('3');"
+    },
+    {
+      "hash": "06c4ae1635b92e4b777f8b7feac722b2df6ce8b17cebb2c38db7802c4ed113b5",
+      "line": 596,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(repeatedRow).toBeFocused();"
+    },
+    {
+      "hash": "0f2cb65779456215ec73c24834c7815c3789ed3f0c13b80c63ee55b5fb49a5c3",
+      "line": 598,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(page.getByRole('dialog', { name: 'Hymn actions' })).toBeVisible();"
+    },
+    {
+      "hash": "06c4ae1635b92e4b777f8b7feac722b2df6ce8b17cebb2c38db7802c4ed113b5",
+      "line": 600,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(repeatedRow).toBeFocused();"
+    },
+    {
+      "hash": "19ffdc30380a85f09d6889862c0743abaadb17569f6f1564151d28eb6a1aa15b",
+      "line": 612,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focusHeader.getByRole('button', { name: 'Exit focus mode' })).toBeVisible();"
+    },
+    {
+      "hash": "56d3312d0d909cb45117dc583a37c68ebecab0728fec4d9ffee13bcd9821edba",
+      "line": 614,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(jump).toHaveValue('0');"
+    },
+    {
+      "hash": "fedd8efa2161449158b5e60943fd2ac28e0cf27ef30b889d6c8ce8b8134da994",
+      "line": 615,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus).toBeFocused();"
+    },
+    {
+      "hash": "e143439b357b98ed815e47e047928e57fcd5cad6bba6463510b699ec4147db2b",
+      "line": 616,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(jump).not.toBeFocused();"
+    },
+    {
+      "hash": "15715c5794a3c835bcd2b43e9ec4035d3de9e699ee7201334862a6170d0f04f3",
+      "line": 617,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focusHeader.locator('.focus-hymn-picker')).toHaveCSS('outline-style', 'none');"
+    },
+    {
+      "hash": "78dc36bafb12c2ef027a128ddf4466978a7c124f4207592710daeb25458339ac",
+      "line": 619,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(jump).toBeFocused();"
+    },
+    {
+      "hash": "a6c4287d762917ce99ef80ca7de39e32721b3660ce68c10283db43eefc27328c",
+      "line": 625,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "expect(Math.abs(headingText.x + headingText.width / 2 - headerBox.width / 2 - headerBox.x)).toBeLessThan(1);"
+    },
+    {
+      "hash": "689a2e67ca4dadc058e181de012c43b1b6fce2699b1e0424ea849ac68cb92f9f",
+      "line": 628,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "expect(caret.x).toBeGreaterThan(headingText.x + headingText.width);"
+    },
+    {
+      "hash": "38151df0ade738850530655fefc3a8105cd1c07bacbd4d7097ac7a5453ece4fe",
+      "line": 631,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "expect(footer.y + footer.height).toBeCloseTo(dialogBox.y + dialogBox.height, 0);"
+    },
+    {
+      "hash": "747bd2a25dae2fb1052acf7a01cb9bf7859433bbfab0469f4cca4fffef7016f0",
+      "line": 632,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.locator('.focus-footer select')).toHaveCount(0);"
+    },
+    {
+      "hash": "e41238cda8e818dc7bd8edd3d122bb1779faf8485e05027565c6944cfb9d0e13",
+      "line": 633,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.getByRole('heading', { name: pdf.title, exact: true })).toBeVisible();"
+    },
+    {
+      "hash": "d927477f5e2a930e2b3e4c03494252dc816ea0978969d72aed38000a4c65e9e3",
+      "line": 635,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focusMetadata.locator(':scope > span')).toHaveText([ 'Key G minor', 'Tempo 96 BPM', 'Voices 2', ]);"
+    },
+    {
+      "hash": "181380f1c2299b96f69d94dcd0f2dcd7698bdfa1dc4c6b5ff2efeacde5cc2a7b",
+      "line": 640,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focusMetadata).toHaveCSS('flex-wrap', 'wrap');"
+    },
+    {
+      "hash": "6c40a034ccb6e9c503bb6ee0457a8fce22ce9937447cf548261a54223efcedd0",
+      "line": 641,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();"
+    },
+    {
+      "hash": "123bc676691fd404f190cd960c2a5e2cb23de6425cfa607a352233f6b99c20ac",
+      "line": 642,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.getByText('Loading sheet music…', { exact: true })).toHaveCount(0);"
+    },
+    {
+      "hash": "11cba6410049cc23e0f430fedbabfac2fe09a91d9bbc0e24c7b5e26bcdc849ec",
+      "line": 643,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.getByText('Screen kept awake', { exact: true })).toHaveCount(0);"
+    },
+    {
+      "hash": "eace203798b06403598e5c84fcd5e3a319fe605f6624682d8ea7e8cb2bebe61c",
+      "line": 648,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();"
+    },
+    {
+      "hash": "b3d613eda2cf96ac671ac945e0442c0093e2e68cb602c4da90a5d5e146e14673",
+      "line": 649,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen).toHaveCount(0);"
+    },
+    {
+      "hash": "6c40a034ccb6e9c503bb6ee0457a8fce22ce9937447cf548261a54223efcedd0",
+      "line": 651,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();"
+    },
+    {
+      "hash": "eace203798b06403598e5c84fcd5e3a319fe605f6624682d8ea7e8cb2bebe61c",
+      "line": 655,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();"
+    },
+    {
+      "hash": "495dac3ed3762463d961f555e3105338b727cb1d993fcdf42ad2c76955dd6d4b",
+      "line": 656,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.getByText('Hymn 1 of 4', { exact: true })).toBeVisible();"
+    },
+    {
+      "hash": "6c40a034ccb6e9c503bb6ee0457a8fce22ce9937447cf548261a54223efcedd0",
+      "line": 659,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();"
+    },
+    {
+      "hash": "495dac3ed3762463d961f555e3105338b727cb1d993fcdf42ad2c76955dd6d4b",
+      "line": 660,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.getByText('Hymn 1 of 4', { exact: true })).toBeVisible();"
+    },
+    {
+      "hash": "5628aa2611075528674147715ec136f23450a53f58e41e59d738271873613900",
+      "line": 664,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen).toBeVisible();"
+    },
+    {
+      "hash": "5f7d4f94985d9c2fca12d1df56a7c03ee2139c66e8f4d92de26981a0c1c74d1c",
+      "line": 665,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();"
+    },
+    {
+      "hash": "29ce1331cec0b9a93bb0e6abcb9df1b3f715fbff35d42475e1f3f0378b038482",
+      "line": 666,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen.locator('.pdf-viewport')).toHaveAttribute('aria-busy', 'false');"
+    },
+    {
+      "hash": "76fa30c06db851164c3f23b36f913a19df5db3a09add39c3b4692b382da90e37",
+      "line": 669,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();"
+    },
+    {
+      "hash": "b3d613eda2cf96ac671ac945e0442c0093e2e68cb602c4da90a5d5e146e14673",
+      "line": 672,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen).toHaveCount(0);"
+    },
+    {
+      "hash": "495dac3ed3762463d961f555e3105338b727cb1d993fcdf42ad2c76955dd6d4b",
+      "line": 673,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.getByText('Hymn 1 of 4', { exact: true })).toBeVisible();"
+    },
+    {
+      "hash": "eace203798b06403598e5c84fcd5e3a319fe605f6624682d8ea7e8cb2bebe61c",
+      "line": 674,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();"
+    },
+    {
+      "hash": "6c40a034ccb6e9c503bb6ee0457a8fce22ce9937447cf548261a54223efcedd0",
+      "line": 676,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();"
+    },
+    {
+      "hash": "a396ac732aa9c680fc560bed6c30aba70547c6d1fcb107f0d0b712cc6ab82bd3",
+      "line": 678,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "expect(await page.evaluate(() => document.fullscreenElement?.className)).toBe('mass-focus');"
+    },
+    {
+      "hash": "7d8e921e22d5e7ef49dbd9e65b72d06f6cd3bd5651944ef864e6692976832c90",
+      "line": 681,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus).toHaveCount(0);"
+    },
+    {
+      "hash": "bb35dfc2ea04251d2e271f28314022f347d629130ead6af107f52a4320bafb89",
+      "line": 693,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.getByRole('button', { name: 'Fit to height', exact: true })).toBeVisible();"
+    },
+    {
+      "hash": "5628aa2611075528674147715ec136f23450a53f58e41e59d738271873613900",
+      "line": 698,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen).toBeVisible();"
+    },
+    {
+      "hash": "b8049bc43cd0354eb96b15b21ea13ec2fa794bfa3609ccda792588039998b3bf",
+      "line": 699,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen.getByText('Loading sheet music…', { exact: true })).toHaveCount(0);"
+    },
+    {
+      "hash": "f191b3512635db1ff5acdf7f56b7e6a03b022c4875fac6dec54dc225d44f5b76",
+      "line": 700,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen.locator('canvas')).toHaveAttribute('style', /width:/);"
+    },
+    {
+      "hash": "bfa93ca02fa5e085d7524343a01eb3c5587a3a30fb7d7acd51066f35672f004f",
+      "line": 701,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "expect(await fullscreen.locator('canvas').evaluate((element) => { const canvas = element as HTMLCanvasElement; const color = canvas .getContext('2d')! .getImageData(Math.floor(canvas.width / 2), Math.floor(canvas.height / 2), 1, 1).data; return color[0] > 80 && color[0] < 140 && color[1] < 60; })).toBe(true);"
+    },
+    {
+      "hash": "68f10f78f66dc8d2f694595a2e671f7ed2e67991b5ff8c92a3eeb9ec34b63cc1",
+      "line": 711,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "expect(Math.round(expandedBounds.width)).toBe(page.viewportSize()!.width);"
+    },
+    {
+      "hash": "1d0650b6ab1f05b5ebc9025af4d6ca47edade36fa1b42387e5ab8b1aa05c0859",
+      "line": 712,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "expect(Math.round(expandedBounds.height)).toBe(page.viewportSize()!.height);"
+    },
+    {
+      "hash": "b3d613eda2cf96ac671ac945e0442c0093e2e68cb602c4da90a5d5e146e14673",
+      "line": 715,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(fullscreen).toHaveCount(0);"
+    },
+    {
+      "hash": "495dac3ed3762463d961f555e3105338b727cb1d993fcdf42ad2c76955dd6d4b",
+      "line": 716,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.getByText('Hymn 1 of 4', { exact: true })).toBeVisible();"
+    },
+    {
+      "hash": "99826887558ddf3aecf089f07570f21309e85437acc295a6ff569b2a49507d8c",
+      "line": 733,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.getByText('Hymn 2 of 4', { exact: true })).toBeVisible();"
+    },
+    {
+      "hash": "f56f44791017f13cdeaabaeade2c4855c057868c4f92d1dcc1c30027b2820be3",
+      "line": 734,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.locator('.hymn-lyrics:not(.lyric-measure)')).toContainText('السطر الأول');"
+    },
+    {
+      "hash": "9124f94b624e390e14eb6a1dbe89e4da31b1216206b0cffb34ef10fcd9606b52",
+      "line": 741,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(zoomOut).toBeDisabled();"
+    },
+    {
+      "hash": "75e59edefb1aff1b57931fbae1cf31de59911261a407d5df608b35ea639e159d",
+      "line": 742,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.locator('.lyric-panel')).toHaveCSS('direction', 'rtl');"
+    },
+    {
+      "hash": "b6c680c8a55af69e74028388667657a04ae258103ef480f7b734157f745121ad",
+      "line": 745,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(zoomIn).toBeDisabled();"
+    },
+    {
+      "hash": "8645f55997efca714a668ff5b981a840cee8adf532367e5f95ac42aea08f7032",
+      "line": 746,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "expect(await lyricText.evaluate((element) => parseFloat(getComputedStyle(element).fontSize))).toBeGreaterThan(originalFont);"
+    },
+    {
+      "hash": "c1b7df96ff17fe39edbbdd4cc525c324065d34e9eb196efbcbfcc73ee4c7f062",
+      "line": 749,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focusTitle).toHaveCSS('font-size', titleSize);"
+    },
+    {
+      "hash": "44352204e910a8fa4c87c3073a6663a29bcbb2c56f46138f1d2f245f189b308e",
+      "line": 752,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(note).toBeVisible();"
+    },
+    {
+      "hash": "61d472f9d752ea1447a0d7f8ee02f1bd7af2cd47c9e6b455ffd092cc7bfe626e",
+      "line": 754,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "expect((await lyricSurface.boundingBox())!.y).toBeGreaterThan(noteBox.y + noteBox.height);"
+    },
+    {
+      "hash": "ba49f8cb6f99c433cf8f918e4efd8bb558863c1b5c583539f8054b518f0f835a",
+      "line": 760,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(lyricCount).toHaveText(/^Page 1 \\/ [2-9]|^Page 1 \\/ \\d{2,}/);"
+    },
+    {
+      "hash": "3fb5c578902777bed312123040db7bb62e4fdf8aeeafc72be953cf553d826575",
+      "line": 763,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(previousLyric).toBeDisabled();"
+    },
+    {
+      "hash": "892c0799ce054757e5e06c0804ab9e39fa50ccaf94d909209e491247a30fad80",
+      "line": 765,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(lyricCount).toHaveText(/^Page 2 \\//);"
+    },
+    {
+      "hash": "3fb5c578902777bed312123040db7bb62e4fdf8aeeafc72be953cf553d826575",
+      "line": 767,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(previousLyric).toBeDisabled();"
+    },
+    {
+      "hash": "892c0799ce054757e5e06c0804ab9e39fa50ccaf94d909209e491247a30fad80",
+      "line": 771,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(lyricCount).toHaveText(/^Page 2 \\//);"
+    },
+    {
+      "hash": "3fb5c578902777bed312123040db7bb62e4fdf8aeeafc72be953cf553d826575",
+      "line": 773,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(previousLyric).toBeDisabled();"
+    },
+    {
+      "hash": "7be939c422226b88ce74ad1373cb73942f564d0738447d8a73f0367f5ed3ca03",
+      "line": 781,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "expect(graphemeStarts.has(allLyrics.length)).toBe(true);"
+    },
+    {
+      "hash": "c59353e99c17f88c015541dd568741c84de5dc8b0955645420a2a5dd9fc12b1d",
+      "line": 782,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(lyricCount).toHaveText(`Page ${index} / ${total}`);"
+    },
+    {
+      "hash": "231be8a5388de93381a3bffd3d08a16b493c0a29a28f7b9899f1891e7c2644b4",
+      "line": 784,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "expect(await lyricSurface.evaluate((el) => el.scrollHeight - el.clientHeight)).toBeLessThan(2);"
+    },
+    {
+      "hash": "1e2d16e799ebc48b3a0edb661fa099c9dfea224dd6f43aa29efd4e66c99a78da",
+      "line": 787,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "expect(allLyrics).toBe(lyrics);"
+    },
+    {
+      "hash": "18463e29628656d121fe02ee328d861dcf14c3fcc9ffb91e2216448cc1eaea11",
+      "line": 788,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(nextLyric).toBeDisabled();"
+    },
+    {
+      "hash": "18463e29628656d121fe02ee328d861dcf14c3fcc9ffb91e2216448cc1eaea11",
+      "line": 790,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(nextLyric).toBeDisabled();"
+    },
+    {
+      "hash": "9189fda654b4f443be5a39c51f1685d655207f09ccadb8eadad82aac6e1bda51",
+      "line": 793,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "expect(savedLyrics.trim().length).toBeGreaterThan(5);"
+    },
+    {
+      "hash": "cc8863d19c499c7452e36e8df07fe628ef6feca19540f998c464d6686e532d7a",
+      "line": 796,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(lyricText).toContainText(passage);"
+    },
+    {
+      "hash": "ec1a915c0056614bfcff57a9440928e2b19a4cc2a14b275a9ac3ded5e3a2dbd9",
+      "line": 798,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(lyricText).toHaveText(savedLyrics);"
+    },
+    {
+      "hash": "cc8863d19c499c7452e36e8df07fe628ef6feca19540f998c464d6686e532d7a",
+      "line": 804,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(lyricText).toContainText(passage);"
+    },
+    {
+      "hash": "ec1a915c0056614bfcff57a9440928e2b19a4cc2a14b275a9ac3ded5e3a2dbd9",
+      "line": 806,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(lyricText).toHaveText(savedLyrics);"
+    },
+    {
+      "hash": "026daf1d62e9e77923a8b4a8219108561bda97052ed3a0cd74fd57ba24818d84",
+      "line": 809,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.locator('.focus-title-only')).toHaveText(plain.title);"
+    },
+    {
+      "hash": "0f753f75a0b23c17023da05ba6575810b942fba75e271b9311442862b7e5f4de",
+      "line": 810,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focusTitle).toHaveText(plain.title);"
+    },
+    {
+      "hash": "c1b7df96ff17fe39edbbdd4cc525c324065d34e9eb196efbcbfcc73ee4c7f062",
+      "line": 811,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focusTitle).toHaveCSS('font-size', titleSize);"
+    },
+    {
+      "hash": "3c55a460b6d673fe50ecc11aea7ddf51a15db34c8b135a2ce99785a23ae05375",
+      "line": 812,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focusTitle).toHaveCSS('direction', longTitleDirection);"
+    },
+    {
+      "hash": "5e9b699c7cf3bbf48421c840820f716737e95157f2560bbc70ecd397a93cb96a",
+      "line": 813,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focusTitle).toHaveCSS('white-space', 'nowrap');"
+    },
+    {
+      "hash": "e4ac10ef9072a7269f5106723a35c36eae56c451781f0f4c7b7cf72f24ad611c",
+      "line": 814,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focusTitle).toHaveCSS('text-overflow', 'ellipsis');"
+    },
+    {
+      "hash": "565d2a827c5c77a375e82ceff90be9377f7cc0a9d1d463950f58bf5679871049",
+      "line": 815,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "expect(await focusTitle.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);"
+    },
+    {
+      "hash": "42711dce98f27994f7fecab8f5ddba6ecd7a4dc88cb25d995ae7fcf417fb07f2",
+      "line": 820,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "expect(longTitleBox.x + longTitleBox.width).toBeLessThan(longTitleChevron.x);"
+    },
+    {
+      "hash": "b544247dc6e1d7e59d56e1bcba92ed3854e581d160f0234aff3c3f8ed98800ec",
+      "line": 822,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focusMetadata.locator('strong')).toHaveText(['—', '—', '-']);"
+    },
+    {
+      "hash": "2ff5d67c4d895bb7a173f2659d0001114604df912afcca567544e9e51468ee33",
+      "line": 824,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.getByText('Hymn 4 of 4', { exact: true })).toBeVisible();"
+    },
+    {
+      "hash": "bb35dfc2ea04251d2e271f28314022f347d629130ead6af107f52a4320bafb89",
+      "line": 825,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.getByRole('button', { name: 'Fit to height', exact: true })).toBeVisible();"
+    },
+    {
+      "hash": "b7f1c4b6818704c68655608808358668ad851b659f84a09bdb30c9cd8a6527a3",
+      "line": 837,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.getByRole('button', { name: 'Next hymn', exact: true })).toBeDisabled();"
+    },
+    {
+      "hash": "eace203798b06403598e5c84fcd5e3a319fe605f6624682d8ea7e8cb2bebe61c",
+      "line": 840,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();"
+    },
+    {
+      "hash": "6c40a034ccb6e9c503bb6ee0457a8fce22ce9937447cf548261a54223efcedd0",
+      "line": 842,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.getByRole('img', { name: /sheet music page 1/ })).toBeVisible();"
+    },
+    {
+      "hash": "eace203798b06403598e5c84fcd5e3a319fe605f6624682d8ea7e8cb2bebe61c",
+      "line": 844,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.getByRole('img', { name: /sheet music page 2/ })).toBeVisible();"
+    },
+    {
+      "hash": "6717c77d386b6ae3f94eaa432af177f9eb19b5e4e424782b4e64c59400c56ca1",
+      "line": 846,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(lyricText).toHaveAttribute('data-text-size', 'extra-large');"
+    },
+    {
+      "hash": "ec1a915c0056614bfcff57a9440928e2b19a4cc2a14b275a9ac3ded5e3a2dbd9",
+      "line": 847,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(lyricText).toHaveText(savedLyrics);"
+    },
+    {
+      "hash": "eaee3656b2b2828bdddb9eff5c474bf84f33895910d247f8afe6ee12eaf3310e",
+      "line": 850,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(page.getByRole('button', { name: 'Focus mode', exact: true })).toBeFocused();"
+    },
+    {
+      "hash": "6afd80da2174c2279fe67e74f2b94ee7b4aa743345f747ed48f3745c39e273b5",
+      "line": 865,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.getByRole('alert')).toContainText('could not be displayed');"
+    },
+    {
+      "hash": "f23308414338a468e2061c84bf97b374a572b031ffccc5ab81958c5d03cd6559",
+      "line": 866,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(lyricText).toContainText('PDF fallback lyrics 1');"
+    },
+    {
+      "hash": "0e0fdf482601bfc0c5f9fa6267e19fa09482326252d0ef3fac3a254784b00c15",
+      "line": 867,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(lyricCount).toHaveText(/^Page 1 \\/ (?:[2-9]|\\d{2,})$/);"
+    },
+    {
+      "hash": "892c0799ce054757e5e06c0804ab9e39fa50ccaf94d909209e491247a30fad80",
+      "line": 869,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(lyricCount).toHaveText(/^Page 2 \\//);"
+    },
+    {
+      "hash": "3467928b06583f99efdaad47fbb7325743d5ea7a5d3bb86a79d5f064cbe91536",
+      "line": 870,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.locator('.lyric-panel')).toHaveCSS('direction', 'ltr');"
+    },
+    {
+      "hash": "5aea4f3d6aef6808aea1298d7e8542d6506d68dbec6a7ad7df6fef33b8c4f61b",
+      "line": 871,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.getByRole('button', { name: 'Zoom in lyrics' })).toBeVisible();"
+    },
+    {
+      "hash": "7d8e921e22d5e7ef49dbd9e65b72d06f6cd3bd5651944ef864e6692976832c90",
+      "line": 873,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus).toHaveCount(0);"
+    },
+    {
+      "hash": "d5a220af13a122295ac9d07889525188b5ced43c946072deb7ae628ed5bb8157",
+      "line": 880,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus).toBeVisible();"
+    },
+    {
+      "hash": "fedd8efa2161449158b5e60943fd2ac28e0cf27ef30b889d6c8ce8b8134da994",
+      "line": 887,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus).toBeFocused();"
+    },
+    {
+      "hash": "e41238cda8e818dc7bd8edd3d122bb1779faf8485e05027565c6944cfb9d0e13",
+      "line": 888,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus.getByRole('heading', { name: pdf.title, exact: true })).toBeVisible();"
+    },
+    {
+      "hash": "e15f4db93fa62d13141024cb10bafda350ed75d9d85807a735b2de292c5656e4",
+      "line": 890,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(launchFocus).toBeFocused();"
+    },
+    {
+      "hash": "530955157ecb14c367e52a7489e64e0d9d4d809d50bb95d37e5f28011e1f59fa",
+      "line": 892,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(launchFocus).toBeVisible();"
+    },
+    {
+      "hash": "7d8e921e22d5e7ef49dbd9e65b72d06f6cd3bd5651944ef864e6692976832c90",
+      "line": 893,
+      "owner": "Performance materials: multilingual form/search, PDF-first reading and focus PDF/lyrics/title navigation",
+      "text": "await expect(focus).toHaveCount(0);"
+    },
+    {
+      "hash": "f2e9afb008234a252394c380021645821668bc62af5b80017b6fd131dce146d5",
+      "line": 909,
+      "owner": "firstCategory",
+      "text": "expect(response.ok()).toBe(true);"
+    },
+    {
+      "hash": "90b1b6a0d3cd8e12918682e6fb15ad5f9fc7cbfbeb1aa852261ba62c76b19ed7",
+      "line": 933,
+      "owner": "Phone Focus preserves PDF fit and exits on a long swipe after rotation",
+      "text": "expect(response.status()).toBe(201);"
+    },
+    {
+      "hash": "4977f0932c785296387bc06baa41b4a4c17aaf9e832e9c8db492c7b79fe2eb98",
+      "line": 942,
+      "owner": "Phone Focus preserves PDF fit and exits on a long swipe after rotation",
+      "text": "await expect(focus.locator('.pdf-viewport')).toHaveAttribute('aria-busy', 'false');"
+    },
+    {
+      "hash": "7d8e921e22d5e7ef49dbd9e65b72d06f6cd3bd5651944ef864e6692976832c90",
+      "line": 945,
+      "owner": "Phone Focus preserves PDF fit and exits on a long swipe after rotation",
+      "text": "await expect(focus).toHaveCount(0);"
+    },
+    {
+      "hash": "ce52c08a42a7341e812871a069e4051ca321aeddf227f4fb6beced2b45e5e286",
+      "line": 946,
+      "owner": "Phone Focus preserves PDF fit and exits on a long swipe after rotation",
+      "text": "await expect(launch).toBeFocused();"
+    },
+    {
+      "hash": "8a7f8768a10adb7cf4e9859a6f59d59958ad490fa4d5c6e412836d02fd97931b",
+      "line": 957,
+      "owner": "Home heading alignment and Mass actions stay on one line at narrow widths",
+      "text": "await expect(heading).toBeVisible();"
+    },
+    {
+      "hash": "7d0c07afb3d4444fe230739cbea9ea14d4285f33b101fce59237648d192202eb",
+      "line": 958,
+      "owner": "Home heading alignment and Mass actions stay on one line at narrow widths",
+      "text": "await expect(page.getByText('Loading upcoming Masses…', { exact: true })).toHaveCount(0);"
+    },
+    {
+      "hash": "6b5e39bf074cec6256609b4d3a52d3137436d1fd9e4604f98f6b7bc9e5067abb",
+      "line": 959,
+      "owner": "Home heading alignment and Mass actions stay on one line at narrow widths",
+      "text": "await expect(page.getByText('Loading new hymns…', { exact: true })).toHaveCount(0);"
+    },
+    {
+      "hash": "19d1c42e1d18a48192507b97f46cc7f4bf2f7c69e431abb4926266244d084d84",
+      "line": 962,
+      "owner": "Home heading alignment and Mass actions stay on one line at narrow widths",
+      "text": "expect(await heading.evaluate((element) => { const title = element.querySelector('h2')!.getBoundingClientRect(); const actions = element.querySelector('.form-actions')!.getBoundingClientRect(); return Math.abs(title.y + title.height / 2 - actions.y - actions.height / 2); })).toBeLessThan(2);"
+    },
+    {
+      "hash": "4e4c95553e911b4b8d702e8374991a1cbc1be977eaabea1360492b021c0f3fc9",
+      "line": 972,
+      "owner": "Home heading alignment and Mass actions stay on one line at narrow widths",
+      "text": "expect(Math.abs(box!.y - bounds[0]!.y)).toBeLessThan(2);"
+    },
+    {
+      "hash": "6224df6412e4ec3041c0cd79b8aad67dea5b3c0d2164d3752d17f9ba003d2888",
+      "line": 973,
+      "owner": "Home heading alignment and Mass actions stay on one line at narrow widths",
+      "text": "expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);"
+    },
+    {
+      "hash": "84d11731a6599e35c336e78178bdcc9de04fc2d8d7ab35df6b6c5bb3821cd7e2",
+      "line": 981,
+      "owner": "Home heading alignment and Mass actions stay on one line at narrow widths",
+      "text": "await expect(date).toBeVisible();"
+    },
+    {
+      "hash": "9e28c7a62e96474b59a25a5ae6c2bfc6c4a600f77ba282a09db5a0f2c2d3839c",
+      "line": 984,
+      "owner": "Home heading alignment and Mass actions stay on one line at narrow widths",
+      "text": "expect(Math.abs(dateBox.y - seasonBox.y)).toBeLessThan(2);"
+    },
+    {
+      "hash": "a1cd431acf644dec7988cdf2cb0a93e78de544ced270140610ca25d4ebe5e7c6",
+      "line": 985,
+      "owner": "Home heading alignment and Mass actions stay on one line at narrow widths",
+      "text": "expect(dateBox.width).toBeLessThan(170);"
+    },
+    {
+      "hash": "6224df6412e4ec3041c0cd79b8aad67dea5b3c0d2164d3752d17f9ba003d2888",
+      "line": 986,
+      "owner": "Home heading alignment and Mass actions stay on one line at narrow widths",
+      "text": "expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);"
+    }
+  ]
+}

@@ -27,6 +27,40 @@ function renderApp(path = '/') {
 
 beforeEach(() => clearCsrfToken());
 
+it.each([
+  ['/register', 'Username'],
+  ['/reset-password#token=fictional-ui-token', 'New password'],
+])('keeps public account options after anonymous identity resolves on %s', async (path, label) => {
+  let resolveConfig!: (response: Response) => void;
+  const configuration = new Promise<Response>((resolve) => {
+    resolveConfig = resolve;
+  });
+  const options = {
+    registration_enabled: true,
+    email_verification_enabled: true,
+    password_reset_enabled: true,
+  };
+  const fetch = vi.fn(async (url: string) => {
+    if (url.endsWith('/me/'))
+      return Response.json(
+        { detail: 'Sign in', code: 'not_authenticated', errors: {} },
+        { status: 403 },
+      );
+    if (url.endsWith('/config/')) return configuration;
+    throw new Error(`Unexpected account request: ${url}`);
+  });
+  vi.stubGlobal('fetch', fetch);
+  const client = renderApp(path);
+  await waitFor(() =>
+    expect(fetch.mock.calls.some(([url]) => url.endsWith('/config/'))).toBe(true),
+  );
+  resolveConfig(Response.json(options));
+  await waitFor(() => expect(client.getQueryData(['session'])).toBeNull());
+  await screen.findByLabelText(label, { exact: true });
+  expect(client.getQueryData(['auth-config'])).toEqual(options);
+  expect(screen.getByLabelText(label, { exact: true })).toBeVisible();
+});
+
 it('protects a direct workspace visit and associates required errors with inputs', async () => {
   vi.stubGlobal(
     'fetch',
@@ -156,6 +190,6 @@ it('returns to login on session expiry and clears private cached data', async ()
   expired = true;
   await client.refetchQueries({ queryKey: ['session'] });
   await waitFor(() => expect(screen.getByLabelText('Email or username')).toBeVisible());
-  // Session lookup returns null on expiry, so non-session data must be purged.
+  // Session lookup returns null on expiry, so private data must be purged.
   expect(client.getQueryData(['private-data'])).toBeUndefined();
 });

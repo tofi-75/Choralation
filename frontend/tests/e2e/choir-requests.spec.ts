@@ -1,3 +1,4 @@
+import { browserOrigin } from '../test-server';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 const suffix = process.env.E2E_USER_SUFFIX;
@@ -21,8 +22,8 @@ test('Admins approve and decline private choir requests directly on Choirs witho
   browser,
 }, info) => {
   test.setTimeout(90000);
-  const ownerContext = await browser.newContext({ baseURL: 'http://127.0.0.1:5174' });
-  const memberContext = await browser.newContext({ baseURL: 'http://127.0.0.1:5174' });
+  const ownerContext = await browser.newContext({ baseURL: browserOrigin });
+  const memberContext = await browser.newContext({ baseURL: browserOrigin });
   try {
     const owner = await ownerContext.newPage();
     const applicant = await memberContext.newPage();

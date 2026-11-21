@@ -139,6 +139,8 @@ test('Settings combines Account and the saved default choir', async ({ page }, i
   await feedback.getByRole('button', { name: 'Close notification' }).click();
   await page.locator('.account-trigger').click();
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  // Finish the real logout before a full navigation can abort its client cleanup.
+  await expect(page.getByRole('heading', { name: 'Sign in to your workspace' })).toBeVisible();
   await signIn(page);
   await expect(page.getByRole('combobox', { name: 'Active choir' })).toHaveValue(String(choir.id));
   const freshToken = (await (await page.request.get('/api/v1/auth/csrf/')).json()).csrf_token;

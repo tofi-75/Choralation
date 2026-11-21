@@ -9,7 +9,7 @@ stopped by Playwright. Existing occupied application ports cause a clear failure
 param([string[]] $TestArguments = @())
 . (Join-Path $PSScriptRoot 'project.ps1')
 $browserEnvironmentBefore = @{}
-foreach ($key in @('E2E_MEDIA_ROOT', 'DJANGO_MEDIA_ROOT', 'DJANGO_STORAGE_BACKEND', 'ACCOUNT_VERIFICATION_REQUIRED')) {
+foreach ($key in @('E2E_MEDIA_ROOT', 'DJANGO_MEDIA_ROOT', 'DJANGO_STORAGE_BACKEND', 'ACCOUNT_VERIFICATION_REQUIRED', 'EMAIL_FILE_PATH')) {
     $browserEnvironmentBefore[$key] = [Environment]::GetEnvironmentVariable($key, 'Process')
 }
 $env:E2E_USER_SUFFIX = [Guid]::NewGuid().ToString('N').Substring(0, 12)
@@ -17,6 +17,7 @@ $env:E2E_PASSWORD = [Guid]::NewGuid().ToString('N') + '!Browser-Run'
 $env:E2E_MEDIA_ROOT = Assert-ProjectPath (Join-Path $ProjectRoot ('.cache\e2e-media\' + $env:E2E_USER_SUFFIX))
 $env:DJANGO_MEDIA_ROOT = $env:E2E_MEDIA_ROOT
 $env:DJANGO_STORAGE_BACKEND = 'local'
+$env:EMAIL_FILE_PATH = Assert-ProjectPath (Join-Path $ProjectRoot ('.cache\e2e-emails\' + $env:E2E_USER_SUFFIX))
 $env:ACCOUNT_VERIFICATION_REQUIRED = 'false'
 foreach ($candidate in @('C:\Program Files\Google\Chrome\Application\chrome.exe', 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe', 'C:\Program Files\Microsoft\Edge\Application\msedge.exe')) {
     if (Test-Path -LiteralPath $candidate) { $env:PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH = $candidate; break }

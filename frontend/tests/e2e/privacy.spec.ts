@@ -1,3 +1,4 @@
+import { browserOrigin } from '../test-server';
 import { expect, test } from '@playwright/test';
 
 test('Public information is readable without JavaScript, authentication, or account API', async ({
@@ -11,7 +12,7 @@ test('Public information is readable without JavaScript, authentication, or acco
   try {
     await page.route('**/api/**', (route) => route.fulfill({ status: 503, body: 'Unavailable' }));
     for (const path of ['/about', '/privacy', '/terms']) {
-      const response = await page.goto(`http://127.0.0.1:5174${path}`);
+      const response = await page.goto(`${browserOrigin}${path}`);
       expect(response?.status()).toBe(200);
       await expect(page.locator('h1')).toBeVisible();
       await expect(
@@ -29,7 +30,7 @@ test('Public information is readable without JavaScript, authentication, or acco
       await page.reload();
       await expect(page.locator('h1')).toBeVisible();
     }
-    await page.goto('http://127.0.0.1:5174/about');
+    await page.goto(`${browserOrigin}/about`);
     await page.keyboard.press('Tab');
     await expect(page.getByRole('link', { name: 'Skip to content' })).toBeFocused();
     await page.keyboard.press('Enter');

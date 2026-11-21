@@ -1,3 +1,4 @@
+import { browserOrigin } from '../test-server';
 /** Real account verification, approval, tenant isolation and choir-scoped counts. */
 import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -51,7 +52,7 @@ test('private approval, scoped counts and code rotation', async ({ page, browser
 
   const plannerContext = await browser.newContext({
     viewport: info.project.use.viewport,
-    baseURL: 'http://127.0.0.1:5174',
+    baseURL: browserOrigin,
   });
   const planner = await plannerContext.newPage();
   try {

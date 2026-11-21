@@ -434,6 +434,8 @@ The required implementation checks are: migration drift check, backend tests, fr
 
 For failed browser tests, retain logs/screenshots/traces in the chosen CI system or local run output. Run concurrency tests with true transactions rather than a test wrapper that hides locking behavior. Expand checks when changes or failures warrant it; avoid repeatedly rerunning unrelated suites after a documentation-only change.
 
+The [system-test optimization plan](docs/system-test-optimization-plan.md) records the current execution update: two isolated frontend VM workers, four independent CI browser profiles with individual PostgreSQL services, both required account modes, one checked frontend build reused by preview servers, and an aggregate coverage/report gate. UI authentication remains separately exercised. Reader assertion mapping prevents the split journeys from dropping existing checks. Production-container/PDF persistence, real migrations/concurrency and physical-device acceptance remain release gates.
+
 ## 8. Source requirement coverage
 
 This mapping prevents the shorter roadmap from quietly dropping requirements in the 79-section specification.

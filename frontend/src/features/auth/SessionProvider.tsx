@@ -12,6 +12,9 @@ import type { User } from '../../api/auth';
 import { ApiError, clearCsrfToken } from '../../api/client';
 
 const sessionKey = ['session'] as const;
+// Account capabilities are public; removing their active query can strand signup/reset.
+const privateQuery = (entry: { queryKey: readonly unknown[] }) =>
+  entry.queryKey[0] !== 'session' && entry.queryKey[0] !== 'auth-config';
 type Session = {
   user: User | null;
   pending: boolean;
@@ -59,7 +62,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (query.data === null) {
       clearCsrfToken();
-      client.removeQueries({ predicate: (entry) => entry.queryKey[0] !== 'session' });
+      client.removeQueries({ predicate: privateQuery });
     }
   }, [client, query.data]);
 
@@ -71,7 +74,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         error instanceof ApiError &&
         error.code === 'not_authenticated'
       ) {
-        client.removeQueries({ predicate: (entry) => entry.queryKey[0] !== 'session' });
+        client.removeQueries({ predicate: privateQuery });
         client.setQueryData(sessionKey, null);
       }
     });
@@ -89,14 +92,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           setSignedOut(false);
           // Cancel an older /me refetch before publishing the newly signed-in user.
           void client.cancelQueries({ queryKey: sessionKey });
-          client.removeQueries({ predicate: (entry) => entry.queryKey[0] !== 'session' });
+          client.removeQueries({ predicate: privateQuery });
           client.setQueryData(sessionKey, user);
         },
         clearSession: () => {
           setSignedOut(true);
           // An in-flight identity response must not restore the signed-out shell.
           void client.cancelQueries({ queryKey: sessionKey });
-          client.removeQueries({ predicate: (entry) => entry.queryKey[0] !== 'session' });
+          client.removeQueries({ predicate: privateQuery });
           client.setQueryData(sessionKey, null);
         },
       }}
