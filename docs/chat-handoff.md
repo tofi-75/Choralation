@@ -145,13 +145,16 @@ The owner confirmed it saved in the production-operations GitHub secret
 DEPLOY_CHECK_TOKEN and password manager on November 27; R1 is checked. R2 recovery
 copies and R3 GitHub encryption settings are now confirmed too. The owner then
 explicitly confirmed R4 (budget saved) and R5 (replacement backup Data API off).
-R1–R6 are complete; exact budget value was not supplied in chat. The owner confirmed
+R1–R5 are complete; exact budget value was not supplied in chat. The owner confirmed
 failure-email settings saved too. Current step is R7, reviewing/publishing the
 implementation and passing exact-SHA CI. The owner authorized commit/push for this
 batch on November 27. Publish through codex branch/PR to respect main's new required
 checks; deployment remains separate. GitHub API preflight confirmed the repository
 automation variable is false. Skip confirmed secrets, main-only
-environment restrictions, branch protection and notification configuration.
+environment restrictions and notification configuration. Branch protection was
+reported complete but read-only API checks later found rulesets=[], effective main
+rules=[], and GET branches/main/protection returned 404. R6's protection checkbox
+is reopened; the owner was asked asynchronously to inspect Settings → Rules → Rulesets.
 Actual failure-email delivery is checked at R19.
 R7 publication: implementation fa6a1831154a31650aec1a4b54c8de29b7f0dbe6 is pushed
 on codex/automatic-backups in PR #2. The first PR CI run 46071870018 failed its
@@ -161,6 +164,21 @@ green exact-SHA run; no merge/deployment/activation has occurred.
 The next run reached real restoration and exposed git archive resolving backend
 relative to the backend working directory. Restore now anchors git archive to ROOT
 explicitly, so both the Linux test and production runner use the same repository paths.
+Current pushed head is 55297b50cdbbde51d670737ada13fcf0e9c4dc2f, CI run 46072429307.
+Backend, frontend, production PDF and the real Linux operations rehearsal passed;
+Three browser profiles passed; mobile-430 exposed a keyboard-test focus race after
+notification closure (Edit reopened before Save order). The test now waits for
+the expected restored Edit focus before focusing the move control and pressing Enter;
+all original keyboard/reordering assertions remain. A new full CI run is required.
+No merge/deploy/activation.
+Later API recheck after the owner's Active confirmation verified main protected:
+ruleset 28264223 Protect main is active on the default branch, requires checks from
+GitHub Actions 15368, blocks deletion/non-fast-forward, and has no bypass actors.
+The secret-name audit verified main-only environment restrictions and every repository
+variable, including budget 858993459 and automation false. It found missing
+BACKUP_PUBLISHABLE_KEY in all three environments and SOURCE_BACKUP_EMAIL in
+production-operations, where SOURCE_BACKUP_MAIL is present instead. Correct these
+names/entries before hosted acceptance; secret values were never read.
 The owner's Branch settings screenshot showed no protection rule listed and the
 Add branch ruleset/Add classic branch protection rule controls. The owner then
 confirmed creating the instructed active Protect main ruleset targeting default

@@ -41,6 +41,10 @@ test('Admin classification lifecycle, reference safety, keyboard order and stale
     await page.getByRole('button', { name: 'Save category', exact: true }).click();
     await page.getByRole('button', { name: 'Close notification', exact: true }).click();
     await expect(row.locator('strong').filter({ hasText: name + ' renamed' })).toBeVisible();
+    // Dialog focus restoration must finish before the next keyboard interaction.
+    await expect(
+      row.getByRole('button', { name: `Edit ${name} renamed`, exact: true }),
+    ).toBeFocused();
     const move = row.getByRole('button', { name: /^Move .* down$/ });
     if (await move.isEnabled()) {
       await move.focus();

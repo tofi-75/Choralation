@@ -17,8 +17,12 @@ Encryption recovery copies are now owner-confirmed too (R2 complete).
 GitHub encryption settings, the saved storage budget and the replacement backup
 project's Data API disabled setting are now owner-confirmed (R1–R5 complete).
 The owner subsequently confirmed creating the Protect main ruleset with required
-checks and blocked deletion/force pushes, followed by failure-email settings
-(R1–R6 complete). Current step is R7, reviewing/publishing and exact-SHA CI;
+checks and blocked deletion/force pushes, followed by failure-email settings.
+API verification confirmed the active rule, all repository variables, budget
+858993459 and main-only environment restrictions, but found BACKUP_PUBLISHABLE_KEY
+missing in all three environments and SOURCE_BACKUP_EMAIL misspelled
+SOURCE_BACKUP_MAIL in production-operations. R6 remains open for those entries.
+Current step is R7, reviewing/publishing and exact-SHA CI;
 the owner authorized commit/push on November 27. Publication proceeds through a
 codex branch and PR; deployment remains separate. Email delivery is verified during activation. The exact chosen
 budget value was not supplied in chat; retain the saved GitHub value.

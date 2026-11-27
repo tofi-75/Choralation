@@ -5,18 +5,30 @@ the step succeeds. You can stop after any setup step and resume later.
 
 **Current stage: R7, review/publish the implementation and pass CI (Step 7).**
 The owner confirmed the Protect main ruleset created on November 27, requiring
-checks and blocking deletion/force pushes. Failure-email settings are now owner-confirmed;
+checks and blocking deletion/force pushes. After an initially empty API result,
+a later recheck verified Protect main Active with the intended rules and no bypass.
+Failure-email settings are owner-confirmed;
 actual failure-email delivery is still verified during attended activation (R19).
 The owner confirmed R4 (storage budget) and R5 (replacement backup Data API off)
-on November 27. R1–R6 are complete. The owner authorized commit/push on November 27;
+on November 27. R1–R5 are complete; R6 needs the missing secret entries below.
+The owner authorized commit/push on November 27;
 publish through a codex branch and pull request to respect the new main protection.
 Implementation commit fa6a183 is pushed on codex/automatic-backups in
 [pull request #2](https://github.com/tofi-75/Choralation/pull/2). R7 remains open
 until required CI succeeds and the reviewed implementation reaches main. The first
 Linux operations run exposed a missing parent cache directory; its workflow now
 creates that directory explicitly before pytest. Updated exact-SHA CI is required.
-deployment and automation remain off. The exact chosen budget value was not supplied
-in chat; retain the saved GitHub value. Do not repeat completed setup.
+The archive-path correction is pushed as 55297b50cdbbde51d670737ada13fcf0e9c4dc2f.
+[CI run 46072429307](https://github.com/tofi-75/Choralation/actions/runs/46072429307)
+passed backend, frontend, production PDF persistence, Linux operations and three
+browser profiles. The 430px profile exposed a keyboard-test focus race; the test
+now waits for dialog focus restoration before its next keyboard interaction.
+New full CI is required. Nothing is merged/deployed.
+deployment and automation remain off. Read-only API verification found the budget
+is 858993459 and all repository variables/main-only environment restrictions match.
+It also found BACKUP_PUBLISHABLE_KEY missing in all three environments, and
+SOURCE_BACKUP_EMAIL missing in production-operations (SOURCE_BACKUP_MAIL exists
+instead). Correct only those entries; do not repeat the completed setup.
 R1 is complete: the owner confirmed DEPLOY_CHECK_TOKEN saved in GitHub
 production-operations and the password manager on November 27. Render entry and
 hosted operational verification still wait until the backed-up rollout.
@@ -79,10 +91,13 @@ entries may already have been made but still need individual confirmation.
 - [x] **R5 — Backup project:** verify Data API is disabled on the replacement
   Frankfurt backup project, with Auth and Storage available (Step 1; owner
   confirmation, November 27).
-- [x] **R6 — GitHub configuration:** verify all required secret/variable names,
+- [ ] **R6 — GitHub configuration:** verify all required secret/variable names,
   main-only environment restrictions, branch protection and failure-email
   settings; keep PRODUCTION_AUTOMATION_ENABLED=false (Step 6; owner confirmations,
-  November 27). Actual provider access and failure-email delivery remain rollout checks.
+  November 27). Reopened: API checks found BACKUP_PUBLISHABLE_KEY missing in all
+  three environments and SOURCE_BACKUP_EMAIL misspelled SOURCE_BACKUP_MAIL in
+  production-operations. Active branch protection is now independently verified. Other confirmed
+  setup is retained; actual provider access and failure-email delivery remain rollout checks.
 - [ ] **R7 — Publish and validate:** obtain commit/push authorization, review
   and publish the implementation, then require all CI jobs green for the exact
   SHA, including Linux/container operations acceptance (Step 7).
@@ -205,7 +220,9 @@ Browser only; approximately 5 minutes.
 6. Add the same secret with the same value to **backup-restore** and
    **backup-retention**.
 
-- [x] `BACKUP_PUBLISHABLE_KEY` saved in all three environments (owner report, November 27).
+- [ ] `BACKUP_PUBLISHABLE_KEY` saved in all three environments. Previously reported
+  complete by the owner, but November 27 API secret-name verification found it
+  absent under this exact name in all three; add the missing entries.
 - [x] Verify the replacement backup project's **Data API** is off in project
   API settings. Disabling Data API concerns database REST access; keep Auth and
   Storage available (owner confirmed replacement project, November 27).
@@ -372,7 +389,9 @@ permission check during attended acceptance; it does not prove a backup has run.
 - [x] Pre-grant Storage policy review returned no existing policies (November 27).
 - [x] Two source SELECT policies applied and the two result rows verified (owner screenshot, November 27).
 - [ ] Effective source read-only access and cross-bucket denial checked through the API.
-- [x] Three source secrets saved in production-operations (owner confirmation, November 27; API authentication untested).
+- [ ] Three source secrets saved in production-operations. API verification found
+  SOURCE_BACKUP_MAIL instead of the required SOURCE_BACKUP_EMAIL; correct the
+  email entry. Source key/password names exist; provider authentication remains untested.
 
 ## 3. Generate the backup encryption key
 
@@ -621,12 +640,17 @@ variables. Avoid environment-level overrides of these shared values:
 | BACKUP_BUDGET_BYTES | Chosen integer storage budget in bytes |
 | PRODUCTION_AUTOMATION_ENABLED | false |
 
-- [x] All required secret/variable entries reported saved in their intended scopes by the owner; provider/API acceptance remains separate (November 27).
+- [ ] All required secret/variable names verified. November 27 API audit found
+  BACKUP_PUBLISHABLE_KEY missing in all three environments and SOURCE_BACKUP_EMAIL
+  misspelled SOURCE_BACKUP_MAIL in production-operations. All repository variables
+  and environment main-only restrictions matched. Fix those four secret entries.
 - [x] Protect `main` using a branch rule/ruleset: require the **checks**
   status from **Application checks**, block force pushes and branch deletion.
   Review workflow changes before merging. If the plan does not support the rule,
   resolve that before activation rather than assuming it is enforced. Owner
-  confirmed the instructed active ruleset created, November 27.
+  confirmed the instructed active ruleset created, November 27. After an initially
+  empty API result, later independent API verification confirmed main protected
+  by active ruleset 28264223, expected checks source GitHub Actions and no bypass actors.
 
 The owner's November 27 Branch settings screenshot showed the add-rule controls
 with no protection rule listed. The owner subsequently confirmed creating the
