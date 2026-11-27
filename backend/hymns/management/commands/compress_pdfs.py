@@ -2,9 +2,10 @@
 
 from django.conf import settings
 from django.core.files.base import ContentFile
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import CommandError
 from django.db import transaction
 
+from common.management import GuardedCommand
 from hymns.models import Hymn
 from hymns.pdf_storage import delete_unreferenced, digest, pack_pdf, read_pdf
 from hymns.uploads import pdf_upload_path
@@ -48,7 +49,7 @@ def convert_pdf(hymn, *, apply=False):
         delete_unreferenced(storage, new_name)
 
 
-class Command(BaseCommand):
+class Command(GuardedCommand):
     help = "Dry-run PDF gzip conversion; --apply switches references after readback verification. Back up database AND media first."
 
     def add_arguments(self, parser):

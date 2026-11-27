@@ -28,6 +28,11 @@ def read_pdf(hymn):
     """Return stored and original bytes; never allow unbounded gzip inflation."""
     with hymn.sheet_music_pdf.open("rb") as handle:
         stored = handle.read(MAX_STORED_BYTES + 1)
+    return stored, decode_pdf(hymn, stored)
+
+
+def decode_pdf(hymn, stored):
+    """Validate bounded stored bytes consistently for downloads and release checks."""
     try:
         if len(stored) > MAX_STORED_BYTES:
             raise ValueError("Stored PDF too large")
@@ -45,7 +50,7 @@ def read_pdf(hymn):
             raise ValueError("PDF checksum mismatch")
     except (ValueError, OSError, EOFError, zlib.error, ValidationError) as error:
         raise StorageUnavailable() from error
-    return stored, original
+    return original
 
 
 def prepare_upload(hymn, upload):

@@ -1,5 +1,41 @@
 # Architecture decisions
 
+## Production operations — local implementation, November 21
+
+See [automatic operations](automatic-operations.md) for the configuration and
+rollout contract. Render native auto-deploy remains off. A separate noncanceling
+workflow validates exact main-push CI, pauses content writes, verifies encrypted
+database/PDF snapshots, requests that SHA, checks readiness/operational dependencies and then
+reopens editing. A durable singleton and session advisory locks cover in-flight
+requests and post-commit Storage cleanup. The app's guard is SELECT-only; the CI
+controller is separately privileged. Cross-database UUID checks prevent a lock
+connection accidentally guarding another database.
+
+Snapshots use a separate private Supabase project, content-addressed encrypted
+chunks and manifests sealed only after verification. Keep 7 daily/5 predeployment
+snapshots; weekly Linux rehearsals restore data and the matching historical app
+against temporary PostgreSQL/TLS S3 with real email disabled. Unknown deployment
+outcomes remain read-only for explicit recovery. This is not yet activated in
+production; current hosted credentials and attended acceptance are required.
+
+November 22: backup transfers use Supabase Storage REST with publishable API keys
+and short-lived automation-user JWTs, preserving writer/reader/pruner RLS scopes.
+Flat cursor listing covers nested keys; raw downloads preserve stored gzip bytes
+and user metadata. Uploads forbid upsert, and retention verifies deletion. Legacy
+JWT keys and elevated project secret keys are rejected. The application's existing
+S3 backend and the isolated restore emulator remain separate from this transport.
+
+November 27: the owner chose operational deployment checks instead of permanent
+production test accounts and fixtures. A separate DEPLOY_CHECK_TOKEN protects
+GET /health/operations/; it cannot authenticate to business APIs. The read-only
+probe checks schema, controller/business/gate DB identity, shared lock access,
+maintenance state and a bounded existing PDF read with normal gzip/hash validation.
+Failures return generic no-store responses. GitHub requires the exact SHA and
+expected maintenance flag before/after deployment. Render continues polling the
+lightweight public readiness route. Production-specific user login/member behavior
+is a documented coverage gap; isolated CI/browser tests and initial manual
+acceptance retain those user-flow checks. No new live fixtures are created.
+
 > **Local implementation, November 21:** [Choir roles, Mass reading and lossless PDFs](roles-reader-pdf-update.md) describes the current checkout and staged rollout. These changes are not part of the live `91a8c56` release.
 
 

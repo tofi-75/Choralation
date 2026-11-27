@@ -1,5 +1,20 @@
 # API contract — implementation baseline
 
+## Backup maintenance — local implementation, November 21
+
+`GET /api/v1/operations/status/` requires a verified signed-in account. It returns
+`enabled`, `read_only`, `reason`, and nullable `started_at`. Admin responses also
+include `admin`: operation phase/reference, backup age/staleness, and the latest
+backup/release/restore summaries. No credentials, database URLs or private PDF
+contents are returned. There is no HTTP endpoint to unlock or start maintenance.
+
+During an enabled backup/release pause, unsafe routes (including Django Admin)
+return HTTP **503**, `Retry-After: 30`, and the normal error envelope with
+`code: maintenance_read_only`. Sign-in/out, safe reads, CSRF and PDF downloads
+remain available. Frontend working copies survive the pause and retry explicitly.
+Readiness adds `commit` and `operations_enabled`; enabled readiness verifies that
+the operations state exists. [Setup and recovery](automatic-operations.md).
+
 > **Local implementation, November 21:** [Choir roles, Mass reading and lossless PDFs](roles-reader-pdf-update.md) describes the current checkout and staged rollout. These changes are not part of the live `91a8c56` release.
 
 > **October 25 simple-account mode:** `GET /api/v1/auth/config/` returns `registration_enabled`, `email_verification_enabled`, and `password_reset_enabled`. Release values are `true`, `false`, `false`. Registration authenticates and returns identity with truthful `email_verified` and effective `verification_required=false`. Verification, resend, email-setting and emailed-reset APIs return sanitized `email_unavailable` without sending mail or consuming tokens when their feature is disabled. Email/username login still requires the password. Signed-in current-password changes remain available. [Configuration and recovery](simple-accounts-release.md) supersedes earlier activation instructions.
@@ -214,6 +229,19 @@ Score, eligibility, tie-breaks, recency boundaries, and warnings are defined in 
 Use `GET dashboard/` to compose `{upcoming_mass, recent_masses, recently_used_hymns, season_suggestions}` with bounded lists. Upcoming Mass is the first on/after team-local today ordered ascending date/ID; it may be draft or finalized. Return null/empty arrays when context is absent. Suggestions derive from the existing ranking service for the upcoming Mass's placements, deduplicate hymns, and remain empty when no season is selected. No automatic calendar engine.
 
 Read-only `GET /health/live/` confirms the process; `GET /health/ready/` checks essential database connectivity. Return generic status only, not settings/secrets. These operational paths are outside the application API namespace; define their network exposure at deployment.
+
+`GET /health/operations/` is a separate release-only operational probe. It requires
+`Authorization: Bearer <DEPLOY_CHECK_TOKEN>` and `X-Operations-Database-ID` matching
+the controller's database UUID. It checks applied/consistent migrations, business
+queries, the matching session gate/shared lock and an existing active uploaded PDF
+with bounded S3 read and normal encoding/size/hash validation. It returns only
+`{status: "ok", commit, operations_enabled: true, read_only}`. Invalid tokens get
+generic 403 before dependency checks; any failed dependency gets generic 503.
+Responses are `no-store` and vary on Authorization. This token grants no session
+or business API access, and the probe never creates/updates records or objects.
+An empty uploaded-PDF library cannot pass the storage-read check. The frequent
+Render health check remains `/health/ready/`. Production login/CSRF/member checks
+are outside this probe's scope and remain in isolated tests/attended acceptance.
 
 ## 9. Frontend invalidation and contract evidence
 

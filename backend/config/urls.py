@@ -7,12 +7,15 @@ from drf_spectacular.views import SpectacularAPIView
 from rest_framework.renderers import JSONRenderer
 
 from choirs.calendar_settings import CalendarOverrideView, CalendarSettingsView
+from common.deployment_checks import deployment_check
 from common.frontend import frontend_page
+from common.operations_views import OperationsStatusView
 from common.public_pages import information
 from common.views import health_live, health_ready
 from masses.calendar_views import MaroniteCalendarView
 
 urlpatterns = [
+    path("api/v1/operations/status/", OperationsStatusView.as_view()),
     re_path(r"^(?P<page>about|privacy|terms)/?$", information, name="public-information"),
     path("admin/", admin.site.urls),
     path("api/v1/auth/", include("accounts.urls")),
@@ -28,6 +31,7 @@ urlpatterns = [
     ),
     path("health/live/", health_live, name="health-live"),
     path("health/ready/", health_ready, name="health-ready"),
+    path("health/operations/", deployment_check, name="deployment-check"),
 ]
 handler500 = "common.errors.server_error"
 # Named React routes only; API/admin/media/missing files never receive HTML.

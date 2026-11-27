@@ -1,12 +1,12 @@
 from datetime import timedelta
 
-from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from accounts.models import AccountToken, RateBucket
+from common.management import GuardedCommand
 
 
-class Command(BaseCommand):
+class Command(GuardedCommand):
     help = "Remove expired account links and rate buckets older than seven days."
 
     def handle(self, *args, **options):

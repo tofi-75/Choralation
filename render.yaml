@@ -8,7 +8,8 @@ services:
     branch: main
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    autoDeployTrigger: checksPass
+    # GitHub production operations takes and verifies DB + PDF backups first.
+    autoDeployTrigger: 'off'
     healthCheckPath: /health/ready/
     envVars:
       # Render generateValue produces 44 chars; Django requires at least 50.
@@ -22,6 +23,15 @@ services:
         value: "true"
       - key: RUN_STARTUP_MIGRATIONS
         value: "true"
+      # Enable only after the attended bootstrap and restore rehearsal.
+      - key: PRODUCTION_OPERATIONS_ENABLED
+        sync: false
+      - key: OPERATIONS_DATABASE_URL
+        sync: false
+      - key: DEPLOY_CHECK_TOKEN
+        sync: false
+      - key: PDF_COMPRESSED_WRITES
+        value: "false"
       - key: APP_TIME_ZONE
         value: Asia/Beirut
       - key: ALLOW_HOSTED_DEMO_DATA

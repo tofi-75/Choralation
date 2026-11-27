@@ -1,10 +1,10 @@
 """Create missing defaults by stable slug, never reset user-edited seed records."""
 
-from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.db.models.functions import Lower, Trim
 from django.utils.text import slugify
 
+from common.management import GuardedCommand
 from hymns.models import CATEGORY_TYPES
 
 DEFAULTS = {
@@ -47,7 +47,7 @@ DEFAULTS = {
 }
 
 
-class Command(BaseCommand):
+class Command(GuardedCommand):
     help = "Create missing default classifications; preserve renamed/reordered/inactive records."
 
     @transaction.atomic

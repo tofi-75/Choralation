@@ -8,6 +8,7 @@ import { useConfirmation } from '../components/ConfirmationProvider';
 import { confirmWorkspaceExit } from '../components/workspaceExit';
 import { FloatingNotice } from '../components/FloatingNotice';
 import { PublicLinks } from '../components/PublicLinks';
+import { MaintenanceBanner } from '../components/Maintenance';
 import { useSession } from '../features/auth/SessionProvider';
 import { choirStorageKey, useChoir } from '../features/choirs/ChoirProvider';
 
@@ -230,6 +231,7 @@ export function AppShell() {
           </FloatingNotice>
         )}
         <main id="main-content" className="page-content" tabIndex={-1}>
+          <MaintenanceBanner />
           <Outlet />
         </main>
         <PublicLinks />

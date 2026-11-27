@@ -6,15 +6,38 @@ Reviewed on November 20, 2026 against repository commit `91a8c56`, the running l
 
 Choralation is live at [choralation.onrender.com](https://choralation.onrender.com). Render serves commit `91a8c566094383eb21a2e69ad2878dcf75601c54`, deployed November 15. [GitHub Actions run 43712740786](https://github.com/tofi-75/Choralation/actions/runs/43712740786) passed both application checks and the production image/PDF persistence job. The release included 119 passing frontend unit tests. The November 20 documentation review adds no new feature release.
 
-Render uses the existing Free web service in Frankfurt. Automatic deployment is off. The Blueprint proposes deployment after CI checks pass, but it has not synchronized that setting to this manually operated service. The live service’s configured HTTP health-check path is empty. Public `/health/ready/` responds with database readiness, and should be checked after deployment. Setting that path in Render and verifying automatic deployment are still pending operational work.
+Render uses the existing Free web service in Frankfurt. A November 21 read-only service check reconfirmed native automatic deployment is off and the live HTTP health-check path is empty. The Blueprint now keeps native deployment off so the [backup-gated workflow](automatic-operations.md) can be the sole automatic release path. Hosted credentials, separate backup storage, live readiness configuration and attended activation remain pending. A previous public readiness request timed out; verify it during preflight rather than assuming current health.
 
 Production requires private S3 storage and verifies write/read/cleanup before startup. CI verifies PDF persistence across fresh application containers. Prior hosted persistence acceptance is recorded in the dated reports. The November 20 review checked service state and public readiness without changing hosted records or downloading private PDFs. A current database backup and a separate PDF bucket backup are required before another authorized release.
 
 ## Local changes awaiting release
 
+The [automatic operations implementation](automatic-operations.md) adds encrypted paired
+database/PDF snapshots, persistent write protection, Admin diagnostics, daily schedules,
+retention, weekly isolated restore rehearsals and exact-CI-commit deployment. It is
+uncommitted local work, defaults to disabled, and has not changed hosted data or services.
+The November 22 backup transport update replaces legacy anon-key S3 authentication
+with publishable keys and automation-user JWTs over Storage REST. Existing users
+and RLS policies remain usable. The manual setup now resumes with
+`BACKUP_PUBLISHABLE_KEY`; hosted provider authentication and full restore acceptance
+remain pending. See the [manual walkthrough](automatic-operations-walkthrough.md).
+The owner chose operational checks on November 27: a protected read-only runtime
+probe replaces production test accounts/fixture IDs. It verifies version/schema,
+database/gate identity and an existing uploaded PDF. User login/member flows stay
+in isolated CI and initial manual acceptance. The operational token and new
+runtime endpoint still need attended configuration/verification.
+The November 27 backend suite passes 548 tests with one intentional Linux/container
+skip. Operational checks cover authorization, schema/gate identity, maintenance,
+existing raw/gzip PDF reads and deployment failure boundaries; an isolated member
+test covers CSRF login, Mass/PDF reads and denied deletion. The 24 REST contract
+cases and earlier real encrypted local DB/PDF/disposable-restore round trip passed.
+Linux CI and hosted key/RLS acceptance remain required.
+Local real age encryption, a PostgreSQL export/disposable restore and all recorded row
+counts passed; the dedicated Linux container/S3 job and hosted acceptance still need CI/setup.
+
 The November 21 checkout implements independent Admin/Choirmaster/User accounts and Leader/Planner/Member choir assignments, phone PDF width fit, saved-row Focus/hold navigation, placement prefill and lossless PDF gzip storage. [Behavior, permissions and staged rollout](roles-reader-pdf-update.md) document the changes. They are local, with additive migrations and compressed writes disabled by default. Hosted files have not been converted. The live release below remains unchanged.
 
-Local database/media backup and migration preservation checks passed. The feature work and three review repairs are recorded in `a24a6ef`. The separate [system-test update](system-test-optimization-plan.md) passes 461 backend tests, 135 frontend tests, seven runner-gate tests and the complete eight-run browser matrix: 159 passes, 21 documented skips, zero retries or flaky results. It preserves all 203 prior reader assertions, isolates profile/mode databases and services, reuses one checked frontend build and merges all browser reports. A three-run comparison of the same 133 cases reduced median unit runtime from 32.4 s to 15.9 s with two isolated VM workers; the current 135 cases also pass in both pools. Production-preview testing exposed and fixed an anonymous account-config cache race. GitHub build verification is the next step; physical phones and the updated Linux CI/S3/container harness remain release acceptance checks. Hosted deployment is not part of this update.
+Local database/media backup and migration preservation checks passed. The feature work and three review repairs are recorded in `a24a6ef`. The separate [system-test update](system-test-optimization-plan.md) passes 461 backend tests, 135 frontend tests, seven runner-gate tests and the complete eight-run browser matrix: 159 passes, 21 documented skips, zero retries or flaky results. It preserves all 203 prior reader assertions, isolates profile/mode databases and services, reuses one checked frontend build and merges all browser reports. A three-run comparison of the same 133 cases reduced median unit runtime from 32.4 s to 15.9 s with two isolated VM workers; the current 135 cases also pass in both pools. Production-preview testing exposed and fixed an anonymous account-config cache race. The matching 2f8c410 commit passed GitHub run 44897674480, including Linux CI/S3/container checks. Physical phones and hosted deployment remain pending; the new operations batch needs a separate CI run.
 
 ## Live behavior at 91a8c56
 

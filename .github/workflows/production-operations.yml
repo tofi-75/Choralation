@@ -1,0 +1,191 @@
+name: Production operations
+on:
+  workflow_run:
+    workflows: [Application checks]
+    types: [completed]
+    branches: [main]
+  schedule:
+    - cron: '17 3 * * *'
+      timezone: Asia/Beirut
+    - cron: '43 * * * *'
+      timezone: Asia/Beirut
+    - cron: '47 4 * * 0'
+      timezone: Asia/Beirut
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Attended bootstrap first; automatic actions require the enable variable
+        type: choice
+        options: [status, verify, bootstrap-backup, restore-check, backup, deploy, prune, recover]
+        default: status
+      sha:
+        description: Exact source SHA (required for bootstrap-backup and manual deploy)
+        type: string
+      ci_run_id:
+        description: Successful Application checks run ID (manual deploy only)
+        type: string
+      snapshot:
+        description: Completed snapshot ID (optional for restore-check; defaults to newest)
+        type: string
+      operation_id:
+        description: Recorded operation ID (recover only)
+        type: string
+      schema_reviewed:
+        description: Recovery only — schema compatibility was reviewed
+        type: boolean
+        default: false
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: choralation-production-operations
+  cancel-in-progress: false
+  queue: max
+jobs:
+  select:
+    # workflow_run is privileged: never select PR/fork code or an unsuccessful CI run.
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name != 'workflow_run' ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_repository.full_name == github.repository))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      mode: ${{ steps.mode.outputs.mode }}
+      sha: ${{ steps.mode.outputs.sha }}
+      run_id: ${{ steps.mode.outputs.run_id }}
+    steps:
+      - id: mode
+        env:
+          AUTOMATION_ENABLED: ${{ vars.PRODUCTION_AUTOMATION_ENABLED }}
+        run: |
+          python - <<'PY'
+          import json, os, re
+          event = json.load(open(os.environ['GITHUB_EVENT_PATH']))
+          name = os.environ['GITHUB_EVENT_NAME']
+          inputs = event.get('inputs', {})
+          mode = inputs.get('mode', 'status')
+          sha, run_id = inputs.get('sha', ''), inputs.get('ci_run_id', '')
+          if name == 'workflow_run':
+              mode, sha, run_id = 'deploy', event['workflow_run']['head_sha'], str(event['workflow_run']['id'])
+          elif name == 'schedule':
+              mode = {'17 3 * * *': 'backup', '43 * * * *': 'freshness', '47 4 * * 0': 'restore-check'}[event['schedule']]
+          if mode not in {'status', 'verify', 'bootstrap-backup', 'restore-check', 'recover'} and os.environ['AUTOMATION_ENABLED'] != 'true':
+              mode = 'disabled'
+          if name == 'schedule' and os.environ['AUTOMATION_ENABLED'] != 'true':
+              mode = 'disabled'
+          assert not sha or re.fullmatch('[a-f0-9]{40}', sha)
+          assert not run_id or run_id.isdigit()
+          if mode in {'deploy', 'bootstrap-backup'}:
+              assert sha, 'An exact source commit is required'
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f'mode={mode}\nsha={sha}\nrun_id={run_id}\n')
+          PY
+  operate:
+    needs: select
+    if: contains(fromJSON('["status","verify","bootstrap-backup","backup","freshness","deploy","recover"]'), needs.select.outputs.mode)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    environment: production-operations
+    outputs:
+      snapshot_created: ${{ steps.run.outputs.snapshot_created }}
+    env:
+      PRODUCTION_AUTOMATION_ENABLED: ${{ vars.PRODUCTION_AUTOMATION_ENABLED }}
+      OPERATIONS_DATABASE_URL: ${{ secrets.OPERATIONS_DATABASE_URL }}
+      BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+      PRODUCTION_URL: https://choralation.onrender.com
+      SOURCE_PROJECT_REF: ${{ vars.SOURCE_PROJECT_REF }}
+      SOURCE_BUCKET: sheet-music
+      SOURCE_PUBLISHABLE_KEY: ${{ secrets.SOURCE_PUBLISHABLE_KEY }}
+      SOURCE_EMAIL: ${{ secrets.SOURCE_BACKUP_EMAIL }}
+      SOURCE_PASSWORD: ${{ secrets.SOURCE_BACKUP_PASSWORD }}
+      BACKUP_PROJECT_REF: ${{ vars.BACKUP_PROJECT_REF }}
+      BACKUP_BUCKET: choralation-backups
+      BACKUP_PUBLISHABLE_KEY: ${{ secrets.BACKUP_PUBLISHABLE_KEY }}
+      BACKUP_EMAIL: ${{ secrets.BACKUP_WRITER_EMAIL }}
+      BACKUP_PASSWORD: ${{ secrets.BACKUP_WRITER_PASSWORD }}
+      BACKUP_AGE_RECIPIENT: ${{ vars.BACKUP_AGE_RECIPIENT }}
+      BACKUP_BUDGET_BYTES: ${{ vars.BACKUP_BUDGET_BYTES }}
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      RENDER_WORKSPACE_ID: tea-cvbfi652ng1s73ed31g0
+      RENDER_SERVICE_ID: srv-db78nlbbc2fs73e83qi0
+      DEPLOY_CHECK_TOKEN: ${{ secrets.DEPLOY_CHECK_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: ./.github/actions/operations-tools
+      - id: run
+        env:
+          MODE: ${{ needs.select.outputs.mode }}
+          TARGET_SHA: ${{ needs.select.outputs.sha }}
+          CI_RUN_ID: ${{ needs.select.outputs.run_id }}
+          OPERATION_ID: ${{ inputs.operation_id }}
+          SCHEMA_REVIEWED: ${{ inputs.schema_reviewed }}
+        run: |
+          args=("$MODE")
+          if [[ -n "$TARGET_SHA" ]]; then args+=(--sha "$TARGET_SHA"); fi
+          if [[ -n "$CI_RUN_ID" ]]; then args+=(--run-id "$CI_RUN_ID"); fi
+          if [[ -n "$OPERATION_ID" ]]; then args+=(--operation-id "$OPERATION_ID"); fi
+          if [[ "$SCHEMA_REVIEWED" == "true" ]]; then args+=(--schema-reviewed); fi
+          python scripts/production-ops.py "${args[@]}"
+  restore:
+    needs: select
+    if: needs.select.outputs.mode == 'restore-check'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    environment: backup-restore
+    env:
+      PRODUCTION_AUTOMATION_ENABLED: ${{ vars.PRODUCTION_AUTOMATION_ENABLED }}
+      OPERATIONS_DATABASE_URL: ${{ secrets.OPERATIONS_DATABASE_URL }}
+      BACKUP_PROJECT_REF: ${{ vars.BACKUP_PROJECT_REF }}
+      BACKUP_BUCKET: choralation-backups
+      BACKUP_PUBLISHABLE_KEY: ${{ secrets.BACKUP_PUBLISHABLE_KEY }}
+      BACKUP_EMAIL: ${{ secrets.BACKUP_READER_EMAIL }}
+      BACKUP_PASSWORD: ${{ secrets.BACKUP_READER_PASSWORD }}
+      BACKUP_AGE_IDENTITY: ${{ secrets.BACKUP_AGE_IDENTITY }}
+      BACKUP_BUDGET_BYTES: ${{ vars.BACKUP_BUDGET_BYTES }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/operations-tools
+      - env:
+          SNAPSHOT: ${{ inputs.snapshot }}
+        run: |
+          args=(restore-check)
+          if [[ -n "$SNAPSHOT" ]]; then args+=(--snapshot "$SNAPSHOT"); fi
+          if [[ "$PRODUCTION_AUTOMATION_ENABLED" != "true" ]]; then args+=(--attended); fi
+          python scripts/production-ops.py "${args[@]}"
+  retention:
+    needs: [select, operate]
+    if: >-
+      !cancelled() && needs.select.result == 'success' &&
+      (needs.select.outputs.mode == 'prune' ||
+       (needs.operate.result == 'success' && needs.operate.outputs.snapshot_created == 'true'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: backup-retention
+    env:
+      PRODUCTION_AUTOMATION_ENABLED: ${{ vars.PRODUCTION_AUTOMATION_ENABLED }}
+      OPERATIONS_DATABASE_URL: ${{ secrets.OPERATIONS_DATABASE_URL }}
+      BACKUP_PROJECT_REF: ${{ vars.BACKUP_PROJECT_REF }}
+      BACKUP_BUCKET: choralation-backups
+      BACKUP_PUBLISHABLE_KEY: ${{ secrets.BACKUP_PUBLISHABLE_KEY }}
+      BACKUP_EMAIL: ${{ secrets.BACKUP_PRUNER_EMAIL }}
+      BACKUP_PASSWORD: ${{ secrets.BACKUP_PRUNER_PASSWORD }}
+      BACKUP_AGE_IDENTITY: ${{ secrets.BACKUP_AGE_IDENTITY }}
+      BACKUP_BUDGET_BYTES: ${{ vars.BACKUP_BUDGET_BYTES }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: ./.github/actions/operations-tools
+      - run: python scripts/production-ops.py prune

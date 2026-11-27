@@ -1,0 +1,18 @@
+name: Install operations tools
+description: PostgreSQL 18 archive tools, age, and pinned Python dependencies
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+      with:
+        python-version: '3.14.8'
+    - shell: bash
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install --yes postgresql-common age
+        sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+        sudo apt-get update -qq
+        sudo apt-get install --yes postgresql-client-18
+        echo "PG_DUMP=/usr/lib/postgresql/18/bin/pg_dump" >> "$GITHUB_ENV"
+        echo "PG_RESTORE=/usr/lib/postgresql/18/bin/pg_restore" >> "$GITHUB_ENV"
+        python -m pip install -r backend/requirements/base.txt

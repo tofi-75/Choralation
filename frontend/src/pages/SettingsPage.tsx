@@ -23,6 +23,7 @@ import {
 import { useSession } from '../features/auth/SessionProvider';
 import { ManagerRequests, useManagerQueue } from '../features/auth/ManagerRequests';
 import { useUnsavedSettings } from '../components/useUnsavedSettings';
+import { MaintenanceEditor, OperationsPanel } from '../components/Maintenance';
 
 export function SettingsPage() {
   const { user } = useSession();
@@ -32,7 +33,9 @@ export function SettingsPage() {
   const pendingManagers = managerQueue.data?.count;
   const requested = params.get('tab');
   const tab =
-    requested === 'account' || requested === 'choir' || (admin && requested === 'manager-requests')
+    requested === 'account' ||
+    requested === 'choir' ||
+    (admin && ['manager-requests', 'operations'].includes(requested ?? ''))
       ? requested
       : admin
         ? 'classifications'
@@ -48,6 +51,7 @@ export function SettingsPage() {
             url: '/settings?tab=manager-requests',
           },
           { key: 'classifications', label: 'Classifications', url: '/settings' },
+          { key: 'operations', label: 'Backups & deployments', url: '/settings?tab=operations' },
         ]
       : []),
   ];
@@ -66,14 +70,20 @@ export function SettingsPage() {
           </Link>
         ))}
       </nav>
-      {tab === 'account' ? (
-        <AccountPages mode="account" />
-      ) : tab === 'choir' ? (
-        <ChoirPreference />
-      ) : tab === 'manager-requests' ? (
-        <ManagerRequests />
+      {tab === 'operations' ? (
+        <OperationsPanel />
       ) : (
-        <Classifications />
+        <MaintenanceEditor>
+          {tab === 'account' ? (
+            <AccountPages mode="account" />
+          ) : tab === 'choir' ? (
+            <ChoirPreference />
+          ) : tab === 'manager-requests' ? (
+            <ManagerRequests />
+          ) : (
+            <Classifications />
+          )}
+        </MaintenanceEditor>
       )}
     </div>
   );

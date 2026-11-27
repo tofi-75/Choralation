@@ -12,14 +12,15 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import CommandError
 from django.db import transaction
 
 from accounts.models import AccountProfile
 from accounts.permissions import Role
+from common.management import GuardedCommand
 
 
-class Command(BaseCommand):
+class Command(GuardedCommand):
     help = "Create an application user with a role (password prompt or --password-env NAME)."
 
     def add_arguments(self, parser):

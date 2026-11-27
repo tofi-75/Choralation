@@ -1,12 +1,12 @@
 """Restore application role groups safely without changing existing memberships."""
 
 from django.contrib.auth.models import Group
-from django.core.management.base import BaseCommand
 
 from accounts.permissions import Role
+from common.management import GuardedCommand
 
 
-class Command(BaseCommand):
+class Command(GuardedCommand):
     help = "Idempotently create Admin, Choirmaster, and User groups; no users or passwords."
 
     def handle(self, *args, **options):

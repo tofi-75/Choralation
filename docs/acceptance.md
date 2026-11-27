@@ -1,5 +1,19 @@
 # Acceptance scenarios and fixture contract
 
+## Backup and deployment acceptance — November 21 local implementation
+
+See [automatic operations](automatic-operations.md) for behavior, tests and the
+activation checklist. Local checks cover corruption/missing files, retained
+payloads, maintenance privacy and auth, concurrent write drain, and failures on
+both sides of the deployment request. A real age-encrypted local PostgreSQL dump
+was restored into a disposable database and all recorded table counts matched;
+the source database was not changed and the disposable database was removed.
+Frontend cases verify preserved inputs and explicit retry without session expiry.
+
+Hosted credentials/RLS, the dedicated Linux TLS S3/container rehearsal, scheduled
+emails, the attended first release and physical-phone maintenance UX remain
+acceptance work. Production automation is disabled until those release gates pass.
+
 > **Local implementation, November 21:** [Choir roles, Mass reading and lossless PDFs](roles-reader-pdf-update.md) describes the current checkout and staged rollout. These changes are not part of the live `91a8c56` release.
 
 
