@@ -153,6 +153,11 @@ checks; deployment remains separate. GitHub API preflight confirmed the reposito
 automation variable is false. Skip confirmed secrets, main-only
 environment restrictions, branch protection and notification configuration.
 Actual failure-email delivery is checked at R19.
+R7 publication: implementation fa6a1831154a31650aec1a4b54c8de29b7f0dbe6 is pushed
+on codex/automatic-backups in PR #2. The first PR CI run 46071870018 failed its
+operations job because pytest's explicit basetemp parent .cache did not exist on
+a fresh runner. The workflow now creates that parent before pytest. Require a new
+green exact-SHA run; no merge/deployment/activation has occurred.
 The owner's Branch settings screenshot showed no protection rule listed and the
 Add branch ruleset/Add classic branch protection rule controls. The owner then
 confirmed creating the instructed active Protect main ruleset targeting default

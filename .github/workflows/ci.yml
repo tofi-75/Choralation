@@ -209,7 +209,9 @@ jobs:
       - run: python -m pip install -r backend/requirements/dev.txt
       - name: Publishable-key REST snapshot, restored database, TLS S3 and matching app
         working-directory: backend
-        run: python -m pytest tests/test_operations_integration.py -q --basetemp ../.cache/operations-test-tmp
+        run: |
+          mkdir -p ../.cache
+          python -m pytest tests/test_operations_integration.py -q --basetemp ../.cache/operations-test-tmp
   browser-report:
     needs: browser
     if: ${{ !cancelled() }}

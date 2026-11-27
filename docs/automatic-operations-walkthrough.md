@@ -10,6 +10,11 @@ actual failure-email delivery is still verified during attended activation (R19)
 The owner confirmed R4 (storage budget) and R5 (replacement backup Data API off)
 on November 27. R1–R6 are complete. The owner authorized commit/push on November 27;
 publish through a codex branch and pull request to respect the new main protection.
+Implementation commit fa6a183 is pushed on codex/automatic-backups in
+[pull request #2](https://github.com/tofi-75/Choralation/pull/2). R7 remains open
+until required CI succeeds and the reviewed implementation reaches main. The first
+Linux operations run exposed a missing parent cache directory; its workflow now
+creates that directory explicitly before pytest. Updated exact-SHA CI is required.
 deployment and automation remain off. The exact chosen budget value was not supplied
 in chat; retain the saved GitHub value. Do not repeat completed setup.
 R1 is complete: the owner confirmed DEPLOY_CHECK_TOKEN saved in GitHub
