@@ -11,6 +11,7 @@ import { useConfirmation } from '../components/ConfirmationProvider';
 import { useWorkspaceExitWarning } from '../components/workspaceExit';
 import { FloatingNotice } from '../components/FloatingNotice';
 import { ApiError } from '../api/client';
+import { MaintenanceEditor } from '../components/Maintenance';
 import { saveHymn, textFields } from '../api/library';
 import type { Categories, Hymn, HymnInput, TextField } from '../api/library';
 import { useSession } from '../features/auth/SessionProvider';
@@ -348,324 +349,332 @@ function HymnForm({
           publish it; you can request approval from the saved hymn page.
         </p>
       )}
-      <form className="hymn-form" onSubmit={form.handleSubmit(submit)} noValidate>
-        <fieldset className="form-section" disabled={isSubmitting}>
-          <legend>Basic information</legend>
-          <div className="form-grid">
-            <label className="field full-width">
-              <span>
-                Title{' '}
-                <span className="required-mark" aria-hidden="true">
-                  *
-                </span>
-              </span>
-              <input
-                dir="auto"
-                maxLength={255}
-                aria-invalid={Boolean(errors.title)}
-                aria-describedby={errors.title ? 'title-error' : undefined}
-                aria-required="true"
-                {...register('title', { required: 'Enter a hymn title.' })}
-              />
-              {errors.title && (
-                <span className="field-error" id="title-error">
-                  {errors.title.message}
-                </span>
-              )}
-            </label>
-            <label className="field">
-              <span>
-                Language{' '}
-                <span className="required-mark" aria-hidden="true">
-                  *
-                </span>
-              </span>
-              <select
-                aria-required="true"
-                {...register('language_id', { required: 'Choose a language.' })}
-                aria-invalid={Boolean(errors.language_id)}
-                aria-describedby={errors.language_id ? 'language-error' : undefined}
-              >
-                <option value="">Choose a language</option>
-                {categories.languages
-                  .filter((row) => row.is_active || row.id === hymn?.language.id)
-                  .map((row) => (
-                    <option key={row.id} value={row.id}>
-                      {row.name}
-                      {!row.is_active && ' (inactive)'}
-                    </option>
-                  ))}
-              </select>
-              {errors.language_id && (
-                <span className="field-error" id="language-error">
-                  {errors.language_id.message}
-                </span>
-              )}
-            </label>
-            {showLatinTitle && metadataField('latin_title', 'Latin Characters Name')}
-            <label className="field">
-              Duration (minutes)
-              <input
-                type="number"
-                inputMode="decimal"
-                min="0.01"
-                max="9999.99"
-                step="0.01"
-                aria-invalid={Boolean(errors.estimated_duration_minutes)}
-                aria-describedby={errors.estimated_duration_minutes ? 'duration-error' : undefined}
-                {...register('estimated_duration_minutes')}
-              />
-              {errors.estimated_duration_minutes && (
-                <span className="field-error" id="duration-error">
-                  {errors.estimated_duration_minutes.message}
-                </span>
-              )}
-            </label>
-          </div>
-          <Controller
-            control={control}
-            name="is_polyphonic"
-            render={({ field }) => (
-              <label className="checkbox-choice polyphony-choice">
-                <input
-                  type="checkbox"
-                  checked={field.value}
-                  onChange={async (event) => {
-                    const enabled = event.target.checked;
-                    if (
-                      !enabled &&
-                      voiceFields.fields.length &&
-                      !(await confirm(
-                        'Turn off polyphony and remove all voice names?',
-                        'Remove voices',
-                      ))
-                    )
-                      return;
-                    if (!enabled) voiceFields.replace([]);
-                    field.onChange(enabled);
-                  }}
-                />
-                Polyphony (multiple voices)
-              </label>
-            )}
-          />
-          {polyphonic && (
-            <div className="voice-editor" role="group" aria-label="Voices">
-              <p className="tiny">Name the parts your team sings, such as Soprano or Alto.</p>
-              {voiceFields.fields.map((voice, index) => (
-                <div className="voice-row" key={voice.id}>
-                  <label className="field">
-                    <span className="tiny">
-                      Voice {index + 1}{' '}
-                      <span className="required-mark" aria-hidden="true">
-                        *
-                      </span>
-                    </span>
-                    <input
-                      dir="auto"
-                      placeholder="Voice name"
-                      aria-required="true"
-                      maxLength={80}
-                      aria-invalid={Boolean(errors.voices?.[index]?.name)}
-                      aria-describedby={
-                        errors.voices?.[index]?.name ? `voice-${index}-error` : undefined
-                      }
-                      {...register(`voices.${index}.name`, { required: 'Enter a voice name.' })}
-                    />
-                    {errors.voices?.[index]?.name && (
-                      <span className="field-error" id={`voice-${index}-error`}>
-                        {errors.voices[index]?.name?.message}
-                      </span>
-                    )}
-                  </label>
-                  <button
-                    type="button"
-                    className="button secondary"
-                    aria-label={`Remove voice ${index + 1}`}
-                    onClick={() => voiceFields.remove(index)}
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
-              {errors.voices?.message && (
-                <p className="field-error" role="alert">
-                  {errors.voices.message}
-                </p>
-              )}
-              <button
-                type="button"
-                className="button secondary"
-                disabled={voiceFields.fields.length >= 32}
-                onClick={() => voiceFields.append({ name: '' }, { shouldFocus: true })}
-              >
-                Add voice
-              </button>
-            </div>
-          )}
-        </fieldset>
-        <fieldset className="form-section" disabled={isSubmitting}>
-          <legend>Classification</legend>
-          {preserveSeasonNeutral && (
-            <p className="tiny muted">
-              This hymn remains suitable for any season while Ordinary Time is unavailable.
-            </p>
-          )}
-          <div className="classification-grid">
-            {multiFields.map(([field, kind, relation, label]) => (
-              <Controller
-                key={field}
-                control={control}
-                name={field}
-                render={({ field: controller }) => (
-                  <CategorySelect
-                    label={label}
-                    required={
-                      field === 'placement_ids' ||
-                      (field === 'season_ids' && !preserveSeasonNeutral)
-                    }
-                    choices={categories[kind]}
-                    value={controller.value}
-                    onChange={controller.onChange}
-                    retain={hymn?.[relation].map((row) => row.id)}
-                    error={errors[field]?.message}
-                  />
-                )}
-              />
-            ))}
-          </div>
-        </fieldset>
-        <fieldset className="form-section" disabled={isSubmitting}>
-          <legend>Sheet music and lyrics</legend>
-          <PdfAttachmentPreview
-            file={pdf}
-            existingUrl={!removePdf ? hymn?.sheet_music_pdf?.url : undefined}
-            title={title || 'Selected sheet music'}
-          />
-          {hymn?.sheet_music_pdf && !removePdf && !pdf && (
-            <div className="attachment-info">
-              <a className="text-button" href={hymn.sheet_music_pdf.url}>
-                {hymn.sheet_music_pdf.name}
-              </a>
-              <button type="button" className="text-button" onClick={() => setRemovePdf(true)}>
-                Remove attached PDF
-              </button>
-            </div>
-          )}
-          {removePdf && (
-            <p className="tiny">
-              The attached PDF will be removed when you save.{' '}
-              <button type="button" className="text-button" onClick={() => setRemovePdf(false)}>
-                Undo
-              </button>
-            </p>
-          )}
-          <label className="field">
-            {hymn?.sheet_music_pdf ? 'Replace sheet music PDF' : 'Sheet music PDF'}
-            <input
-              key={pdfInputKey}
-              type="file"
-              accept=".pdf,application/pdf"
-              aria-invalid={Boolean(pdfError)}
-              aria-describedby={pdfError ? 'pdf-error' : 'pdf-help'}
-              onChange={(event) => {
-                const selected = event.target.files?.[0] ?? null;
-                if (
-                  selected &&
-                  (selected.size > 10 * 1024 * 1024 ||
-                    !selected.name.toLowerCase().endsWith('.pdf'))
-                ) {
-                  setPdfError('Choose a PDF up to 10 MB.');
-                  event.target.value = '';
-                  return;
-                }
-                setPdf(selected);
-                setPdfError(null);
-                if (event.target.files?.length) setRemovePdf(false);
-              }}
-            />
-          </label>
-          <p className="tiny" id="pdf-help">
-            Optional · PDF up to 10 MB. {pdf && `Selected: ${pdf.name}`}
-          </p>
-          {pdf && (
-            <div className="attachment-info">
-              <p className="tiny">This PDF will replace the attachment only when you save.</p>
-              <button
-                type="button"
-                className="text-button"
-                onClick={() => {
-                  setPdf(null);
-                  setPdfError(null);
-                  setPdfInputKey((value) => value + 1);
-                }}
-              >
-                Cancel PDF replacement
-              </button>
-            </div>
-          )}
-          {pdfError && (
-            <p className="field-error" id="pdf-error">
-              {pdfError}
-            </p>
-          )}
-          {metadataField('sheet_music_url', 'Sheet music URL')}
-          {metadataField('lyrics', 'Lyrics')}
-          <div className="form-grid">
-            {metadataField('default_key', 'Default key')}
-            {metadataField('tempo', 'Tempo')}
-          </div>
-        </fieldset>
-        <details
-          className="form-section optional-details"
-          open={
-            textFields.some(
-              ([name]) =>
-                errors[name] &&
-                !['sheet_music_url', 'lyrics', 'default_key', 'tempo', 'latin_title'].includes(
-                  name,
-                ),
-            )
-              ? true
-              : undefined
-          }
-        >
-          <summary>
-            More hymn details <span className="tiny">Composer, lyrics reference, notes…</span>
-          </summary>
-          <fieldset disabled={isSubmitting} className="optional-fields">
-            <legend className="sr-only">Optional hymn metadata</legend>
+      <MaintenanceEditor>
+        <form className="hymn-form" onSubmit={form.handleSubmit(submit)} noValidate>
+          <fieldset className="form-section" disabled={isSubmitting}>
+            <legend>Basic information</legend>
             <div className="form-grid">
-              {textFields
-                .filter(
-                  ([name]) =>
-                    !['sheet_music_url', 'lyrics', 'default_key', 'tempo', 'latin_title'].includes(
-                      name,
-                    ),
-                )
-                .map(([name, label]) => metadataField(name, label))}
+              <label className="field full-width">
+                <span>
+                  Title{' '}
+                  <span className="required-mark" aria-hidden="true">
+                    *
+                  </span>
+                </span>
+                <input
+                  dir="auto"
+                  maxLength={255}
+                  aria-invalid={Boolean(errors.title)}
+                  aria-describedby={errors.title ? 'title-error' : undefined}
+                  aria-required="true"
+                  {...register('title', { required: 'Enter a hymn title.' })}
+                />
+                {errors.title && (
+                  <span className="field-error" id="title-error">
+                    {errors.title.message}
+                  </span>
+                )}
+              </label>
+              <label className="field">
+                <span>
+                  Language{' '}
+                  <span className="required-mark" aria-hidden="true">
+                    *
+                  </span>
+                </span>
+                <select
+                  aria-required="true"
+                  {...register('language_id', { required: 'Choose a language.' })}
+                  aria-invalid={Boolean(errors.language_id)}
+                  aria-describedby={errors.language_id ? 'language-error' : undefined}
+                >
+                  <option value="">Choose a language</option>
+                  {categories.languages
+                    .filter((row) => row.is_active || row.id === hymn?.language.id)
+                    .map((row) => (
+                      <option key={row.id} value={row.id}>
+                        {row.name}
+                        {!row.is_active && ' (inactive)'}
+                      </option>
+                    ))}
+                </select>
+                {errors.language_id && (
+                  <span className="field-error" id="language-error">
+                    {errors.language_id.message}
+                  </span>
+                )}
+              </label>
+              {showLatinTitle && metadataField('latin_title', 'Latin Characters Name')}
+              <label className="field">
+                Duration (minutes)
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="0.01"
+                  max="9999.99"
+                  step="0.01"
+                  aria-invalid={Boolean(errors.estimated_duration_minutes)}
+                  aria-describedby={
+                    errors.estimated_duration_minutes ? 'duration-error' : undefined
+                  }
+                  {...register('estimated_duration_minutes')}
+                />
+                {errors.estimated_duration_minutes && (
+                  <span className="field-error" id="duration-error">
+                    {errors.estimated_duration_minutes.message}
+                  </span>
+                )}
+              </label>
+            </div>
+            <Controller
+              control={control}
+              name="is_polyphonic"
+              render={({ field }) => (
+                <label className="checkbox-choice polyphony-choice">
+                  <input
+                    type="checkbox"
+                    checked={field.value}
+                    onChange={async (event) => {
+                      const enabled = event.target.checked;
+                      if (
+                        !enabled &&
+                        voiceFields.fields.length &&
+                        !(await confirm(
+                          'Turn off polyphony and remove all voice names?',
+                          'Remove voices',
+                        ))
+                      )
+                        return;
+                      if (!enabled) voiceFields.replace([]);
+                      field.onChange(enabled);
+                    }}
+                  />
+                  Polyphony (multiple voices)
+                </label>
+              )}
+            />
+            {polyphonic && (
+              <div className="voice-editor" role="group" aria-label="Voices">
+                <p className="tiny">Name the parts your team sings, such as Soprano or Alto.</p>
+                {voiceFields.fields.map((voice, index) => (
+                  <div className="voice-row" key={voice.id}>
+                    <label className="field">
+                      <span className="tiny">
+                        Voice {index + 1}{' '}
+                        <span className="required-mark" aria-hidden="true">
+                          *
+                        </span>
+                      </span>
+                      <input
+                        dir="auto"
+                        placeholder="Voice name"
+                        aria-required="true"
+                        maxLength={80}
+                        aria-invalid={Boolean(errors.voices?.[index]?.name)}
+                        aria-describedby={
+                          errors.voices?.[index]?.name ? `voice-${index}-error` : undefined
+                        }
+                        {...register(`voices.${index}.name`, { required: 'Enter a voice name.' })}
+                      />
+                      {errors.voices?.[index]?.name && (
+                        <span className="field-error" id={`voice-${index}-error`}>
+                          {errors.voices[index]?.name?.message}
+                        </span>
+                      )}
+                    </label>
+                    <button
+                      type="button"
+                      className="button secondary"
+                      aria-label={`Remove voice ${index + 1}`}
+                      onClick={() => voiceFields.remove(index)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                {errors.voices?.message && (
+                  <p className="field-error" role="alert">
+                    {errors.voices.message}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  className="button secondary"
+                  disabled={voiceFields.fields.length >= 32}
+                  onClick={() => voiceFields.append({ name: '' }, { shouldFocus: true })}
+                >
+                  Add voice
+                </button>
+              </div>
+            )}
+          </fieldset>
+          <fieldset className="form-section" disabled={isSubmitting}>
+            <legend>Classification</legend>
+            {preserveSeasonNeutral && (
+              <p className="tiny muted">
+                This hymn remains suitable for any season while Ordinary Time is unavailable.
+              </p>
+            )}
+            <div className="classification-grid">
+              {multiFields.map(([field, kind, relation, label]) => (
+                <Controller
+                  key={field}
+                  control={control}
+                  name={field}
+                  render={({ field: controller }) => (
+                    <CategorySelect
+                      label={label}
+                      required={
+                        field === 'placement_ids' ||
+                        (field === 'season_ids' && !preserveSeasonNeutral)
+                      }
+                      choices={categories[kind]}
+                      value={controller.value}
+                      onChange={controller.onChange}
+                      retain={hymn?.[relation].map((row) => row.id)}
+                      error={errors[field]?.message}
+                    />
+                  )}
+                />
+              ))}
             </div>
           </fieldset>
-        </details>
-        {failure && (
-          <FloatingNotice error dismiss={() => setFailure(null)}>
-            {failure} Your input has been kept.
-          </FloatingNotice>
-        )}
-        <div className="form-actions sticky-form-actions">
-          <button className="button primary" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving…' : 'Save hymn'}
-          </button>
-          <button
-            className="button secondary"
-            type="button"
-            onClick={cancel}
-            disabled={isSubmitting}
+          <fieldset className="form-section" disabled={isSubmitting}>
+            <legend>Sheet music and lyrics</legend>
+            <PdfAttachmentPreview
+              file={pdf}
+              existingUrl={!removePdf ? hymn?.sheet_music_pdf?.url : undefined}
+              title={title || 'Selected sheet music'}
+            />
+            {hymn?.sheet_music_pdf && !removePdf && !pdf && (
+              <div className="attachment-info">
+                <a className="text-button" href={hymn.sheet_music_pdf.url}>
+                  {hymn.sheet_music_pdf.name}
+                </a>
+                <button type="button" className="text-button" onClick={() => setRemovePdf(true)}>
+                  Remove attached PDF
+                </button>
+              </div>
+            )}
+            {removePdf && (
+              <p className="tiny">
+                The attached PDF will be removed when you save.{' '}
+                <button type="button" className="text-button" onClick={() => setRemovePdf(false)}>
+                  Undo
+                </button>
+              </p>
+            )}
+            <label className="field">
+              {hymn?.sheet_music_pdf ? 'Replace sheet music PDF' : 'Sheet music PDF'}
+              <input
+                key={pdfInputKey}
+                type="file"
+                accept=".pdf,application/pdf"
+                aria-invalid={Boolean(pdfError)}
+                aria-describedby={pdfError ? 'pdf-error' : 'pdf-help'}
+                onChange={(event) => {
+                  const selected = event.target.files?.[0] ?? null;
+                  if (
+                    selected &&
+                    (selected.size > 10 * 1024 * 1024 ||
+                      !selected.name.toLowerCase().endsWith('.pdf'))
+                  ) {
+                    setPdfError('Choose a PDF up to 10 MB.');
+                    event.target.value = '';
+                    return;
+                  }
+                  setPdf(selected);
+                  setPdfError(null);
+                  if (event.target.files?.length) setRemovePdf(false);
+                }}
+              />
+            </label>
+            <p className="tiny" id="pdf-help">
+              Optional · PDF up to 10 MB. {pdf && `Selected: ${pdf.name}`}
+            </p>
+            {pdf && (
+              <div className="attachment-info">
+                <p className="tiny">This PDF will replace the attachment only when you save.</p>
+                <button
+                  type="button"
+                  className="text-button"
+                  onClick={() => {
+                    setPdf(null);
+                    setPdfError(null);
+                    setPdfInputKey((value) => value + 1);
+                  }}
+                >
+                  Cancel PDF replacement
+                </button>
+              </div>
+            )}
+            {pdfError && (
+              <p className="field-error" id="pdf-error">
+                {pdfError}
+              </p>
+            )}
+            {metadataField('sheet_music_url', 'Sheet music URL')}
+            {metadataField('lyrics', 'Lyrics')}
+            <div className="form-grid">
+              {metadataField('default_key', 'Default key')}
+              {metadataField('tempo', 'Tempo')}
+            </div>
+          </fieldset>
+          <details
+            className="form-section optional-details"
+            open={
+              textFields.some(
+                ([name]) =>
+                  errors[name] &&
+                  !['sheet_music_url', 'lyrics', 'default_key', 'tempo', 'latin_title'].includes(
+                    name,
+                  ),
+              )
+                ? true
+                : undefined
+            }
           >
-            Cancel
-          </button>
-        </div>
-      </form>
+            <summary>
+              More hymn details <span className="tiny">Composer, lyrics reference, notes…</span>
+            </summary>
+            <fieldset disabled={isSubmitting} className="optional-fields">
+              <legend className="sr-only">Optional hymn metadata</legend>
+              <div className="form-grid">
+                {textFields
+                  .filter(
+                    ([name]) =>
+                      ![
+                        'sheet_music_url',
+                        'lyrics',
+                        'default_key',
+                        'tempo',
+                        'latin_title',
+                      ].includes(name),
+                  )
+                  .map(([name, label]) => metadataField(name, label))}
+              </div>
+            </fieldset>
+          </details>
+          {failure && (
+            <FloatingNotice error dismiss={() => setFailure(null)}>
+              {failure} Your input has been kept.
+            </FloatingNotice>
+          )}
+          <div className="form-actions sticky-form-actions">
+            <button className="button primary" type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Saving…' : 'Save hymn'}
+            </button>
+            <button
+              className="button secondary"
+              type="button"
+              onClick={cancel}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </MaintenanceEditor>
     </>
   );
 }

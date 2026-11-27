@@ -3,6 +3,15 @@
 > **Local implementation, November 21:** [Choir roles, Mass reading and lossless PDFs](roles-reader-pdf-update.md) describes the current checkout and staged rollout. These changes are not part of the live `91a8c56` release.
 # Delivery backlog and accountability
 
+## Automatic operations — implemented locally, activation pending
+
+The [backup/deployment runbook](automatic-operations.md) covers daily encrypted
+DB/PDF snapshots at 03:17 Asia/Beirut, predeployment verification, 7-daily/5-release
+retention, weekly restore rehearsals, an Admin status panel and automatic exact-SHA
+deployment after successful CI. Remaining work is provider credentials/policies,
+the attended bootstrap, Linux CI and hosted failure/recovery acceptance. Native
+Render auto-deploy must remain off. No hosted backup or deployment is claimed.
+
 **Current status, November 20, 2026.** M0–M4 engineering, M6 settings/calendar, accounts/choirs, Manager requests, hymn submissions, and Mass Focus are shipped. [Current project status](current-status.md) records the deployed commit and CI. Physical-phone/coordinator acceptance remains pending.
 **Accountable implementation owner for every milestone:** Codex, working in this project/chat. Backend, frontend, and quality roles below are responsibility areas for that owner, not invented staffing assignments. Implementation was not delegated; the owner requested one read-only subagent review of M2 changes.
 **Product reviewer:** Church music coordinator, not yet assigned; human acceptance remains pending.
@@ -228,4 +237,4 @@ The saved-program reading surface has now been brought forward by the owner: foc
 
 The three November 21 regressions are fixed locally: hosted provisioning forwards the new global roles; pending hymn holds cancel on outside pointer release/movement; and a second touch cannot clear click suppression. Regression cases cover these paths and subsequent deliberate activation.
 
-The [system test optimization plan](system-test-optimization-plan.md) is ready for implementation. Start with the measured `vmThreads` improvement, then four isolated browser-profile CI jobs, shared prerequisites/authentication fixtures, focused reader cases and CI setup consolidation. Preserve the case/assertion inventory, both account configurations, all four existing browser profiles, PostgreSQL migration/concurrency tests and the production PDF persistence gate. Runner/CI changes remain planned.
+The [system test optimization](system-test-optimization-plan.md) is implemented in 2f8c410 and CI-green: two VM workers, four isolated browser-profile jobs, both account modes, one checked frontend build and merged report/coverage gates. All prior cases and reader assertions are preserved. Hosted deployment remains gated by current DB/PDF backup acceptance.

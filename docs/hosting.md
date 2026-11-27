@@ -4,7 +4,7 @@
 
 **Reviewed November 20, 2026.** [Choralation is live](https://choralation.onrender.com) on commit `91a8c56`. Both jobs in [the release CI run](https://github.com/tofi-75/Choralation/actions/runs/43712740786) passed. The current service uses manual deployment, Free runtime compute, private S3 storage, and Supabase PostgreSQL. See [current status](current-status.md) for evidence and outstanding acceptance.
 
-**Existing service.** Use [Choralation on Render](https://dashboard.render.com/web/srv-db78nlbbc2fs73e83qi0) in the owner-confirmed Toufic’s workspace. Automatic deployment is off, and the live HTTP health-check path is empty. The Blueprint declares `checksPass` and `/health/ready/`, but those values have not been applied to the live service. Verify public readiness after each deployment. Configure a health-check path or enable automatic deployment only with authorization.
+**Existing service, rechecked November 21.** Use [Choralation on Render](https://dashboard.render.com/web/srv-db78nlbbc2fs73e83qi0) in the owner-confirmed Toufic’s workspace. Native automatic deployment is off, and the live HTTP health-check path is empty. The Blueprint now keeps native auto-deploy off and declares `/health/ready/`; the live path still needs attended configuration. The new [backup-gated operations workflow](automatic-operations.md) is implemented locally but not activated.
 
 **Before another release.** Confirm a fresh database backup and a separate PDF bucket backup. Review the commit, wait for the intended CI checks, manually deploy the reviewed revision, then verify its live status, public readiness, assets, and relevant authenticated workflows. Record any remaining acceptance. [Simple accounts](simple-accounts-release.md) documents the active registration mode and owner-assisted recovery. [Durable PDF storage](pdf-storage-setup.md) documents S3 safeguards and file recovery.
 
@@ -61,18 +61,20 @@ Both modes use the same Dockerfile, database and settings. You do not need two R
 
 ### Option B: GitHub pipeline with automatic deployment
 
-1. Ensure the committed repository contains `.github/workflows/ci.yml`, `Dockerfile` and `render.yaml`.
-2. In Render, connect GitHub and select **New → Blueprint**. Choose the private repository and branch **main**, using the root `render.yaml`.
-3. Confirm **one free web service**, Frankfurt, and **no Render database or disk**. PostgreSQL and files belong to Supabase.
-4. Supply the secret settings when prompted. Supply your own `DJANGO_SECRET_KEY` of at least 50 characters using the generation command below; keep it stable on subsequent deployments. Render's automatic generator produces 44 characters and does not satisfy this app's validation. The Blueprint supplies other fixed settings.
-5. Confirm service settings show **Auto-Deploy: After CI Checks Pass**. The Blueprint uses `autoDeployTrigger: checksPass`. Native integration requires a connected GitHub account; using only a public repository URL is insufficient.
-6. Watch GitHub **Actions → Application checks**. It runs backend tests, migration/schema/lint checks, frontend checks/build, all browser projects, and a Linux Docker build/production smoke check. Its databases and file storage are disposable, not Supabase. No hosted secret or deployment hook is needed in GitHub Actions.
-7. The initial Blueprint creation can deploy immediately; require the checks to pass before accepting the hosted app. Subsequent pushes/merges to `main` deploy only after checks pass. A failed check blocks auto-deploy; zero detected checks also blocks it. [Render deployment behavior](https://render.com/docs/deploys)
-8. Complete account and live acceptance steps below.
+Use the [automatic backup/deployment runbook](automatic-operations.md). Keep the existing
+service and **Auto-Deploy: Off**; native `checksPass` cannot enforce the DB/PDF backup gate.
+Do not create another service or synchronize a Blueprint just to enable the workflow.
 
-Normal pipeline: **push/merge main → checks pass → Render builds that revision → startup migrations/defaults → readiness passes → app goes live**. Development branches run PR checks but do not deploy to this service. Do not add pipeline filters that skip all checks on a `main` commit intended for deployment.
+Complete the separate private backup project, restricted GitHub environments, attended
+backup/restore/bootstrap and health-check setup before setting
+`PRODUCTION_AUTOMATION_ENABLED=true`. The ordinary CI workflow has no hosted secrets;
+only trusted production-operations jobs receive scoped credentials.
 
-To enable the pipeline on an existing manually created service, keep that service and change Auto-Deploy to **After CI Checks Pass** after the workflow is present. Do not create a second service just to switch deployment modes.
+Pipeline: **main push → every CI job succeeds → pause editing/drain → verified encrypted
+database and PDF snapshot → deploy exact tested SHA → startup migrations/defaults →
+readiness and authenticated read checks → reopen editing**. PRs and failed/skipped checks
+do not deploy. Unknown outcomes stay read-only for explicit recovery. The workflow and
+the live provider configuration are separate; local implementation does not activate it.
 
 ## 4. Render environment settings
 
@@ -89,10 +91,17 @@ To enable the pipeline on an existing manually created service, keep that servic
 | `AWS_SECRET_ACCESS_KEY` | Private S3 secret |
 | `DJANGO_TRUST_PROXY_HTTPS` | `true` |
 | `RUN_STARTUP_MIGRATIONS` | `true` on Free |
+| `PRODUCTION_OPERATIONS_ENABLED` | `false` until the attended bootstrap; then `true` |
+| `OPERATIONS_DATABASE_URL` | Dedicated session-mode SELECT-only guard account; not the CI controller password |
+| `DEPLOY_CHECK_TOKEN` | Same strong private token as GitHub production-operations; configure during attended operations rollout |
+| `PDF_COMPRESSED_WRITES` | `false` for the operations rollout |
 | `ALLOW_HOSTED_DEMO_DATA` | `true` only while this project is a fictional test deployment |
 | `APP_TIME_ZONE` | `Asia/Beirut` |
 
-Internal health endpoints bypass Django's HTTPS redirect so readiness actually checks PostgreSQL; Render's public edge provides HTTPS.
+Internal live/readiness endpoints bypass Django's HTTPS redirect so readiness
+actually checks PostgreSQL; Render's public edge provides HTTPS. The protected
+`/health/operations/` deployment probe requires HTTPS/token authentication and
+reads an existing PDF; do not use it as Render's frequent health-check target.
 
 Render assigns `RENDER_EXTERNAL_HOSTNAME`; the code adds that exact host to allowed hosts and its HTTPS URL to trusted CSRF origins. The Dockerfile enables built-frontend serving and uses Render's `PORT`. Never set `DJANGO_DEBUG=true` to fix deployment errors. Custom domains require explicit `DJANGO_ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS` additions.
 
@@ -102,7 +111,7 @@ For either deployment mode, generate the Django secret privately on your compute
 .\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(64))"
 ```
 
-Copy the output into Render's **Environment → DJANGO_SECRET_KEY** value, without additional quotes, and your ignored `.env.hosted` file. Keep it stable. Do not use Render's Generate button for this variable: its 44-character value is shorter than the required 50 characters. Do not paste the generated value into chat or Git. Database/S3 secrets never belong in frontend environment variables or GitHub Actions.
+Copy the output into Render's **Environment → DJANGO_SECRET_KEY** value, without additional quotes, and your ignored `.env.hosted` file. Keep it stable. Do not use Render's Generate button for this variable: its 44-character value is shorter than the required 50 characters. Do not paste the generated value into chat or Git. Database/S3 secrets never belong in frontend environment variables or ordinary PR CI. Only the restricted production-operations environments receive the scoped credentials documented in the operations runbook.
 
 ## 5. Provision hosted accounts and fictional hymns (manual owner steps)
 
@@ -117,8 +126,8 @@ Copy-Item -LiteralPath .env.hosted.example -Destination .env.hosted
 . .\scripts\project.ps1
 & $ProjectPython scripts/hosted-admin.py check
 & $ProjectPython scripts/hosted-admin.py create-admin
-& $ProjectPython scripts/hosted-admin.py create-user --username planner --role Planner
-& $ProjectPython scripts/hosted-admin.py create-user --username viewer --role Viewer
+& $ProjectPython scripts/hosted-admin.py create-user --username choirmaster --role Choirmaster
+& $ProjectPython scripts/hosted-admin.py create-user --username member --role User
 & $ProjectPython scripts/hosted-admin.py seed-demo --username YOUR_HOSTED_ADMIN_USERNAME
 ```
 
@@ -132,13 +141,13 @@ Record actual results rather than assuming a passing local test is a hosted test
 
 - [x] Public URL is [Choralation](https://choralation.onrender.com); current deployed commit is recorded in [Current project status](current-status.md).
 - [ ] `/login` loads; anonymous API access and PDF downloads are denied.
-- [ ] Admin/Planner/Viewer login works with the correct permissions; logout works.
+- [ ] Admin/Choirmaster/User login and independent Leader/Planner/Member choir permissions work; logout works.
 - [ ] Open and refresh `/hymns/ID` and `/masses/ID/edit`; JS/CSS and admin static files load without redirect loops.
 - [ ] Create a fictional hymn, upload a PDF up to 10 MB, download it and compare the contents. Replace and remove it. A direct bucket URL is not public.
 - [ ] Create/save/reopen/finalize a fictional Mass; selections and history survive refresh.
 - [ ] Restart Render; the same account, records and PDF persist.
 - [ ] Deploy another reviewed version; the same records and PDF persist.
-- [ ] Pipeline mode: on the testing branch/service, verify a failing check prevents auto-deploy, then correct it and verify a passing `main` commit deploys. Record the deployed commit and URL.
+- [ ] Pipeline mode: verify a failed check or incomplete DB/PDF backup prevents deployment; verify successful exact-SHA release and maintenance recovery. Record the snapshot, deployed commit and pause duration.
 
 Manual hosting is deployed. A configured automatic pipeline requires its own failed-check blocking and successful-deployment acceptance. Physical phone testing is deferred to M5 and does not prevent initial desktop hosted acceptance. Do not intentionally introduce failing commits during a real Mass.
 

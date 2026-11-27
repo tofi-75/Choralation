@@ -4,6 +4,14 @@
 
 A shared application for church music teams to maintain hymns and prepare Mass programs.
 
+**Automatic operations, local implementation:** [Backup and deployment runbook](docs/automatic-operations.md)
+describes encrypted database/PDF snapshots, daily schedules, weekly restore tests and
+backup-gated deployment. Hosted activation is pending credentials and attended acceptance;
+Render native auto-deploy stays off.
+
+Resume setup with the [manual backup and deployment walkthrough](docs/automatic-operations-walkthrough.md),
+which records completed steps, remaining secrets and the attended activation checks.
+
 **Current release, reviewed November 20, 2026.** Commit `91a8c56` is live at [Choralation](https://choralation.onrender.com). Draft planning, finalization/history, choir membership, Manager requests, Admin classifications, choir calendar settings, private hymn submissions, and Mass Focus are shipped. Physical-phone and coordinator acceptance remain pending. See [current status](docs/current-status.md) and the [compact handoff](docs/chat-handoff.md).
 
 New users can register and sign in with a password. Email verification and emailed recovery are disabled. Recovery is owner-assisted through tofi.lattouf@gmail.com. [Account setup and permissions](docs/accounts-and-choirs.md) describe Choirmaster access and choir membership.
@@ -120,7 +128,7 @@ Leave PostgreSQL running. The browser gate starts/stops its own servers on **800
 
 `check` runs dependency consistency, Django system/migration checks, Python lint/format/tests, validated OpenAPI generation, frontend tests/lint/format, browser-coverage guard checks, and the production frontend build (including TypeScript). Each run gets a fresh project-local temporary directory. Frontend unit tests use two isolated VM workers. `e2e` builds current frontend source and serves the same-origin production preview; it uses real Django/PostgreSQL for authentication/library/review flows at desktop and phone widths 360/390/430 px, then removes its randomized users, test hymns, and uploaded PDFs. Reader prerequisites use a separate authenticated fixture account; UI authentication journeys keep their own sessions. Existing Chrome/Edge is used when available; otherwise Chromium downloads into the project. Use a normal user terminal; restricted Windows processes can prevent Playwright from terminating its server tree.
 
-CI runs backend, frontend, production-container checks and four isolated browser-profile jobs. Browser jobs test email-capable mode plus the simple-account flows, upload per-mode coverage and failure artifacts, then merge reports. The final `checks` job requires every dependency to pass. The existing local command remains serial. For an optional parallel matrix with disposable databases and separate ports, use `.\.venv\Scripts\python.exe scripts/system-browser.py --jobs 2`. See the [test optimization plan and results](docs/system-test-optimization-plan.md) for the preserved coverage contract, commands and pending release checks.
+CI runs backend, frontend, production-container checks, a dedicated backup/restore infrastructure job and four isolated browser-profile jobs. Browser jobs test email-capable mode plus the simple-account flows, upload per-mode coverage and failure artifacts, then merge reports. The final `checks` job requires every dependency to pass. The existing local command remains serial. For an optional parallel matrix with disposable databases and separate ports, use `.\.venv\Scripts\python.exe scripts/system-browser.py --jobs 2`. See the [test optimization plan and results](docs/system-test-optimization-plan.md) for the preserved coverage contract, commands and pending release checks.
 
 Generated schema is `.cache/schema/openapi.yaml`; authenticated JSON schema is `/api/v1/schema/`. The M0 verifier checks specification coverage, documentation links, and planning fixtures. It does not implement recommendations.
 

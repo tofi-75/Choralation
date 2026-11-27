@@ -2,9 +2,10 @@
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import CommandError
 from django.db import transaction
 
+from common.management import GuardedCommand
 from hymns.models import CATEGORY_TYPES, Hymn
 from hymns.services import require_hymn_editor, save_hymn
 
@@ -49,7 +50,7 @@ TITLES = [
 ]
 
 
-class Command(BaseCommand):
+class Command(GuardedCommand):
     help = "Add 36 fictional development hymns covering every active category and tag."
 
     def add_arguments(self, parser):

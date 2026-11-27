@@ -4,6 +4,7 @@
  * failure. Unsafe requests require a freshly bootstrapped masked CSRF token.
  */
 import { z } from 'zod';
+import { isEditingPaused, setEditingPaused } from './maintenance';
 
 const errorSchema = z.object({
   detail: z.string(),
@@ -51,6 +52,13 @@ export async function request<T>(
   const method = options.method?.toUpperCase() ?? 'GET';
   const choir = new Headers(options.headers).get('X-Choir-ID');
   const unsafe = !['GET', 'HEAD', 'OPTIONS'].includes(method);
+  if (unsafe && isEditingPaused() && !resource.startsWith('/auth/')) {
+    throw new ApiError(
+      'Editing is temporarily paused. Your changes are kept; retry when editing resumes.',
+      'maintenance_read_only',
+      503,
+    );
+  }
   if (unsafe && !csrfToken) await bootstrapCsrf();
   const headers = new Headers(options.headers);
   headers.set('Accept', 'application/json');
@@ -85,6 +93,7 @@ export async function request<T>(
   if (!response.ok) {
     const parsed = errorSchema.safeParse(body);
     if (parsed.success) {
+      if (parsed.data.code === 'maintenance_read_only') setEditingPaused(true);
       if (resource !== '/auth/me/' && parsed.data.code === 'verification_required')
         window.dispatchEvent(new Event('choralation:session-refresh'));
       if (

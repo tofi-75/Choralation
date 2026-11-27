@@ -76,9 +76,13 @@ def test_false_string_does_not_enable_debug(monkeypatch):
 
 
 @pytest.mark.django_db
-def test_live_and_ready(client):
+def test_live_and_ready(client, settings):
     assert client.get("/health/live/").json() == {"status": "ok"}
-    assert client.get("/health/ready/").json() == {"status": "ok"}
+    assert client.get("/health/ready/").json() == {
+        "status": "ok",
+        "commit": settings.APP_COMMIT_SHA,
+        "operations_enabled": settings.PRODUCTION_OPERATIONS_ENABLED,
+    }
 
 
 def test_readiness_hides_database_exception(client, monkeypatch):

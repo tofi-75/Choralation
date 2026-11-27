@@ -12,6 +12,7 @@ BACKEND = Path(__file__).resolve().parent.parent
 
 def prepare_database(run=subprocess.run):
     """Safe to replay; no accounts, passwords or fictional records are auto-created."""
+    environment = {**os.environ, "OPERATIONS_STARTUP_COMMANDS": "true"}
     for command in ("migrate", "provision_roles", "seed_initial_data"):
         run(
             [sys.executable, str(BACKEND / "manage.py"), command, "--noinput"]
@@ -19,6 +20,7 @@ def prepare_database(run=subprocess.run):
             else [sys.executable, str(BACKEND / "manage.py"), command],
             check=True,
             cwd=BACKEND,
+            env=environment,
         )
 
 

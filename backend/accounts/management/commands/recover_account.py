@@ -1,13 +1,14 @@
 """Explicit owner-run account recovery; never changes passwords or emails silently."""
 
 from django.contrib.auth import get_user_model
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import CommandError
 from django.utils import timezone
 
 from accounts.services import profile_for, set_email
+from common.management import GuardedCommand
 
 
-class Command(BaseCommand):
+class Command(GuardedCommand):
     help = "Recover an existing account after independently confirming email ownership."
 
     def add_arguments(self, parser):

@@ -74,6 +74,20 @@ DATABASES = {
 }
 DATABASES["default"]["TEST"] = {"NAME": os.environ.get("TEST_DATABASE_NAME", "test_choralation")}
 DATABASES["default"].setdefault("OPTIONS", {}).update(database_options(database_url, DEBUG))
+PRODUCTION_OPERATIONS_ENABLED = boolean("PRODUCTION_OPERATIONS_ENABLED", False)
+OPERATIONS_DATABASE_URL = os.environ.get("OPERATIONS_DATABASE_URL", "")
+DEPLOY_CHECK_TOKEN = os.environ.get("DEPLOY_CHECK_TOKEN", "").strip()
+if PRODUCTION_OPERATIONS_ENABLED and not DEBUG:
+    from urllib.parse import urlsplit
+
+    if not OPERATIONS_DATABASE_URL or urlsplit(OPERATIONS_DATABASE_URL).port == 6543:
+        raise ImproperlyConfigured("Operations require a dedicated session-mode database URL.")
+    database_options(OPERATIONS_DATABASE_URL, False)
+    import re
+
+    if not re.fullmatch(r"[A-Za-z0-9_-]{43,128}", DEPLOY_CHECK_TOKEN):
+        raise ImproperlyConfigured("Operations require a strong DEPLOY_CHECK_TOKEN.")
+APP_COMMIT_SHA = os.environ.get("RENDER_GIT_COMMIT", os.environ.get("APP_COMMIT_SHA", "local"))
 
 INSTALLED_APPS = [
     "accounts.admin_config.VerifiedAdminConfig",
@@ -92,6 +106,7 @@ INSTALLED_APPS = [
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "common.middleware.MaintenanceMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",

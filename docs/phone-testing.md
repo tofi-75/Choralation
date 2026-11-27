@@ -256,3 +256,11 @@ Run on iPhone Safari and Android Chrome. Record the device, OS and browser versi
 - [ ] Create a hymn from a Mass placement, verify the active placement is preselected, change it, force a failed save, and verify the choice is retained. Return and confirm any insertion warnings.
 - [ ] In separate sessions check Admin approval gives Choirmaster, new choir gives Leader, Planner cannot manage members/calendar or delete Masses, and Leader cannot create a new choir without global approval.
 - [ ] Test exact PDF download and PDF.js display for legacy and compressed files. Record real iPhone Safari/Android Chrome results; automated viewports do not complete this list.
+## Backup maintenance acceptance
+
+During the attended release, verify on iPhone Safari and Android Chrome that the
+maintenance banner wraps within the screen, reading/Focus/PDF controls remain
+available, and draft/hymn form values survive the pause. After editing resumes,
+explicitly retry unsaved changes and confirm normal revision-conflict behavior.
+Do not treat desktop emulation as physical-phone acceptance. See
+[the operations runbook](automatic-operations.md) for the coordinated window.
