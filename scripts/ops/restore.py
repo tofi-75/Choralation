@@ -287,7 +287,17 @@ def rehearse(repository, snapshot=None, *, trusted_ref="origin/main"):
                 raise OpsError("Restored database references an absent PDF.")
             source = folder / "application.tar"
             process(
-                ["git", "archive", "--format=tar", "--output", str(source), commit, "backend"],
+                [
+                    "git",
+                    "-C",
+                    str(ROOT),
+                    "archive",
+                    "--format=tar",
+                    "--output",
+                    str(source),
+                    commit,
+                    "backend",
+                ],
                 timeout=60,
             )
             with tarfile.open(source) as archive_source:

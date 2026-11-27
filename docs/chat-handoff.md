@@ -158,6 +158,9 @@ on codex/automatic-backups in PR #2. The first PR CI run 46071870018 failed its
 operations job because pytest's explicit basetemp parent .cache did not exist on
 a fresh runner. The workflow now creates that parent before pytest. Require a new
 green exact-SHA run; no merge/deployment/activation has occurred.
+The next run reached real restoration and exposed git archive resolving backend
+relative to the backend working directory. Restore now anchors git archive to ROOT
+explicitly, so both the Linux test and production runner use the same repository paths.
 The owner's Branch settings screenshot showed no protection rule listed and the
 Add branch ruleset/Add classic branch protection rule controls. The owner then
 confirmed creating the instructed active Protect main ruleset targeting default
