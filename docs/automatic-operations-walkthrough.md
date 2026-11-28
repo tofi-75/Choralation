@@ -1,5 +1,22 @@
 # Manual setup: automatic backups and deployment
 
+<!-- attended-release-status -->
+**Attended release, November 28:** The owner authorized merging PR #3 after
+checks and proceeding with deployment. All ten PR checks passed in run
+46120412467; PR #3 is merged as 9f6e848ee7f2fd6b4a7674f84f86600aeb7ae860.
+All ten main-push CI jobs passed in run 46121279640. Hosted permission acceptance
+run 46122087347 passed writer, reader, pruner and cleanup, but its final table API
+probe failed after successful source Auth/Storage/catalog checks. A follow-up
+checker correction handles Supabase's documented disabled-schema response with
+explicit owner confirmation; 99 focused regressions pass. A complete hosted rerun
+is required before deployment. The owner confirmed a new no-edit/upload/direct
+DB-change window until backup and release finish. Local main matches the merge.
+Next: complete hosted R10 permission checks, a fresh paired database/PDF backup
+and its isolated restore check, then the initial safeguard deployment with
+operations and compressed writes disabled. GitHub automation remains false.
+This status supersedes earlier local-only/publication-consent notes below.
+<!-- /attended-release-status -->
+
 Updated November 28, 2026. Follow these steps in order. Check a box only after
 the step succeeds. You can stop after any setup step and resume later.
 
@@ -712,13 +729,15 @@ new credentials are needed.
    changes before running: main-only GitHub environments intentionally prevent
    testing this with hosted secrets from a feature branch.
 4. Open **Actions → Storage permission acceptance → Run workflow**, branch
-   **main**, with no inputs. The workflow is
+   **main**. Check **I verified Enable Data API is OFF in the production Supabase
+   project** only after confirming that setting. This attended confirmation is
+   required by the source check; it defaults to false. The workflow is
    [storage-access-check.yml](../.github/workflows/storage-access-check.yml), and
    [storage-access-check.py](../scripts/storage-access-check.py) runs its phases:
 
 | Phase / environment | Evidence |
 | --- | --- |
-| source / production-operations | Fresh expected Auth identity; read-only catalog verification, private scoped bucket metadata, list/download an existing PDF, and a zero-row table API denial. No upload, overwrite or deletion is attempted in production. Source write/cross-bucket restrictions are established by the exact live policy set plus no RLS bypass. The endpoint response supplements the owner's Data API-off confirmation. |
+| source / production-operations | Fresh expected Auth identity; read-only catalog verification, private scoped bucket metadata, list/download an existing PDF, and a zero-row public-schema API probe. No upload, overwrite or deletion is attempted in production. Source write/cross-bucket restrictions are established by the exact live policy set plus no RLS bypass. The endpoint response supplements the owner's Data API-off confirmation. |
 | writer / production-operations | Create and read a public disposable marker; reject PUT updates and upsert; reject deletion, including silent RLS no-op deletion responses. |
 | reader / backup-restore | Read the marker; reject create, update, upsert and deletion. |
 | pruner / backup-retention | Read and delete the marker; reject create, update and upsert. |
@@ -741,13 +760,29 @@ overlap a backup, deployment or retention run.
    a new attempt has a different prefix and needs the writer to create its marker.
    Network errors, bad credentials and conflicts are failures, not access denials.
 
+**Disabled Data API behavior:** Supabase documents that disabling Data API can
+leave PostgREST using a nonexistent placeholder schema. A 503/PGRST002 response
+is accepted only with the explicit attended Data API-off confirmation and after
+successful source Auth, Storage and read-only catalog checks. It is reported as
+`data_api_check=disabled_schema_cache_unavailable` and
+`public_table_query_denied=false`, never as an HTTP access-denial proof. A reachable
+table API, other server failures, credential errors and network failures still
+block acceptance. See [Supabase's disabled-API explanation](https://supabase.com/kb/troubleshooting/schema-pg_pgrst_no_exposed_schemas-does-not-exist).
+
+The first hosted acceptance run 46122087347 passed writer, reader, pruner and
+cleanup. Source Auth/Storage/catalog checks completed, then its table API check
+failed on an unrecognized response. No deployment followed. The checker correction
+adds the documented disabled-schema handling and safe HTTP/provider-code
+diagnostics; a complete hosted rerun is required before R10 is checked.
+
 - [x] Production policy metadata reviewed with read-only queries (November 28).
 - [x] Backup screenshots confirm four expected operations, RLS on and no role
   ownership/bypass (November 28).
 - [x] Backup full policy scope confirmed: owner reported corrected `scope_ok=true`
   (November 28), supplementing screenshot-confirmed RLS and role flags.
 - [x] Production Data API-off setting confirmed by owner (November 28).
-- [ ] Checker and sequence fixes published with exact-SHA CI green.
+- [x] Checker and sequence fixes published in PR #3 and merged as 9f6e848;
+  all PR/main CI jobs green (runs 46120412467 / 46121279640, November 28).
 - [ ] Hosted permission workflow passed every phase and cleanup; run/probe recorded.
 
 The checker and regression coverage are local pending publication. No hosted

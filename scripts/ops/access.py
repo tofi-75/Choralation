@@ -62,11 +62,15 @@ def check_private_bucket(store):
         raise OpsError("Expected private storage bucket cannot be verified.")
 
 
-def check_table_api_denied(store):
+def check_table_api_denied(store, *, disabled_confirmed=False):
     """Read zero rows; table grants must not expose Django data through this API."""
     request = urllib.request.Request(
         store.origin + "/rest/v1/hymns_hymn?select=id&limit=0",
-        headers={"apikey": store.key, "Authorization": f"Bearer {store.token}"},
+        headers={
+            "apikey": store.key,
+            "Authorization": f"Bearer {store.token}",
+            "Accept-Profile": "public",
+        },
     )
     try:
         with store.opener.open(request, timeout=15) as response:
@@ -79,13 +83,24 @@ def check_table_api_denied(store):
                 details = {}
             code = details.get("code") if isinstance(details, dict) else None
             if error.code in {401, 403, 404} and not code:
-                return
+                return "request_denied"
             if error.code == 406 and code == "PGRST106":
-                return
+                return "request_denied"
+            # Supabase's disabled Data API can leave PostgREST pointing at a
+            # nonexistent placeholder schema. This is configuration evidence,
+            # not an HTTP access-denial proof; require the attended confirmation.
+            if disabled_confirmed and error.code == 503 and code == "PGRST002":
+                return "disabled_schema_cache_unavailable"
         finally:
             error.close()
+        safe_code = (
+            code
+            if isinstance(code, str) and re.fullmatch(r"[A-Z0-9_]{1,20}", code)
+            else "unavailable"
+        )
         raise OpsError(
-            "Production table API denial could not be verified; check Data API settings."
+            "Production table API denial could not be verified "
+            f"(HTTP {error.code}, provider code {safe_code}); check Data API settings."
         ) from None
     except OSError:
         raise OpsError(
@@ -206,7 +221,7 @@ def validate_policies(rows, *, source):
         seen.add(name)
 
 
-def audit_source(store, reader_url, policy_sql):
+def audit_source(store, reader_url, policy_sql, *, disabled_confirmed=False):
     target = conninfo_to_dict(reader_url)
     if (
         store.project != SOURCE_PROJECT
@@ -233,13 +248,15 @@ def audit_source(store, reader_url, policy_sql):
     data, _ = store.get(sample["Key"])
     if len(data) != sample["Size"]:
         raise OpsError("Source object changed during acceptance.")
-    check_table_api_denied(store)
+    table_api_result = check_table_api_denied(store, disabled_confirmed=disabled_confirmed)
     return {
         "status": "passed",
         "phase": "source",
         "objects": len(objects),
         "storage_read_only_rls_scope": True,
-        "public_table_query_denied": True,
+        "public_table_query_denied": table_api_result == "request_denied",
+        "data_api_disabled_confirmed": disabled_confirmed,
+        "data_api_check": table_api_result,
         "private_bucket": True,
     }
 
