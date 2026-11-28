@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -23,8 +24,12 @@ def main():
     parser.add_argument("--probe-id", required=True)
     args = parser.parse_args()
     if args.phase == "source":
+        if os.environ.get("SOURCE_DATA_API_DISABLED_CONFIRMED") != "true":
+            raise OpsError("Confirm production Data API is off before running attended acceptance.")
         sql = (Path(__file__).resolve().parent / "ops/inspect-storage-permissions.sql").read_text()
-        result = audit_source(Store("SOURCE"), required("BACKUP_DATABASE_URL"), sql)
+        result = audit_source(
+            Store("SOURCE"), required("BACKUP_DATABASE_URL"), sql, disabled_confirmed=True
+        )
     else:
         store = Store("BACKUP", allow_delete=args.phase in {"pruner", "cleanup"})
         probe = Probe(store, args.probe_id, project=BACKUP_PROJECT)

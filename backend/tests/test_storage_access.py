@@ -279,20 +279,39 @@ def test_policy_scope_cannot_be_weakened(change):
         validate_policies(rows, source=True)
 
 
-def test_source_audit_uses_readonly_catalog_and_only_reads_storage(storage_api, monkeypatch):
+@pytest.mark.parametrize("disabled_confirmed", [False, True])
+def test_source_audit_uses_readonly_catalog_and_only_reads_storage(
+    storage_api, monkeypatch, disabled_confirmed
+):
     api = storage_api
     monkeypatch.setattr(access, "SOURCE_PROJECT", "source1")
     monkeypatch.setitem(access.SUBJECTS, "source", api.subjects["source"])
     api.seed("source1", "sheet-music", "existing.pdf", b"%PDF-existing")
+    if disabled_confirmed:
+
+        def fault(request):
+            if "/rest/v1/" in request.full_url:
+                api.fail(request, 503, {"code": "PGRST002"})
+            return None
+
+        api.fault = fault
     connection = MagicMock()
     connection.__enter__.return_value = connection
     connection.cursor.return_value.__enter__.return_value.fetchall.return_value = source_policies()
     monkeypatch.setattr(access, "connect", lambda _: connection)
     url = "postgresql://choralation_backup.source1:fictional@aws-1-eu-central-1.pooler.supabase.com:5432/postgres?sslmode=require"
     result = access.audit_source(
-        api.store("reader", source=True), url, "SELECT reviewed_catalog_only"
+        api.store("reader", source=True),
+        url,
+        "SELECT reviewed_catalog_only",
+        disabled_confirmed=disabled_confirmed,
     )
     assert result["status"] == "passed" and result["objects"] == 1
+    assert result["public_table_query_denied"] is (not disabled_confirmed)
+    assert result["data_api_disabled_confirmed"] is disabled_confirmed
+    assert result["data_api_check"] == (
+        "disabled_schema_cache_unavailable" if disabled_confirmed else "request_denied"
+    )
     connection.execute.assert_called_once_with("BEGIN READ ONLY")
     assert all(
         r.get_method() == "GET"
@@ -354,12 +373,23 @@ def test_access_workflow_is_main_only_manual_and_keeps_credentials_separate():
     text = (root / ".github/workflows/storage-access-check.yml").read_text()
     workflow = yaml.safe_load(text)
     assert set(workflow.get("on", workflow.get(True))) == {"workflow_dispatch"}
+    dispatch = workflow.get("on", workflow.get(True))["workflow_dispatch"]
+    assert dispatch["inputs"]["source_data_api_disabled_confirmed"] == {
+        "description": "I verified Enable Data API is OFF in the production Supabase project",
+        "type": "boolean",
+        "required": True,
+        "default": False,
+    }
     assert workflow["permissions"] == {"contents": "read"}
     assert workflow["concurrency"]["group"] == "choralation-production-operations"
     assert workflow["concurrency"]["cancel-in-progress"] is False
     assert workflow["env"]["ACCESS_PROBE_ID"] == "${{ github.run_id }}-${{ github.run_attempt }}"
     jobs = workflow["jobs"]
     assert jobs["source"]["if"] == jobs["writer"]["if"] == "github.ref == 'refs/heads/main'"
+    assert (
+        jobs["source"]["env"]["SOURCE_DATA_API_DISABLED_CONFIRMED"]
+        == "${{ inputs.source_data_api_disabled_confirmed }}"
+    )
     assert jobs["reader"]["needs"] == "writer"
     assert jobs["pruner"]["needs"] == ["writer", "reader"]
     assert "always()" in jobs["cleanup"]["if"] and "refs/heads/main" in jobs["cleanup"]["if"]
@@ -403,6 +433,7 @@ def test_access_workflow_is_main_only_manual_and_keeps_credentials_separate():
         (401, {"code": "PGRST301"}, False),
         (403, {"code": "42501"}, False),
         (500, {"message": "unavailable"}, False),
+        (503, {"code": "PGRST002"}, False),
     ],
 )
 def test_table_api_denial_does_not_accept_bad_jwt_missing_table_or_outage(
@@ -438,3 +469,47 @@ def test_reachable_table_api_and_network_failures_block_acceptance(storage_api):
     with pytest.raises(OpsError, match="not proof of denial") as error:
         access.check_table_api_denied(store)
     assert "credential-bearing" not in str(error.value)
+
+
+@pytest.mark.parametrize("status,code", [(503, "PGRST002"), (503, "PGRST001"), (500, "PGRST002")])
+def test_only_documented_disabled_api_response_can_use_owner_confirmation(
+    storage_api, status, code
+):
+    store = storage_api.store("reader", source=True)
+    store.authenticate()
+
+    def fault(request):
+        if "/rest/v1/" in request.full_url:
+            assert request.get_header("Accept-profile") == "public"
+            storage_api.fail(request, status, {"code": code})
+        return None
+
+    storage_api.fault = fault
+    if (status, code) == (503, "PGRST002"):
+        assert (
+            access.check_table_api_denied(store, disabled_confirmed=True)
+            == "disabled_schema_cache_unavailable"
+        )
+    else:
+        with pytest.raises(OpsError, match="could not be verified"):
+            access.check_table_api_denied(store, disabled_confirmed=True)
+
+
+def test_table_api_diagnostic_code_never_includes_provider_message_or_untrusted_text(storage_api):
+    store = storage_api.store("reader", source=True)
+    store.authenticate()
+
+    def fault(request):
+        if "/rest/v1/" in request.full_url:
+            storage_api.fail(
+                request,
+                503,
+                {"code": "private-response-detail", "message": "private-response-detail"},
+            )
+        return None
+
+    storage_api.fault = fault
+    with pytest.raises(OpsError) as error:
+        access.check_table_api_denied(store, disabled_confirmed=True)
+    assert "HTTP 503, provider code unavailable" in str(error.value)
+    assert "private-response-detail" not in str(error.value)

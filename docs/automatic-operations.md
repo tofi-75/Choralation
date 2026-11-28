@@ -1,5 +1,22 @@
 # Automatic backups and deployment
 
+<!-- attended-release-status -->
+**Attended release, November 28:** The owner authorized merging PR #3 after
+checks and proceeding with deployment. All ten PR checks passed in run
+46120412467; PR #3 is merged as 9f6e848ee7f2fd6b4a7674f84f86600aeb7ae860.
+All ten main-push CI jobs passed in run 46121279640. Hosted permission acceptance
+run 46122087347 passed writer, reader, pruner and cleanup, but its final table API
+probe failed after successful source Auth/Storage/catalog checks. A follow-up
+checker correction handles Supabase's documented disabled-schema response with
+explicit owner confirmation; 99 focused regressions pass. A complete hosted rerun
+is required before deployment. The owner confirmed a new no-edit/upload/direct
+DB-change window until backup and release finish. Local main matches the merge.
+Next: complete hosted R10 permission checks, a fresh paired database/PDF backup
+and its isolated restore check, then the initial safeguard deployment with
+operations and compressed writes disabled. GitHub automation remains false.
+This status supersedes earlier local-only/publication-consent notes below.
+<!-- /attended-release-status -->
+
 Updated November 28, 2026. **Hosted automation is not active.** The implementation
 is merged to main as 2d996e6 (PR #2), with every main CI job green in run
 46075337655. GitHub automation remains false and Render native Auto-Deploy is off.

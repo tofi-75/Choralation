@@ -1,6 +1,12 @@
 name: Storage permission acceptance
 on:
   workflow_dispatch:
+    inputs:
+      source_data_api_disabled_confirmed:
+        description: I verified Enable Data API is OFF in the production Supabase project
+        type: boolean
+        required: true
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -20,6 +26,7 @@ jobs:
     env:
       SOURCE_PROJECT_REF: ${{ vars.SOURCE_PROJECT_REF }}
       SOURCE_BUCKET: sheet-music
+      SOURCE_DATA_API_DISABLED_CONFIRMED: ${{ inputs.source_data_api_disabled_confirmed }}
       SOURCE_PUBLISHABLE_KEY: ${{ secrets.SOURCE_PUBLISHABLE_KEY }}
       SOURCE_EMAIL: ${{ secrets.SOURCE_BACKUP_EMAIL }}
       SOURCE_PASSWORD: ${{ secrets.SOURCE_BACKUP_PASSWORD }}
