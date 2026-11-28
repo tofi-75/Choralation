@@ -1,42 +1,49 @@
 # Automatic backups and deployment
 
-Implemented locally on November 21, 2026. **Hosted automation is not active.**
-The backup project exists; credentials, attended bootstrap, full hosted restore
-rehearsal, live health-check configuration and enable switch are still required.
-Do not enable Render's native automatic deploys: they bypass the backup gate.
+Updated November 28, 2026. **Hosted automation is not active.** The implementation
+is merged to main as 2d996e6 (PR #2), with every main CI job green in run
+46075337655. GitHub automation remains false and Render native Auto-Deploy is off.
+The live app remains 91a8c56; live safeguard installation requires a separate release.
 
-For the owner's browser steps, completed setup checklist and attended rollout,
-follow the [manual setup walkthrough](automatic-operations-walkthrough.md).
-The owner reports `BACKUP_PUBLISHABLE_KEY` saved in all three environments on
-November 27; Storage authentication remains untested. Source policies, GitHub
-source settings, production database role logins and the four GitHub DB URL
-entries are now confirmed. The owner reports the Render API key saved in GitHub;
-API access is untested. The owner confirmed the operational-check token saved in
-GitHub production-operations and the password manager on November 27 (R1 complete).
-Encryption recovery copies are now owner-confirmed too (R2 complete).
-GitHub encryption settings, the saved storage budget and the replacement backup
-project's Data API disabled setting are now owner-confirmed (R1–R5 complete).
-The owner subsequently confirmed creating the Protect main ruleset with required
-checks and blocked deletion/force pushes, followed by failure-email settings.
-API verification confirmed the active rule, all repository variables, budget
-858993459 and main-only environment restrictions, but found BACKUP_PUBLISHABLE_KEY
-missing in all three environments and SOURCE_BACKUP_EMAIL misspelled
-SOURCE_BACKUP_MAIL in production-operations. R6 remains open for those entries.
-Current step is R7, reviewing/publishing and exact-SHA CI;
-the owner authorized commit/push on November 27. Publication proceeds through a
-codex branch and PR; deployment remains separate. Email delivery is verified during activation. The exact chosen
-budget value was not supplied in chat; retain the saved GitHub value.
-On November 22 the backup client
-was migrated from legacy-key S3 session authentication to Storage REST with
-publishable keys and short-lived automation-user JWTs. The client rejects legacy
-JWT API keys and elevated secret keys. Existing Auth users, RLS policies, encrypted
-snapshot format and the running app's separate S3 configuration remain applicable.
-Hosted backup/restore acceptance is still required before activation. See
+R1–R9 are complete: restricted accounts, recovery copies and GitHub configuration
+are recorded in the [manual setup walkthrough](automatic-operations-walkthrough.md).
+The first hosted paired snapshot 20261127T232809Z-50d013eec02fbc31 succeeded in
+run 46082543392 (database plus 14 objects, 8,023,649 stored bytes). Its isolated
+restore passed in run 46082960563, including database integrity, all object hashes
+and matching archived application's authenticated/anonymous PDF checks. The initial
+sequence SELECT failure was corrected by owner-applied current/future sequence
+grants and a successful read-only export. Provisioning/preflight and updated
+restricted-role Linux regression changes are local pending publication.
+
+**Current step is R10.** Source catalog evidence confirms the exact two private
+bucket SELECT policies with RLS and no authenticated-role ownership/bypass. The
+local manual [Storage permission workflow](../.github/workflows/storage-access-check.yml)
+adds fresh source reads and disposable backup-marker permission checks, using
+separate writer/reader/pruner environments and mandatory cleanup. It never writes
+to production PDFs or real backup objects. The owner confirmed corrected backup
+`scope_ok=true` on November 28, completing policy scope review alongside the
+RLS/role screenshots. Production Data API-off was subsequently owner-confirmed
+on November 28. A successful hosted permission workflow is still required;
+see the [R10 acceptance procedure](automatic-operations-walkthrough.md#r10-attended-storage-permission-acceptance).
+The read-only audit found broad anon/authenticated write grants on 32 public
+tables without RLS; production Data API is now owner-confirmed off. The audit
+alone was not proof that those tables were publicly reachable. The hosted checker
+will verify a zero-row API denial as well. Do not tick R10 yet.
+
+The owner confirmed edits/uploads/direct DB changes paused until morning on
+November 28; do not ask again during that window. No deployment or automation
+activation occurred. The owner authorized the R10 checker and sequence fixes to
+be committed locally on codex/r10-storage-permission-checks on November 28.
+Push and deployment remain separately authorized steps.
+
+Backup transport uses Storage REST, publishable keys and short-lived automation-user
+JWTs. The client rejects legacy JWT API keys and elevated secret keys. Existing
+Auth accounts, RLS policies and encrypted snapshot format remain applicable. The
+running app's separate S3 configuration is unchanged. See
 [Supabase key migration](https://supabase.com/docs/guides/getting-started/migrating-to-new-api-keys).
 
-For the purpose of the SQL Editor, the equivalent Storage policy interface,
-browser-ready source SQL and expected results, see
-[source access explained](automatic-operations-walkthrough.md#why-use-the-sql-editor-for-file-permissions).
+For the SQL Editor's purpose, equivalent Storage policy interface and source SQL,
+see [source access explained](automatic-operations-walkthrough.md#why-use-the-sql-editor-for-file-permissions).
 
 ## Daily behavior
 

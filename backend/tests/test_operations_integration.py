@@ -2,15 +2,18 @@
 
 import gzip
 import os
+import secrets
 import subprocess
 from pathlib import Path
 
 import pytest
 from django.db import connection
 from ops.core import digest, process
+from ops.database import connect, pg_environment
 from ops.restore import rehearse
 from ops.snapshot import create_snapshot
 from ops.storage import Repository
+from psycopg import sql
 from psycopg.conninfo import make_conninfo
 from test_supabase_storage import storage_api as storage_api
 from test_supabase_storage import storage_http_api as storage_http_api
@@ -92,15 +95,56 @@ def test_encrypted_database_and_pdf_snapshot_restores_matching_application(
     subprocess.run(["age-keygen", "-o", str(identity)], check=True, capture_output=True)
     recipient = process(["age-keygen", "-y", str(identity)]).decode().strip()
     settings = connection.settings_dict
-    url = make_conninfo(
+    administrator_url = make_conninfo(
         host=settings["HOST"],
         port=settings["PORT"],
         dbname=settings["NAME"],
         user=settings["USER"],
         password=settings["PASSWORD"],
     )
-    repository = Repository(destination, recipient=recipient, identity=identity)
+    # Exercise the actual provisioning template and a restricted backup login;
+    # a superuser dump would hide missing sequence permissions in production.
+    assert settings["HOST"] in {"127.0.0.1", "localhost"}
     root = Path(__file__).resolve().parents[2]
+    psql = str(Path(os.environ.get("PG_DUMP", "pg_dump")).with_name("psql"))
+    process(
+        [
+            psql,
+            "--no-password",
+            "--set",
+            "ON_ERROR_STOP=1",
+            "--file",
+            str(root / "scripts/ops/database-roles.sql"),
+        ],
+        env=pg_environment(administrator_url),
+    )
+    password = secrets.token_urlsafe(24)
+    with connect(administrator_url) as administrator:
+        administrator.execute(
+            sql.SQL("ALTER ROLE choralation_backup PASSWORD {}").format(sql.Literal(password))
+        )
+        # Created after provisioning: verifies the migration owner's default grants.
+        administrator.execute("CREATE SEQUENCE public.operations_future_sequence")
+        assert administrator.execute(
+            "SELECT has_sequence_privilege('choralation_backup', "
+            "'public.operations_future_sequence', 'SELECT'), "
+            "has_sequence_privilege('choralation_backup', "
+            "'public.operations_future_sequence', 'USAGE'), "
+            "has_sequence_privilege('choralation_backup', "
+            "'public.operations_future_sequence', 'UPDATE')"
+        ).fetchone() == (True, False, False)
+    url = make_conninfo(
+        host=settings["HOST"],
+        port=settings["PORT"],
+        dbname=settings["NAME"],
+        user="choralation_backup",
+        password=password,
+    )
+    with connect(url) as reader:
+        assert reader.execute(
+            "SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname=current_user"
+        ).fetchone() == (False, False)
+    repository = Repository(destination, recipient=recipient, identity=identity)
     sha = process(["git", "-C", str(root), "rev-parse", "HEAD"]).decode().strip()
     completed = create_snapshot(url, source, repository, kind="daily", commit=sha)
     assert completed["objects"] == 2

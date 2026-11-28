@@ -4,9 +4,12 @@
 
 A shared application for church music teams to maintain hymns and prepare Mass programs.
 
-**Automatic operations, local implementation:** [Backup and deployment runbook](docs/automatic-operations.md)
+**Automatic operations, merged November 28:** [Backup and deployment runbook](docs/automatic-operations.md)
 describes encrypted database/PDF snapshots, daily schedules, weekly restore tests and
-backup-gated deployment. Hosted activation is pending credentials and attended acceptance;
+backup-gated deployment. Setup R1–R9 is complete, main CI is green and the first
+hosted DB/PDF backup and isolated restoration succeeded. Hosted activation awaits
+R10's hosted permission checks and installation of the live safeguards. The R10
+checker is local pending publication; production remains unchanged.
 Render native auto-deploy stays off.
 
 Resume setup with the [manual backup and deployment walkthrough](docs/automatic-operations-walkthrough.md),

@@ -21,6 +21,18 @@ PAGE_SIZE = 1000
 RETRYABLE = {408, 429, 500, 502, 503, 504}
 
 
+class StorageRequestError(OpsError):
+    """Expose HTTP status only; never retain provider messages or credentials."""
+
+    def __init__(self, status, provider_status=None):
+        self.status = status
+        try:
+            self.provider_status = int(provider_status)
+        except (ValueError, TypeError):
+            self.provider_status = None
+        super().__init__(f"Private storage request failed ({status}); provider details suppressed.")
+
+
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, *args, **kwargs):
         # Never forward the API key or a user JWT to a redirected destination.
@@ -119,8 +131,8 @@ class Store:
                     refreshed = True
                     continue
                 if not safe or status not in RETRYABLE or attempt == 2:
-                    raise OpsError(
-                        f"Private storage request failed ({status}); provider details suppressed."
+                    raise StorageRequestError(
+                        status, details.get("statusCode") if isinstance(details, dict) else None
                     ) from None
             except (OSError, http.client.HTTPException):
                 if not safe or attempt == 2:

@@ -6,21 +6,47 @@ Reviewed on November 20, 2026 against repository commit `91a8c56`, the running l
 
 Choralation is live at [choralation.onrender.com](https://choralation.onrender.com). Render serves commit `91a8c566094383eb21a2e69ad2878dcf75601c54`, deployed November 15. [GitHub Actions run 43712740786](https://github.com/tofi-75/Choralation/actions/runs/43712740786) passed both application checks and the production image/PDF persistence job. The release included 119 passing frontend unit tests. The November 20 documentation review adds no new feature release.
 
-Render uses the existing Free web service in Frankfurt. A November 21 read-only service check reconfirmed native automatic deployment is off and the live HTTP health-check path is empty. The Blueprint now keeps native deployment off so the [backup-gated workflow](automatic-operations.md) can be the sole automatic release path. Hosted credentials, separate backup storage, live readiness configuration and attended activation remain pending. A previous public readiness request timed out; verify it during preflight rather than assuming current health.
+Render uses the existing Free web service in Frankfurt. A November 28 read-only service check reconfirmed native automatic deployment is off, the live HTTP health-check path is empty and 91a8c56 remains live. The Blueprint keeps native deployment off so the [backup-gated workflow](automatic-operations.md) can be the sole automatic release path. Separate backup storage and GitHub settings are configured; the first hosted backup and isolated restoration passed. R10 permission acceptance, live safeguards/readiness configuration and attended activation remain pending. A previous public readiness request timed out; verify it during preflight rather than assuming current health.
 
 Production requires private S3 storage and verifies write/read/cleanup before startup. CI verifies PDF persistence across fresh application containers. Prior hosted persistence acceptance is recorded in the dated reports. The November 20 review checked service state and public readiness without changing hosted records or downloading private PDFs. A current database backup and a separate PDF bucket backup are required before another authorized release.
 
-## Local changes awaiting release
+## Changes awaiting deployment
 
 The [automatic operations implementation](automatic-operations.md) adds encrypted paired
 database/PDF snapshots, persistent write protection, Admin diagnostics, daily schedules,
 retention, weekly isolated restore rehearsals and exact-CI-commit deployment. It is
-uncommitted local work, defaults to disabled, and has not changed hosted data or services.
+merged to main in 2d996e6 (PR #2, November 28), defaults to disabled, and has not
+deployed changes to the hosted app. Full PR and main-push CI passed (main run
+46075337655), including all browser profiles, Linux backup/restore and production
+PDF checks. Production workflow 46076366213 skipped its operation jobs while
+automation was false. Setup R1–R8 is complete: first hosted paired snapshot
+20261127T232809Z-50d013eec02fbc31 succeeded in run 46082543392, covering DB plus
+14 objects (8,023,649 stored bytes). Sequence SELECT grants were corrected after
+the first attempt failed; provisioning/preflight/regression updates are local.
+Isolated restoration passed in 46082960563: 14 objects, database/integrity and
+archived-app PDF permission checks, 57.9 seconds. R1–R9 are complete. Negative
+permission checks and actual pruner deletion remain R10's next work; no app
+deployment or automation activation occurred. A local manual workflow now checks
+each restricted Storage identity with public disposable markers and cleanup. Source
+RLS metadata and backup policy scope/role flags are verified. Production Data
+API-off was owner-confirmed on November 28 after broad default public-table grants
+were found. The hosted permission workflow remains pending. These checks and
+sequence fixes are committed locally on codex/r10-storage-permission-checks with
+owner consent on November 28; push and deployment remain pending consent.
+Final November 28 local verification passes 596 backend tests with one intentional
+Linux/container skip, plus lint/format and documentation link checks. Backup
+screenshots verify operations and RLS/role flags; the owner subsequently confirmed
+the full-scope query true. The updated container rehearsal needs CI.
+The initial false phone scope result exposed a checker mismatch with the installed
+`(SELECT auth.uid())` form. Corrected SQL/Python comparisons pass against the exact
+browser provisioning template on local PostgreSQL and reject broader scope;
+93 focused regressions pass. The owner confirmed corrected `scope_ok=true` on
+November 28, completing backup policy scope review without provider policy changes.
 The November 22 backup transport update replaces legacy anon-key S3 authentication
 with publishable keys and automation-user JWTs over Storage REST. Existing users
-and RLS policies remain usable. The manual setup now resumes with
-`BACKUP_PUBLISHABLE_KEY`; hosted provider authentication and full restore acceptance
-remain pending. See the [manual walkthrough](automatic-operations-walkthrough.md).
+and RLS policies remain usable. Setup R1–R6 is complete, including corrected secret
+names verified through GitHub's API. Hosted source/writer/reader authentication
+and full restoration passed; pruner and negative permission checks remain R10. See the [manual walkthrough](automatic-operations-walkthrough.md).
 The owner chose operational checks on November 27: a protected read-only runtime
 probe replaces production test accounts/fixture IDs. It verifies version/schema,
 database/gate identity and an existing uploaded PDF. User login/member flows stay
@@ -31,9 +57,10 @@ skip. Operational checks cover authorization, schema/gate identity, maintenance,
 existing raw/gzip PDF reads and deployment failure boundaries; an isolated member
 test covers CSRF login, Mass/PDF reads and denied deletion. The 24 REST contract
 cases and earlier real encrypted local DB/PDF/disposable-restore round trip passed.
-Linux CI and hosted key/RLS acceptance remain required.
+Linux CI now passed on main; hosted key/RLS acceptance remains required.
 Local real age encryption, a PostgreSQL export/disposable restore and all recorded row
-counts passed; the dedicated Linux container/S3 job and hosted acceptance still need CI/setup.
+counts passed; the dedicated Linux container/S3 job now passed in main CI.
+The first hosted backup and isolated restore passed on November 28 as recorded above.
 
 The November 21 checkout implements independent Admin/Choirmaster/User accounts and Leader/Planner/Member choir assignments, phone PDF width fit, saved-row Focus/hold navigation, placement prefill and lossless PDF gzip storage. [Behavior, permissions and staged rollout](roles-reader-pdf-update.md) document the changes. They are local, with additive migrations and compressed writes disabled by default. Hosted files have not been converted. The live release below remains unchanged.
 
