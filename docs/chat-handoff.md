@@ -1,13 +1,92 @@
 # Project handoff
 
-Updated November 27, 2026. Read [Current project status](current-status.md) for release evidence and [Backlog](backlog.md) for remaining work.
+Updated November 28, 2026. Read [Current project status](current-status.md) for release evidence and [Backlog](backlog.md) for remaining work.
+
+Latest operations setup: R1–R6 are complete and independently audited where
+possible. Corrected secrets are present; all repository variables and main-only
+environment restrictions match. Protect main is active with checks required,
+deletion/force-push blocked and no bypass. GitHub automation is false. A read-only
+Render service check reconfirmed native autoDeploy=no/autoDeployTrigger=off,
+branch main and the health path still empty. Do not change Render yet.
+Implementation fa6a183 plus CI fixes afa7029, 55297b5 and 2761b44 are pushed in
+PR #2 on codex/automatic-backups. Full PR CI run 46073741651 succeeded for exact
+head 2761b441a431e2dcd2d4d9df2145414a85d74d5e, including all browser profiles,
+real Linux backup/restore rehearsal, production PDF checks and final checks.
+The owner merged PR #2 on November 28 as 2d996e63711463bfdeb9b6750951b7b9fb73ad94.
+R7 is complete: every main-push CI job passed in run 46075337655, including
+Linux operations, production PDF persistence and all browser profiles/aggregate.
+Production workflow run 46076366213 then completed select and skipped
+operate/restore/retention because automation was false. Current stage is R10,
+remaining hosted permission acceptance. The owner confirmed all edits/uploads/direct DB
+changes paused on November 28 and authorized proceeding. First bootstrap was
+dispatched exactly once as run 46081557423, live SHA 91a8c56, workflow head 2d996e6.
+The run failed before completing pg_dump with a missing sequence SELECT grant,
+reproduced read-only locally without printing any SQL/private data. No snapshot
+completed and no deployment occurred. The owner applied SELECT on all public
+sequences plus default SELECT for future postgres-owned public sequences on
+November 28. Read-only export verification succeeded as the restricted role with
+all bytes discarded. The owner confirmed writes paused until morning and said no
+need to ask again. Retry run 46082543392 succeeded: R8 is complete, snapshot
+20261127T232809Z-50d013eec02fbc31, live SHA 91a8c56, 14 objects, 8,023,649 stored
+bytes, no storage warning. R9 restore-check run 46082960563 passed for that
+snapshot: 14 objects in 57.9 seconds, matching archived application's PDF permission
+checks plus database/integrity checks. R1–R9 are complete. R10 positive source,
+writer upload/readback and restore-reader operations are proven; negative access/
+cross-bucket checks and actual pruner deletion remain unverified. The new manual
+storage-access-check.yml and guarded CLI are committed locally, alongside
+sequence-permission fixes. Source policy metadata and backup full policy scope are
+verified. Owner confirmed production Data API off on November 28.
+November 28 backup screenshots confirm four policies, expected operations,
+RLS on and no role ownership/bypass, but expressions are truncated. The read-only
+phone query scripts/ops/check-backup-storage-permissions.sql returns two booleans
+for exact scope and RLS/role safety; do not mark scope verified from cropped text.
+Owner reported initial scope_ok=false. The original browser SQL in ignored
+.local/operations/backup-bucket-permissions.sql uses (SELECT auth.uid()), while
+the initial checker expected direct auth.uid(). Reproduced with real local
+PostgreSQL; SQL/Python comparisons corrected to accept only those two reviewed
+forms, preserving full bucket/UUID checks. Installed template passes; broader
+predicate fails. All 93 focused regressions pass after the fix; no provider policy
+changes. The owner subsequently reported corrected scope_ok=true on November 28:
+backup scope review is complete. The owner then confirmed production Data API off.
+Do not repeat those completed checks; continue to hosted permission acceptance
+after publication with consent.
+The readonly catalog found anon/authenticated write grants on 32 public tables
+without RLS: production Data API is now owner-confirmed off; do not claim exposure
+from grants alone. The hosted checker needs protected-main
+publication with consent before it can use the existing environment secrets.
+Only known public markers in the fixed backup project's _permissions-checks/
+run-attempt prefix may be mutated; source and real backups remain read-only.
+Never restore
+to production. No repeated quiet-window questions during
+the confirmed overnight window.
+database-roles.sql, setup helper checks and regression tests now cover sequence
+reads; the Linux rehearsal now uses a provisioned restricted backup role. These
+new corrections are in the local R10 commit; they have not been pushed. Eighteen helper tests
+passed; Linux rehearsal for these changes remains pending. Final local backend
+suite: 596 passed, one intentional Linux/container skip (48.98 seconds); 89 focused
+regressions passed, Ruff lint/format and walkthrough links passed. The phone query
+passed against real disposable local PostgreSQL and rejected an extra policy and
+disabled RLS. That database was removed and local PostgreSQL stopped. Do not retry
+an ambiguous dispatch. Deployment and
+automation remain off. The owner prefers manual browser
+instructions, not opened tabs. Local main now matches
+origin/main at 2d996e6; the R10 code/test/documentation commit is on
+codex/r10-storage-permission-checks, authorized by the owner on November 28.
+Push, merge and deployment still require consent. No deployment
+or activation occurred. Latest checklist progress after the code
+commits is local documentation work; do not discard it when switching branches.
+Render's live SHA was independently reconfirmed November 28 as
+91a8c566094383eb21a2e69ad2878dcf75601c54 (dep-dbsq436i0phs73dr05fg); native
+auto-deploy is off. Use that live SHA for the first bootstrap-backup, branch main,
+then restore-check the resulting snapshot. The first hosted backup completed and
+its isolated restore rehearsal passed as recorded above.
 
 ## Repository and release
 
 - Workspace is `C:\Users\t.lattouf\Projects\Choralation`. Keep tooling, temporary files, backups, uploads, and logs inside the project. No global configuration or firewall changes are authorized.
-- `main` matches `origin/main` at `2f8c410` before the operations implementation. Hosted remains `91a8c56` at [Choralation](https://choralation.onrender.com); do not confuse pushed code with a deployed release.
+- `main` matches `origin/main` at `2d996e6` after the operations implementation. Hosted remains `91a8c56` at [Choralation](https://choralation.onrender.com); do not confuse pushed code with a deployed release.
 - Render service is `srv-db78nlbbc2fs73e83qi0` in the owner-confirmed Toufic’s workspace, `tea-cvbfi652ng1s73ed31g0`. Deploy `dep-dbsq436i0phs73dr05fg` is live. Auto-deploy is off, and the live HTTP health-check path is empty. The Blueprint’s proposed settings are distinct from the deployed service settings.
-- [GitHub run 44897674480](https://github.com/tofi-75/Choralation/actions/runs/44897674480) passed on `2f8c410`, including all four browser profiles and Linux production/PDF checks. The new operations batch still needs its own Linux CI run.
+- [GitHub run 44897674480](https://github.com/tofi-75/Choralation/actions/runs/44897674480) passed on `2f8c410`, including all four browser profiles and Linux production/PDF checks. The merged operations implementation passed all main CI jobs in run 46075337655. Local R10/sequence changes still need a new exact-SHA CI run.
 - Commit, push, and deployment were authorized for the November 15 release. Obtain authorization for another release. Back up hosted PostgreSQL and PDF objects separately before deploying.
 
 ## Application facts
@@ -44,7 +123,7 @@ browser profiles in both account modes, 159 passes/21 documented skips, zero ret
 or flaky results. Earlier counts above record their original sessions.
 
 The user approved implementation of the [automatic backup/deployment plan](automatic-operations.md).
-Current local uncommitted work adds a persistent read-only barrier, encrypted paired
+The operations implementation merged to main on November 28 adds a persistent read-only barrier, encrypted paired
 snapshots in a separate Supabase project, exact-SHA release gating, weekly isolated
 restores and Admin status. Choices: daily 03:17 Asia/Beirut plus predeploy; retain
 7 daily/5 predeploy; pause editing through backup/build/verification; automatic
@@ -178,7 +257,11 @@ The secret-name audit verified main-only environment restrictions and every repo
 variable, including budget 858993459 and automation false. It found missing
 BACKUP_PUBLISHABLE_KEY in all three environments and SOURCE_BACKUP_EMAIL in
 production-operations, where SOURCE_BACKUP_MAIL is present instead. Correct these
-names/entries before hosted acceptance; secret values were never read.
+names/entries before hosted acceptance; secret values were never read. The owner
+then confirmed all four saved on November 28. Independent API audit now finds no
+missing or extra secret names in any environment; variables/main-only restrictions
+match. R6 is complete. Actual provider authentication/RLS acceptance still awaits
+the hosted backup/rehearsal. Automation remains false; no deployment occurred.
 The owner's Branch settings screenshot showed no protection rule listed and the
 Add branch ruleset/Add classic branch protection rule controls. The owner then
 confirmed creating the instructed active Protect main ruleset targeting default

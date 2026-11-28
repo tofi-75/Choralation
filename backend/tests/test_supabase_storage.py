@@ -27,6 +27,7 @@ from ops.storage import Store
 class Response(io.BytesIO):
     def __init__(self, data, headers=None):
         super().__init__(data)
+        self.status = 200
         self.headers = {"Content-Length": str(len(data)), **(headers or {})}
 
 
@@ -37,6 +38,12 @@ class StorageAPI:
         self.requests = []
         self.tokens = {}
         self.logins = 0
+        self.subjects = {
+            "source": "11111111-1111-4111-8111-111111111111",
+            "writer": "22222222-2222-4222-8222-222222222222",
+            "reader": "33333333-3333-4333-8333-333333333333",
+            "pruner": "44444444-4444-4444-8444-444444444444",
+        }
         self.fault = None
         self.http_origin = None
         self.original_opener = urllib.request.build_opener
@@ -114,13 +121,26 @@ class StorageAPI:
             assert login["password"] == "fictional-password"
             role = login["email"].split("@")[0]
             self.logins += 1
-            token = f"session-{self.logins}"
+            claims = {
+                "sub": self.subjects["source" if project == "source1" else role],
+                "role": "authenticated",
+            }
+            encoded = base64.urlsafe_b64encode(json.dumps(claims).encode()).decode().rstrip("=")
+            token = f"fixture.{encoded}.session-{self.logins}"
             self.tokens[token] = project, role
             return Response(json.dumps({"access_token": token, "expires_in": 3600}).encode())
         identity = self.tokens.get(headers.get("authorization", "").removeprefix("Bearer "))
         if not identity or identity[0] != project:
             self.fail(request, 401, {"code": "InvalidJWT"})
         role = identity[1]
+        if parsed.path == "/rest/v1/hymns_hymn":
+            assert parse_qs(parsed.query) == {"select": ["id"], "limit": ["0"]}
+            self.fail(request, 404, {"message": "Data API disabled"})
+        allowed_bucket = "sheet-music" if project == "source1" else "choralation-backups"
+        if parsed.path == "/storage/v1/bucket":
+            return Response(json.dumps([{"id": allowed_bucket, "public": False}]).encode())
+        if parsed.path == "/storage/v1/bucket/" + allowed_bucket:
+            return Response(json.dumps({"id": allowed_bucket, "public": False}).encode())
         path = parsed.path.removeprefix("/storage/v1/object/")
         if path.startswith("list-v2/"):
             bucket = path.removeprefix("list-v2/")
@@ -173,6 +193,8 @@ class StorageAPI:
                     if self.rows.pop((project, bucket, target), None):
                         deleted.append({"name": target})
             return Response(json.dumps(deleted).encode())
+        if request.method == "PUT" or headers.get("x-upsert") == "true":
+            self.fail(request, 403, {"code": "AccessDenied"})
         if request.method == "POST":
             if role != "writer" or project != "backup1":
                 self.fail(request, 403, {"code": "AccessDenied"})
@@ -228,7 +250,7 @@ class StorageAPI:
                 self.end_headers()
                 self.wfile.write(body)
 
-            do_POST = do_DELETE = do_GET
+            do_POST = do_PUT = do_DELETE = do_GET
 
             def log_message(self, *args):
                 pass

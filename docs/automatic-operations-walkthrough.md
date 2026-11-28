@@ -1,67 +1,48 @@
 # Manual setup: automatic backups and deployment
 
-Updated November 27, 2026. Follow these steps in order. Check a box only after
+Updated November 28, 2026. Follow these steps in order. Check a box only after
 the step succeeds. You can stop after any setup step and resume later.
 
-**Current stage: R7, review/publish the implementation and pass CI (Step 7).**
-The owner confirmed the Protect main ruleset created on November 27, requiring
-checks and blocking deletion/force pushes. After an initially empty API result,
-a later recheck verified Protect main Active with the intended rules and no bypass.
-Failure-email settings are owner-confirmed;
-actual failure-email delivery is still verified during attended activation (R19).
-The owner confirmed R4 (storage budget) and R5 (replacement backup Data API off)
-on November 27. R1–R5 are complete; R6 needs the missing secret entries below.
-The owner authorized commit/push on November 27;
-publish through a codex branch and pull request to respect the new main protection.
-Implementation commit fa6a183 is pushed on codex/automatic-backups in
-[pull request #2](https://github.com/tofi-75/Choralation/pull/2). R7 remains open
-until required CI succeeds and the reviewed implementation reaches main. The first
-Linux operations run exposed a missing parent cache directory; its workflow now
-creates that directory explicitly before pytest. Updated exact-SHA CI is required.
-The archive-path correction is pushed as 55297b50cdbbde51d670737ada13fcf0e9c4dc2f.
-[CI run 46072429307](https://github.com/tofi-75/Choralation/actions/runs/46072429307)
-passed backend, frontend, production PDF persistence, Linux operations and three
-browser profiles. The 430px profile exposed a keyboard-test focus race; the test
-now waits for dialog focus restoration before its next keyboard interaction.
-New full CI is required. Nothing is merged/deployed.
-deployment and automation remain off. Read-only API verification found the budget
-is 858993459 and all repository variables/main-only environment restrictions match.
-It also found BACKUP_PUBLISHABLE_KEY missing in all three environments, and
-SOURCE_BACKUP_EMAIL missing in production-operations (SOURCE_BACKUP_MAIL exists
-instead). Correct only those entries; do not repeat the completed setup.
-R1 is complete: the owner confirmed DEPLOY_CHECK_TOKEN saved in GitHub
-production-operations and the password manager on November 27. Render entry and
-hosted operational verification still wait until the backed-up rollout.
-R2 is complete: the owner confirmed the existing encryption identity saved in
-the password manager and a second secure recovery copy outside this PC/GitHub.
-R3 is complete: the owner confirmed the public recipient variable and both private
-identity secrets saved. Do not repeat completed setup; proceed from the next
-unchecked tracker item. Saved credentials still need the later hosted acceptance checks.
-The owner connected and confirmed database/current user `postgres` and application
-table owner `postgres`, then reported the three roles/passwords created. All three
-private URL files are now present and their production role logins/expected
-access were verified with read-only queries. The owner confirmed the backup URL
-and all three GitHub controller URL secrets saved, followed by the Render API key
-in production-operations. The Render key has not yet been tested. Step 3's
-private recovery copies and GitHub encryption entries are now owner-confirmed.
-The owner supplied screenshots confirming the reader account, private bucket,
-absence of pre-existing Storage policies, and both newly created source SELECT
-policies, and confirmed the GitHub source project reference and three source secrets.
-Actual API access remains untested. The backup encryption identity was generated
-locally and passed an encryption/decryption check on November 27; its recovery
-copies and GitHub encryption settings were subsequently confirmed saved. Step 1's backup
-publishable-key entry and replacement project's Data API disabled setting were
-confirmed complete on November 27. The legacy-key dependency
-was removed from the local implementation on November 22. Backup jobs now use
-Supabase Storage REST with a publishable key and each automation user's JWT;
-the existing users and bucket policies can be retained. See
-[Supabase's new-key guidance](https://supabase.com/docs/guides/getting-started/migrating-to-new-api-keys).
+**Current stage: R10, finish hosted permission acceptance (Steps 2/6).**
+R1–R9 are complete. Do not repeat completed setup. The first paired hosted
+database/PDF backup and its isolated restoration passed. No application deployment
+or automation activation occurred; both GitHub automation and Render native
+Auto-Deploy remain off. Commit, push and deployment require the owner's consent.
 
-The six writer/reader/pruner email and password secrets were entered by the owner.
-`BACKUP_PUBLISHABLE_KEY` was reported saved in all three environments on November 27;
-its provider authentication has not yet been tested. No hosted backup, restore rehearsal
-or application deployment has run for this setup. The implementation is still local
-and uncommitted. Hosted authentication/permissions still require attended acceptance.
+| Completed milestone | Evidence |
+| --- | --- |
+| R1–R6: recovery copies, restricted accounts, GitHub settings | Owner confirmations and read-only API audits, November 27–28; all expected secret names present, main-only environments, active Protect main ruleset 28264223 with no bypass, budget 858993459, automation false. Failure-email delivery still waits for R19. |
+| R7: reviewed implementation merged and CI green | PR #2, main 2d996e63711463bfdeb9b6750951b7b9fb73ad94; [main CI 46075337655](https://github.com/tofi-75/Choralation/actions/runs/46075337655), every job passed. Production workflow 46076366213 safely skipped operations. |
+| R8: first paired backup | [Run 46082543392](https://github.com/tofi-75/Choralation/actions/runs/46082543392), snapshot 20261127T232809Z-50d013eec02fbc31; database and 14 objects, 8,023,649 stored bytes, no warning. |
+| R9: isolated hosted-data restoration | [Run 46082960563](https://github.com/tofi-75/Choralation/actions/runs/46082960563), same snapshot; decryption, row counts/foreign keys, all 14 object hashes and matching archived application's authenticated/anonymous PDF checks passed in 57.9 seconds. Production was not a restore target. |
+
+The first backup attempt 46081557423 failed on sequence SELECT permissions. The
+owner applied current/future sequence read grants; a full read-only export then
+verified the correction with all dump bytes discarded. Provisioning, preflight and
+restricted-role regression fixes are local pending publication, alongside R10's
+manual acceptance workflow. See Step 8 for the exact grants.
+
+R10's read-only catalog audit verified the production reader's two exact SELECT
+policies, enabled Storage RLS and no authenticated-role ownership/bypass. It also
+found write grants for anon/authenticated on 32 public tables without RLS. This
+does not prove exposure: production Data API availability must be checked. The
+owner confirmed the corrected backup `scope_ok=true` result on November 28,
+verifying its exact policy scope alongside the screenshot-confirmed RLS/role flags.
+The owner also confirmed production Data API is off on November 28. Hosted
+permission probes remain pending. See the
+[R10 procedure](#r10-attended-storage-permission-acceptance).
+
+Live Render SHA remains 91a8c566094383eb21a2e69ad2878dcf75601c54, reconfirmed
+November 28; the health-check path is empty. Installation of safeguards starts at
+R11 and requires separate deployment consent. The owner confirmed production edits,
+uploads and direct database changes paused until morning on November 28 and said
+not to ask again during that window. Reconfirm only after that window expires.
+
+Backup jobs use Storage REST, publishable keys and short-lived automation-user
+JWTs. Legacy JWT API keys and elevated secret keys are rejected. Existing Auth
+users, Storage policies and encrypted snapshots remain applicable. The running
+application's separate S3 configuration is unchanged. See
+[Supabase's key migration guidance](https://supabase.com/docs/guides/getting-started/migrating-to-new-api-keys).
 
 Keep `PRODUCTION_AUTOMATION_ENABLED=false` until Step 10. Keep Render native
 Auto-Deploy off permanently; GitHub will coordinate deployments after backup.
@@ -73,8 +54,8 @@ Update this tracker and the detailed checkbox below after each completed step.
 Mark completion only from a successful check or explicit owner confirmation;
 saved credentials alone do not prove working provider access. Keep run URLs,
 snapshot IDs and deployment SHAs in the non-secret setup record at the end.
-Unchecked items below remain outstanding as of November 27. Some credential/recovery
-entries may already have been made but still need individual confirmation.
+Unchecked items below remain outstanding as of November 28. Keep R10 open until
+its hosted checks, policy review and Data API confirmation are complete.
 
 - [x] **R1 — Deployment-check token:** save the existing local token in the
   password manager and GitHub production-operations secret DEPLOY_CHECK_TOKEN
@@ -91,24 +72,31 @@ entries may already have been made but still need individual confirmation.
 - [x] **R5 — Backup project:** verify Data API is disabled on the replacement
   Frankfurt backup project, with Auth and Storage available (Step 1; owner
   confirmation, November 27).
-- [ ] **R6 — GitHub configuration:** verify all required secret/variable names,
+- [x] **R6 — GitHub configuration:** verify all required secret/variable names,
   main-only environment restrictions, branch protection and failure-email
   settings; keep PRODUCTION_AUTOMATION_ENABLED=false (Step 6; owner confirmations,
-  November 27). Reopened: API checks found BACKUP_PUBLISHABLE_KEY missing in all
-  three environments and SOURCE_BACKUP_EMAIL misspelled SOURCE_BACKUP_MAIL in
-  production-operations. Active branch protection is now independently verified. Other confirmed
-  setup is retained; actual provider access and failure-email delivery remain rollout checks.
-- [ ] **R7 — Publish and validate:** obtain commit/push authorization, review
+  November 27–28). Corrected secret entries, variables and main-only restrictions
+  were independently verified by API on November 28. Active branch protection
+  is verified. Actual provider access and failure-email delivery remain rollout checks.
+- [x] **R7 — Publish and validate:** obtain commit/push authorization, review
   and publish the implementation, then require all CI jobs green for the exact
   SHA, including Linux/container operations acceptance (Step 7).
-- [ ] **R8 — First hosted backup:** coordinate a no-edit window, verify the
+  Commit/push, PR CI, merge and all main-push CI jobs are complete (November 28,
+  main 2d996e6, run 46075337655). Disabled production workflow safely skipped operations.
+- [x] **R8 — First hosted backup:** coordinate a no-edit window, verify the
   live SHA and native Render Auto-Deploy off, then run bootstrap-backup and record
-  a completed paired database/PDF snapshot (Step 8).
-- [ ] **R9 — First restore rehearsal:** run restore-check for that snapshot;
-  require successful decryption and disposable database/PDF restoration (Step 8).
+  a completed paired database/PDF snapshot (Step 8; run 46082543392,
+  snapshot 20261127T232809Z-50d013eec02fbc31, 14 objects, November 28).
+- [x] **R9 — First restore rehearsal:** run restore-check for that snapshot;
+  require successful decryption and disposable database/PDF restoration (Step 8;
+  run 46082960563 passed for 20261127T232809Z-50d013eec02fbc31, 14 objects, November 28).
 - [ ] **R10 — Hosted access acceptance:** verify actual source read-only,
   writer read/insert, reader read-only and pruner read/delete rights, without
   overwrite/delete/cross-bucket access beyond each account's scope (Steps 2/6).
+  Positive source/writer/restore-reader operations passed in R8/R9; the live source
+  RLS scope and backup policy scope/role flags are verified. Production Data API
+  is owner-confirmed off. Actual pruner/negative probes remain pending. The checker is
+  committed locally on codex/r10-storage-permission-checks; push consent is pending.
 - [ ] **R11 — Initial safeguard release:** obtain separate deployment consent,
   ensure the verified backup is fresh, deploy the exact CI-green SHA with
   operations disabled and compressed PDF writes off, and verify migration/data
@@ -170,12 +158,13 @@ requires updating the relevant GitHub secret, not recreating the policy.
 ## Already completed
 
 These settings were verified in the dashboard or reported complete by the owner.
-Saved secrets have not yet been tested against the providers.
+Source, writer and restore-reader credentials worked in R8/R9; the remaining
+permission acceptance is R10.
 
 - [x] Separate Supabase project **Choralation Backup**, reference
   `rkusfrltpycgkeodtxca`, Frankfurt region `eu-central-1`.
 - [x] Private bucket **choralation-backups**, effective 50 MB upload limit, any
-  MIME type. The bucket has no backup files yet.
+  MIME type. It now holds the verified R8 snapshot.
 - [x] Three confirmed Supabase Auth automation users created in that project.
 - [x] Four backup Storage policies installed and verified in SQL results:
   bucket SELECT; object SELECT, INSERT and DELETE, each scoped to the intended
@@ -220,9 +209,10 @@ Browser only; approximately 5 minutes.
 6. Add the same secret with the same value to **backup-restore** and
    **backup-retention**.
 
-- [ ] `BACKUP_PUBLISHABLE_KEY` saved in all three environments. Previously reported
-  complete by the owner, but November 27 API secret-name verification found it
-  absent under this exact name in all three; add the missing entries.
+- [x] `BACKUP_PUBLISHABLE_KEY` saved in all three environments. After an initial
+  API audit found it absent, the owner added all three entries and November 28
+  secret-name verification confirmed them present. Writer and reader authentication
+  passed in R8/R9; pruner acceptance remains R10.
 - [x] Verify the replacement backup project's **Data API** is off in project
   API settings. Disabling Data API concerns database REST access; keep Auth and
   Storage available (owner confirmed replacement project, November 27).
@@ -388,10 +378,13 @@ permission check during attended acceptance; it does not prove a backup has run.
 - [x] Production `sheet-music` bucket confirmed private (November 27).
 - [x] Pre-grant Storage policy review returned no existing policies (November 27).
 - [x] Two source SELECT policies applied and the two result rows verified (owner screenshot, November 27).
-- [ ] Effective source read-only access and cross-bucket denial checked through the API.
-- [ ] Three source secrets saved in production-operations. API verification found
-  SOURCE_BACKUP_MAIL instead of the required SOURCE_BACKUP_EMAIL; correct the
-  email entry. Source key/password names exist; provider authentication remains untested.
+- [x] Live source catalog reviewed: exactly two scoped SELECT policies, RLS on,
+  authenticated role has no ownership/bypass (read-only audit, November 28).
+- [ ] Fresh source API identity/read/private-bucket check and zero-row table API
+  denial passed in the R10 workflow; production Data API-off setting confirmed.
+- [x] Three source secrets saved in production-operations. The owner corrected
+  SOURCE_BACKUP_MAIL to SOURCE_BACKUP_EMAIL; November 28 API verification confirmed
+  all required names present. Source authentication and real file reads passed in R8.
 
 ## 3. Generate the backup encryption key
 
@@ -640,10 +633,9 @@ variables. Avoid environment-level overrides of these shared values:
 | BACKUP_BUDGET_BYTES | Chosen integer storage budget in bytes |
 | PRODUCTION_AUTOMATION_ENABLED | false |
 
-- [ ] All required secret/variable names verified. November 27 API audit found
-  BACKUP_PUBLISHABLE_KEY missing in all three environments and SOURCE_BACKUP_EMAIL
-  misspelled SOURCE_BACKUP_MAIL in production-operations. All repository variables
-  and environment main-only restrictions matched. Fix those four secret entries.
+- [x] All required secret/variable names verified. November 28 API audit after
+  the owner's corrections found no missing/extra secret names, matching repository
+  variables (budget 858993459; automation false) and main-only environment restrictions.
 - [x] Protect `main` using a branch rule/ruleset: require the **checks**
   status from **Application checks**, block force pushes and branch deletion.
   Review workflow changes before merging. If the plan does not support the rule,
@@ -681,13 +673,110 @@ The running app's separate S3 credentials and region settings are unchanged.
 
 You can complete Steps 1–6 without deploying. Keep the enable variable false.
 
+### R10: attended Storage permission acceptance
+
+This is a separate manual check, not an application release. It never writes to
+production. It uses the existing restricted GitHub environments and secrets; no
+new credentials are needed.
+
+1. In **both** Supabase projects, inspect the current Storage policy metadata
+   using [inspect-storage-permissions.sql](../scripts/ops/inspect-storage-permissions.sql).
+   It selects policy definitions, RLS flags and authenticated-role privilege flags
+   only, with no file names, records, passwords or PDF contents. The production
+   result was already read and verified. November 28 backup screenshots confirm
+   four policies, the expected operations, RLS on and no ownership/bypass, but
+   truncate the conditions. For a phone, run the read-only
+   [compact backup check](../scripts/ops/check-backup-storage-permissions.sql)
+   instead: both `exact_policy_scope` and `rls_no_bypass` must return true. It
+   checks the full stored expressions against this project's exact bucket and
+   account UUIDs without displaying wide policy text. It accepts both the generic
+   template's direct `auth.uid()` and the installed browser template's uncorrelated
+   `(SELECT auth.uid())`, preserving all bucket/UUID restrictions. Do not modify policies if
+   it returns false; inspect the full definition first.
+   Expect exactly the two reviewed source SELECT policies or the four reviewed
+   backup policies, with exact bucket/UUID restrictions, RLS true and all three
+   authenticated privilege flags false. Extra policies need review, not deletion
+   without understanding their purpose. A missing/nonexistent foreign bucket's
+   404 alone cannot prove cross-bucket isolation.
+2. In the **production** project, open **Integrations → Data API**, then its
+   overview/settings and confirm **Enable Data API** is off. Keep Auth and Storage
+   available. Choralation uses direct PostgreSQL, not this table REST endpoint.
+   The catalog audit found broad default public-table grants; a reachable table
+   API would bypass Django's permission checks. The backup project's Data API-off
+   setting is already owner-confirmed. See
+   [Supabase Data API security](https://supabase.com/docs/guides/api/securing-your-api).
+3. The owner authorized a local commit of the reviewed R10 checker and sequence
+   fixes on November 28. Obtain push consent, publish through a protected-main
+   pull request and require every CI job
+   green, including the updated restricted-role Linux rehearsal. Merge the reviewed
+   changes before running: main-only GitHub environments intentionally prevent
+   testing this with hosted secrets from a feature branch.
+4. Open **Actions → Storage permission acceptance → Run workflow**, branch
+   **main**, with no inputs. The workflow is
+   [storage-access-check.yml](../.github/workflows/storage-access-check.yml), and
+   [storage-access-check.py](../scripts/storage-access-check.py) runs its phases:
+
+| Phase / environment | Evidence |
+| --- | --- |
+| source / production-operations | Fresh expected Auth identity; read-only catalog verification, private scoped bucket metadata, list/download an existing PDF, and a zero-row table API denial. No upload, overwrite or deletion is attempted in production. Source write/cross-bucket restrictions are established by the exact live policy set plus no RLS bypass. The endpoint response supplements the owner's Data API-off confirmation. |
+| writer / production-operations | Create and read a public disposable marker; reject PUT updates and upsert; reject deletion, including silent RLS no-op deletion responses. |
+| reader / backup-restore | Read the marker; reject create, update, upsert and deletion. |
+| pruner / backup-retention | Read and delete the marker; reject create, update and upsert. |
+| cleanup / backup-retention | Always attempt cleanup after the marker jobs; delete only known marker names whose bytes match this run's public marker, then verify its prefix is empty. |
+| acceptance | Require every preceding phase, including cleanup, to succeed. |
+
+Only three fixed names under `_permissions-checks/RUN_ID-ATTEMPT/` may be changed.
+They contain public test text, never PDFs or backup data. The fixed backup
+project/bucket guard rejects production mutation targets. Existing `payloads/`
+and `snapshots/` objects are outside this prefix. Each job receives only its own
+identity's credentials, with no Render key, deployment token or decryption identity.
+The workflow shares the production-operations concurrency group so it cannot
+overlap a backup, deployment or retention run.
+
+5. Require **acceptance** green and the policy/setting evidence from steps 1–2.
+   Record the run URL and probe ID below, then check R10. If a phase fails, leave
+   R10 open. Inspect cleanup before retrying; if cancellation prevented cleanup,
+   remove only this run's verified public marker files from its exact prefix.
+   Use a new workflow run or **Re-run all jobs**, not **Re-run failed jobs**:
+   a new attempt has a different prefix and needs the writer to create its marker.
+   Network errors, bad credentials and conflicts are failures, not access denials.
+
+- [x] Production policy metadata reviewed with read-only queries (November 28).
+- [x] Backup screenshots confirm four expected operations, RLS on and no role
+  ownership/bypass (November 28).
+- [x] Backup full policy scope confirmed: owner reported corrected `scope_ok=true`
+  (November 28), supplementing screenshot-confirmed RLS and role flags.
+- [x] Production Data API-off setting confirmed by owner (November 28).
+- [ ] Checker and sequence fixes published with exact-SHA CI green.
+- [ ] Hosted permission workflow passed every phase and cleanup; run/probe recorded.
+
+The checker and regression coverage are local pending publication. No hosted
+negative probe has run yet. Completing R10 does not authorize deployment or
+activation; continue to R11 only with separate release consent.
+Local verification on November 28: 596 backend tests passed with one intentional
+Linux/container skip; lint and formatting passed. The compact SQL was tested on
+real local PostgreSQL: the exact policy template passed, while an extra policy
+and disabled RLS failed. Disposable test resources were removed and PostgreSQL
+stopped. The updated restricted-role container rehearsal still needs CI.
+
+The owner's first phone `scope_ok` result was false. Local reproduction against
+the exact browser provisioning SQL identified a checker mismatch: the browser
+template uses `(SELECT auth.uid())`, whereas the initial comparison expected a
+direct call. The SQL and Python checkers now accept precisely those two reviewed
+forms; the installed template passes locally and a broader predicate fails.
+All 93 focused regressions pass after this correction. No hosted policies were
+changed. The owner subsequently reported the corrected `scope_ok=true` result,
+completing backup policy scope review on November 28. Hosted probes remain pending.
+
 ## 7. Publish the implementation and pass CI
 
-The owner authorized commit/push of the current operations batch on November 27.
-Publishing/CI is in progress through a codex branch and pull request; protect main's
-required checks. No application deployment is authorized at this stage.
+R7's original operations batch was authorized on November 27 and is now merged
+with all main CI checks green. The R10 checker and sequence fixes are committed
+locally on codex/r10-storage-permission-checks with owner consent on November 28.
+Push and application deployment still require consent.
 
-1. Review the local diff and commit/push the reviewed implementation to `main`.
+1. With consent, publish the reviewed implementation through a codex branch/PR
+   and merge to `main` only after required checks pass.
    The new workflow cannot be dispatched until it exists on GitHub's default
    branch. See [manual workflow runs](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow).
 2. Open **Actions → Application checks**, select the pushed full SHA and wait for
@@ -696,10 +785,39 @@ required checks. No application deployment is authorized at this stage.
 3. Confirm **Production operations** is visible. An automatic deploy attempt
    selected while the enable flag is false must skip actual operations.
 
-- [ ] Reviewed implementation on main; all required CI jobs green for that SHA.
-- [ ] No live application deployment yet; automation remains false.
+- [x] Reviewed implementation and CI/test fixes committed/pushed to codex/automatic-backups in PR #2.
+- [x] All PR CI jobs green for 2761b441a431e2dcd2d4d9df2145414a85d74d5e (run 46073741651, November 28).
+- [x] Owner merged PR #2 to main as 2d996e63711463bfdeb9b6750951b7b9fb73ad94 (November 28).
+- [x] Reviewed PR merged to main; all required main-push CI jobs green for 2d996e63711463bfdeb9b6750951b7b9fb73ad94 (run 46075337655, November 28).
+- [x] No live application deployment yet; automation remains false. Production operations run 46076366213 skipped operate/restore/retention; Render native Auto-Deploy independently verified off.
 
 ## 8. Take the first paired backup and rehearse restoration
+
+### First-attempt correction: sequence permissions
+
+Run 46081557423 failed before database export completed: the original role setup
+granted table reads but omitted sequence reads. pg_dump must read last_value and
+is_called so a restore preserves generated IDs. The provisioning script now grants
+SELECT on existing sequences and defaults for sequences created by the migration
+owner. SELECT alone does not allow nextval/setval; do not grant USAGE or UPDATE.
+The owner applied these statements in the production SQL Editor on November 28:
+
+```sql
+GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO choralation_backup;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+  GRANT SELECT ON SEQUENCES TO choralation_backup;
+```
+
+For this project postgres is the verified migration/table owner. Other projects
+must use their own verified migration owner. Login checks now reject missing
+sequence reads; the isolated Linux rehearsal has been changed to provision and use
+the real restricted backup role rather than exporting as a superuser. Those code
+and regression-test corrections are local pending publication; no app deployment
+is needed for the production privilege correction. The retry and restore passed
+in the already-confirmed quiet window. Do not count the initial failed run as a
+verified backup.
+
+### Backup and rehearsal procedure
 
 Allow a coordinated quiet window. The current live code has no automatic write
 barrier: ask everyone to stop edits/uploads and avoid dashboard/SQL content
@@ -707,8 +825,9 @@ changes throughout the backup. Reads can continue.
 
 1. In Render open Choralation's **Events** and record the **currently live full
    40-character commit SHA**. The last observed live commit was
-   `91a8c566094383eb21a2e69ad2878dcf75601c54`; verify the current value rather than
-   reusing it blindly. The backup describes the live schema/code, not the new
+   `91a8c566094383eb21a2e69ad2878dcf75601c54`, reconfirmed from Render's live
+   deployment on November 28. Recheck if the service changes before the backup.
+   The backup describes the live schema/code, not the new
    implementation waiting on main.
 2. In GitHub **Actions → Production operations → Run workflow**, choose branch
    **main** and fill in:
@@ -730,8 +849,8 @@ changes throughout the backup. Reads can continue.
    Linux resources, verifies data and access using the captured historical code,
    and cleans up. It never restores over production.
 
-- [ ] Completed paired DB/PDF snapshot ID recorded.
-- [ ] Full hosted-data restore rehearsal green for that exact snapshot.
+- [x] Completed paired DB/PDF snapshot ID recorded: 20261127T232809Z-50d013eec02fbc31, run 46082543392 (November 28).
+- [x] Full hosted-data restore rehearsal green for that exact snapshot: run 46082960563, 14 objects, 57.9 seconds (November 28).
 
 **Stop if either run fails.** Fix the configuration and repeat backup/restore
 before deploying. If edits resume or significant time passes, take a fresh pair
@@ -858,9 +977,12 @@ passwords, private keys, full database URLs and private backup contents elsewher
 | Production Session pooler | aws-1-eu-central-1.pooler.supabase.com:5432 / database postgres / owner username postgres.lhwtctrekcllnpselhsb |
 | Source reader UUID | bd179bb0-6208-4907-addb-dfd0b4eefb95 (confirmed account and two SELECT policies verified November 27) |
 | Public age recipient | age1x28785mcf4w3wdu8035xascch3h9jyz5p9snedzygr3wg7mwn94s9v96sz |
-| First backup run / snapshot ID | Pending |
-| First restore run | Pending |
-| Safeguard implementation SHA / CI run | Pending |
+| First backup run / snapshot ID | 46082543392 / 20261127T232809Z-50d013eec02fbc31; 14 objects; 8,023,649 bytes; November 28 |
+| First restore run | 46082960563 (passed for that exact snapshot; 14 objects; 57.9 seconds; November 28) |
+| Safeguard implementation SHA / CI run | 2d996e63711463bfdeb9b6750951b7b9fb73ad94 / 46075337655 (all jobs green, November 28) |
+| PR implementation head / passing CI | 2761b441a431e2dcd2d4d9df2145414a85d74d5e / 46073741651 (PR #2 merged) |
+| Main implementation / CI | 2d996e63711463bfdeb9b6750951b7b9fb73ad94 / 46075337655 (all jobs green) |
+| R10 policy / Data API / workflow evidence | Source policy metadata verified; backup scope_ok=true owner-confirmed with RLS/role screenshots; production Data API off owner-confirmed, November 28; checker local, hosted run pending |
 | Safeguard Render deployment ID | Pending |
 | Post-setup backup / restore runs | Pending |
 | First automatic release SHA / run / deploy ID | Pending |

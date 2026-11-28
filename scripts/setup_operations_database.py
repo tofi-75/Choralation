@@ -74,6 +74,17 @@ def verify_login(url, role, database):
             if role == "choralation_backup":
                 # Exercise the real grant without fetching private application rows.
                 connection.execute("SELECT id FROM public.hymns_hymn LIMIT 0")
+                readable = connection.execute(
+                    "SELECT NOT EXISTS (SELECT 1 FROM pg_class sequence "
+                    "JOIN pg_namespace namespace ON namespace.oid = sequence.relnamespace "
+                    "WHERE namespace.nspname = 'public' AND sequence.relkind = 'S' "
+                    "AND NOT has_sequence_privilege(current_user, sequence.oid, 'SELECT'))"
+                ).fetchone()
+                if readable != (True,):
+                    raise SetupError(
+                        "Backup reader needs SELECT on all public sequences for pg_dump; "
+                        "apply the sequence grants in database-roles.sql."
+                    )
     except psycopg.Error:
         raise SetupError(
             "Database login/check failed. Check the role password, target and grants; "

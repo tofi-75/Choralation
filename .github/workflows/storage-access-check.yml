@@ -1,0 +1,108 @@
+name: Storage permission acceptance
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: choralation-production-operations
+  cancel-in-progress: false
+  queue: max
+env:
+  ACCESS_PROBE_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+  BACKUP_PROJECT_REF: ${{ vars.BACKUP_PROJECT_REF }}
+  BACKUP_BUCKET: choralation-backups
+jobs:
+  source:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: production-operations
+    env:
+      SOURCE_PROJECT_REF: ${{ vars.SOURCE_PROJECT_REF }}
+      SOURCE_BUCKET: sheet-music
+      SOURCE_PUBLISHABLE_KEY: ${{ secrets.SOURCE_PUBLISHABLE_KEY }}
+      SOURCE_EMAIL: ${{ secrets.SOURCE_BACKUP_EMAIL }}
+      SOURCE_PASSWORD: ${{ secrets.SOURCE_BACKUP_PASSWORD }}
+      BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/operations-python
+      - run: python scripts/storage-access-check.py source --probe-id "$ACCESS_PROBE_ID"
+  writer:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: production-operations
+    env:
+      BACKUP_PUBLISHABLE_KEY: ${{ secrets.BACKUP_PUBLISHABLE_KEY }}
+      BACKUP_EMAIL: ${{ secrets.BACKUP_WRITER_EMAIL }}
+      BACKUP_PASSWORD: ${{ secrets.BACKUP_WRITER_PASSWORD }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/operations-python
+      - run: python scripts/storage-access-check.py writer --probe-id "$ACCESS_PROBE_ID"
+  reader:
+    needs: writer
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: backup-restore
+    env:
+      BACKUP_PUBLISHABLE_KEY: ${{ secrets.BACKUP_PUBLISHABLE_KEY }}
+      BACKUP_EMAIL: ${{ secrets.BACKUP_READER_EMAIL }}
+      BACKUP_PASSWORD: ${{ secrets.BACKUP_READER_PASSWORD }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/operations-python
+      - run: python scripts/storage-access-check.py reader --probe-id "$ACCESS_PROBE_ID"
+  pruner:
+    needs: [writer, reader]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: backup-retention
+    env:
+      BACKUP_PUBLISHABLE_KEY: ${{ secrets.BACKUP_PUBLISHABLE_KEY }}
+      BACKUP_EMAIL: ${{ secrets.BACKUP_PRUNER_EMAIL }}
+      BACKUP_PASSWORD: ${{ secrets.BACKUP_PRUNER_PASSWORD }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/operations-python
+      - run: python scripts/storage-access-check.py pruner --probe-id "$ACCESS_PROBE_ID"
+  cleanup:
+    needs: [writer, reader, pruner]
+    if: ${{ always() && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: backup-retention
+    env:
+      BACKUP_PUBLISHABLE_KEY: ${{ secrets.BACKUP_PUBLISHABLE_KEY }}
+      BACKUP_EMAIL: ${{ secrets.BACKUP_PRUNER_EMAIL }}
+      BACKUP_PASSWORD: ${{ secrets.BACKUP_PRUNER_PASSWORD }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/operations-python
+      - run: python scripts/storage-access-check.py cleanup --probe-id "$ACCESS_PROBE_ID"
+  acceptance:
+    needs: [source, writer, reader, pruner, cleanup]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every identity and probe cleanup
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python - <<'PY'
+          import json, os
+          results = json.loads(os.environ['RESULTS'])
+          assert results and all(job['result'] == 'success' for job in results.values()), results
+          PY

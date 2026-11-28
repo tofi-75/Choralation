@@ -53,7 +53,13 @@ def test_checks_correct_role_readonly_permissions_without_private_rows(monkeypat
         False,
         False,
     )
-    connection.execute.return_value.fetchone.return_value = row
+
+    def execute(query):
+        result = MagicMock()
+        result.fetchone.return_value = (True,) if "has_sequence_privilege" in query else row
+        return result
+
+    connection.execute.side_effect = execute
     connect = MagicMock()
     connect.return_value.__enter__.return_value = connection
     monkeypatch.setattr(setup.psycopg, "connect", connect)
@@ -61,6 +67,39 @@ def test_checks_correct_role_readonly_permissions_without_private_rows(monkeypat
     assert any("LIMIT 0" in call.args[0] for call in connection.execute.call_args_list) == (
         role == "choralation_backup"
     )
+    assert any(
+        "has_sequence_privilege" in call.args[0] for call in connection.execute.call_args_list
+    ) == (role == "choralation_backup")
+
+
+def test_table_access_without_sequence_read_access_rejects_backup_setup(monkeypatch):
+    connection = MagicMock()
+    role_row = (
+        "postgres",
+        "choralation_backup",
+        False,
+        False,
+        False,
+        False,
+        False,
+        True,
+        True,
+        False,
+        False,
+        False,
+    )
+
+    def execute(query):
+        result = MagicMock()
+        result.fetchone.return_value = (False,) if "has_sequence_privilege" in query else role_row
+        return result
+
+    connection.execute.side_effect = execute
+    connect = MagicMock()
+    connect.return_value.__enter__.return_value = connection
+    monkeypatch.setattr(setup.psycopg, "connect", connect)
+    with pytest.raises(setup.SetupError, match="SELECT on all public sequences"):
+        setup.verify_login("fictional-private-url", "choralation_backup", "postgres")
 
 
 @pytest.mark.parametrize(
